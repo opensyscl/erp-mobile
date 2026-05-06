@@ -15,6 +15,7 @@ import Animated, {
   Easing,
   FadeIn,
   FadeInDown,
+  FadeInUp,
   SlideInDown,
   SlideOutDown,
   useAnimatedStyle,
@@ -29,8 +30,9 @@ import { Button, Card, Pressable, Skeleton, Text } from '~/components/ui';
 import { useBrand } from '~/hooks/useBrand';
 import { useColorScheme } from '~/hooks/useColorScheme';
 import { useRealtimeInvalidate } from '~/hooks/useRealtime';
+import { useSafeBack } from '~/hooks/useSafeBack';
 import { ApiError, apiRequest } from '~/lib/api';
-import { ArrowLeft, ArrowRight } from '~/lib/icons';
+import { ArrowLeft, ArrowRight, BarChart, Package, PackageReceive, Plus, Receipt, Truck, User as UserIcon, UserGroup, Wallet } from '~/lib/icons';
 import { Channels, RealtimeEvents } from '~/lib/realtime';
 import { useAuthStore } from '~/stores/auth';
 import { useTenantStore } from '~/stores/tenant';
@@ -42,8 +44,34 @@ import type {
   RoutePaymentStatus,
 } from '~/types/routes';
 
+interface MyLoadCard {
+  id: number;
+  status: 'open' | 'closed';
+  is_today: boolean;
+  date: string | null;
+  created_at: string | null;
+  closed_at: string | null;
+  progress: { total: number; delivered: number; cancelled: number; pct: number };
+  amounts: { total: number; collected: number; pending: number };
+}
+
 function formatCLP(n: number): string {
   return '$' + Math.round(n).toLocaleString('es-CL');
+}
+
+function greeting(): string {
+  const h = new Date().getHours();
+  if (h < 6) return 'Buenas noches';
+  if (h < 13) return 'Buenos días';
+  if (h < 20) return 'Buenas tardes';
+  return 'Buenas noches';
+}
+
+function dayShortLabel(): string {
+  const days = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+  const months = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+  const d = new Date();
+  return `${(days[d.getDay()] ?? '').slice(0, 3)} · ${d.getDate()} ${months[d.getMonth()] ?? ''}`;
 }
 
 const STATUS_LABEL: Record<RouteOrder['status'], string> = {
@@ -70,6 +98,9 @@ export default function RoutesScreen() {
   const isDriver = me?.role === 'tenant_driver';
   const params = useLocalSearchParams<{ driver_id?: string }>();
   const driverIdParam = params.driver_id ?? null;
+  // Driver llega aquí por redirect desde /(app)/ — no hay stack, así que router.back()
+  // dispara "GO_BACK was not handled". Caemos al admin dashboard si admin, o al home.
+  const safeBack = useSafeBack(isDriver ? '/(app)/settings' : '/(app)/routes/admin');
 
   const [activeOrder, setActiveOrder] = useState<RouteOrder | null>(null);
 
@@ -85,13 +116,27 @@ export default function RoutesScreen() {
       }),
   });
 
+  // Mis cargas — últimas 7 (incluyendo hoy)
+  const myLoadsKey = ['routes', 'my-loads', driverIdParam ?? 'self'];
+  const { data: myLoadsData } = useQuery({
+    queryKey: myLoadsKey,
+    queryFn: () =>
+      apiRequest<{ data: MyLoadCard[] }>({
+        method: 'GET',
+        url: driverIdParam
+          ? `/api/mobile/routes/my-loads?driver_id=${encodeURIComponent(driverIdParam)}`
+          : '/api/mobile/routes/my-loads',
+      }).then((r) => r.data),
+  });
+  const myLoads = myLoadsData ?? [];
+
   // Realtime: el conductor debe ver cambios cuando admin confirma carga,
   // crea órdenes nuevas o cierra la jornada.
   const routesChannel = tenant ? Channels.tenantRoutes(tenant.id) : null;
-  useRealtimeInvalidate(routesChannel, RealtimeEvents.RouteLoadConfirmed, [todayKey]);
-  useRealtimeInvalidate(routesChannel, RealtimeEvents.RouteLoadClosed, [todayKey]);
-  useRealtimeInvalidate(routesChannel, RealtimeEvents.RouteOrderCreated, [todayKey]);
-  useRealtimeInvalidate(routesChannel, RealtimeEvents.RouteOrderStatusChanged, [todayKey]);
+  useRealtimeInvalidate(routesChannel, RealtimeEvents.RouteLoadConfirmed, [todayKey, myLoadsKey]);
+  useRealtimeInvalidate(routesChannel, RealtimeEvents.RouteLoadClosed, [todayKey, myLoadsKey]);
+  useRealtimeInvalidate(routesChannel, RealtimeEvents.RouteOrderCreated, [todayKey, myLoadsKey]);
+  useRealtimeInvalidate(routesChannel, RealtimeEvents.RouteOrderStatusChanged, [todayKey, myLoadsKey]);
 
   const load = data?.data ?? null;
   const orders = load?.orders ?? [];
@@ -142,8 +187,9 @@ export default function RoutesScreen() {
             colors={[brand.brand]}
           />
         }
+        style={{ marginTop: 0 }}
       >
-        {/* Hero brand bg */}
+        {/* Header brand compacto — estilo enterprise home */}
         <View
           style={{
             backgroundColor: brand.brand,
@@ -153,138 +199,208 @@ export default function RoutesScreen() {
             overflow: 'hidden',
           }}
         >
-          <HeaderPattern color={brand.brandFg} intensity={1.1} />
+          <HeaderPattern color={brand.brandFg} intensity={1.0} />
+          <Animated.View entering={FadeInDown.duration(360)}>
+            <View className="flex-row items-center justify-between">
+              <View className="flex-row items-center gap-2.5">
+                <View
+                  style={{
+                    width: 26,
+                    height: 26,
+                    borderRadius: 8,
+                    backgroundColor: 'rgba(255,255,255,0.22)',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: brand.brandFg,
+                      fontFamily: Fonts.semibold,
+                      fontSize: 12,
+                      includeFontPadding: false,
+                    } as never}
+                  >
+                    {(me?.name ?? 'U')[0]?.toUpperCase()}
+                  </Text>
+                </View>
+                <Text
+                  style={{
+                    color: brand.brandFg,
+                    fontFamily: Fonts.medium,
+                    fontSize: 14,
+                    letterSpacing: -0.3,
+                  }}
+                >
+                  {tenant?.name ?? 'OpenSys'}
+                </Text>
+              </View>
+              <View
+                className="px-3 py-1.5 rounded-full flex-row items-center gap-1.5"
+                style={{ backgroundColor: 'rgba(255,255,255,0.14)' }}
+              >
+                <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: brand.brandFg, opacity: 0.7 }} />
+                <Text
+                  style={{
+                    color: brand.brandFg,
+                    fontFamily: Fonts.medium,
+                    fontSize: 11,
+                    letterSpacing: 0.3,
+                  }}
+                >
+                  {dayShortLabel()}
+                </Text>
+              </View>
+            </View>
 
-          <View className="flex-row items-center justify-between">
-            <Pressable
-              haptic="selection"
-              onPress={() => router.back()}
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: 20,
-                backgroundColor: 'rgba(255,255,255,0.18)',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <ArrowLeft size={18} color={brand.brandFg} />
-            </Pressable>
             <Text
               style={{
                 color: brand.brandFg,
                 fontFamily: Fonts.medium,
-                fontSize: 11,
-                letterSpacing: 1.4,
-                textTransform: 'uppercase',
-                opacity: 0.7,
+                fontSize: 26,
+                lineHeight: 36,
+                letterSpacing: -0.4,
+                marginTop: 22,
               }}
             >
-              {isDriver ? 'Mi ruta' : 'Reparto'}
-            </Text>
-            <View style={{ width: 40 }} />
-          </View>
-
-          <View style={{ marginTop: 28 }}>
-            <Text
-              style={{
-                color: brand.brandFg,
-                fontFamily: Fonts.medium,
-                fontSize: 11,
-                letterSpacing: 1.4,
-                textTransform: 'uppercase',
-                opacity: 0.7,
-              }}
-            >
-              Hoy · {load?.driver?.name ?? '—'}
+              {greeting()},
             </Text>
             <Text
               style={{
                 color: brand.brandFg,
                 fontFamily: Fonts.semibold,
-                fontSize: 30,
-                lineHeight: 40,
-                letterSpacing: -0.9,
-                marginTop: 4,
+                fontSize: 26,
+                lineHeight: 36,
+                letterSpacing: -0.4,
               }}
             >
-              {load ? `${load.progress.delivered} de ${load.progress.total} entregas` : 'Sin ruta activa'}
+              {(me?.name ?? 'Equipo').split(' ')[0]}.
             </Text>
-            {load ? (
-              <Text
-                style={{
-                  color: brand.brandFg,
-                  opacity: 0.7,
-                  fontFamily: Fonts.regular,
-                  fontSize: 14,
-                  marginTop: 6,
-                }}
-              >
-                {formatCLP(load.amounts.collected)} cobrado de {formatCLP(load.amounts.total)}
-              </Text>
-            ) : null}
-          </View>
+            <Text
+              style={{
+                color: brand.brandFg,
+                opacity: 0.62,
+                fontFamily: Fonts.regular,
+                fontSize: 13,
+                lineHeight: 20,
+                marginTop: 8,
+                maxWidth: 320,
+              }}
+            >
+              {load ? `Tu ruta del día · ${load.progress.total} paradas asignadas.` : 'Sin ruta activa hoy.'}
+            </Text>
+          </Animated.View>
         </View>
 
-        {/* Progress card flotante */}
+        {/* Hero Card flotante — KPI principal estilo enterprise */}
         {load ? (
-          <Animated.View
-            entering={FadeInDown.duration(400)}
-            style={{
-              backgroundColor: colors.bgElevated,
-              marginHorizontal: 20,
-              marginTop: -68,
-              borderRadius: 22,
-              padding: 20,
-              shadowColor: '#0a0d14',
-              shadowOffset: { width: 0, height: 10 },
-              shadowOpacity: 0.08,
-              shadowRadius: 22,
-              elevation: 6,
-              borderWidth: 1,
-              borderColor: colors.border,
-            }}
-          >
-            <View className="flex-row items-baseline justify-between">
-              <Text variant="overline" tone="brand">
-                Progreso
-              </Text>
-              <Text
-                style={{
-                  fontFamily: Fonts.semibold,
-                  fontSize: 13,
-                  color: brand.brand,
-                  letterSpacing: -0.2,
-                }}
-              >
-                {load.progress.pct}%
-              </Text>
-            </View>
+          <Animated.View entering={FadeInUp.delay(140).duration(360)} className="mx-5" style={{ marginTop: -68 }}>
+            <Card variant="elevated" padding="lg" className="overflow-hidden">
+              <View className="flex-row items-start">
+                <View className="flex-1 pr-2">
+                  <Text variant="overline" tone="brand">
+                    Mi ruta de hoy
+                  </Text>
+                  <View className="flex-row items-baseline gap-2 mt-2">
+                    <Text
+                      style={{
+                        fontFamily: Fonts.semibold,
+                        fontSize: 32,
+                        lineHeight: 42,
+                        letterSpacing: -0.7,
+                        color: colors.fg,
+                        fontVariant: ['tabular-nums'],
+                        includeFontPadding: false,
+                      } as never}
+                    >
+                      {load.progress.delivered}
+                    </Text>
+                    <Text
+                      style={{
+                        fontFamily: Fonts.medium,
+                        fontSize: 18,
+                        color: colors.fgMuted,
+                        fontVariant: ['tabular-nums'],
+                      }}
+                    >
+                      / {load.progress.total} entregas
+                    </Text>
+                  </View>
+                  <Text variant="caption" tone="muted" className="mt-1">
+                    {load.progress.pending} pendientes · {load.progress.pct}% completado
+                  </Text>
+                </View>
+                <View
+                  style={{
+                    width: 56,
+                    height: 56,
+                    borderRadius: 16,
+                    backgroundColor: brand.brandSubtle,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Truck size={26} color={brand.brand} strokeWidth={1.6} />
+                </View>
+              </View>
 
-            <ProgressBar pct={load.progress.pct} brand={brand.brand} bg={colors.bgMuted} />
-
-            <View style={{ flexDirection: 'row', marginTop: 18 }}>
-              <ProgressStat
-                label="Entregadas"
-                value={String(load.progress.delivered)}
-                color={colors.success}
-              />
-              <ProgressStat
-                label="Pendientes"
-                value={String(load.progress.pending)}
-                color={brand.brand}
-              />
-              <ProgressStat
-                label="Por cobrar"
-                value={formatCLP(load.amounts.pending)}
-                color={colors.fg}
-                last
-              />
-            </View>
+              {/* Progress bar */}
+              <ProgressBar pct={load.progress.pct} brand={brand.brand} bg={colors.bgMuted} />
+            </Card>
           </Animated.View>
         ) : null}
 
-        {/* Lista de paradas */}
+        {/* 3 KPI cards — Entregado · Pendiente · Por cobrar */}
+        {load ? (
+          <Animated.View entering={FadeInUp.delay(220).duration(360)} className="flex-row gap-2.5 mx-5 mt-3">
+            <MiniStat
+              label="Entregadas"
+              value={String(load.progress.delivered)}
+              sub={`de ${load.progress.total}`}
+              tint={colors.success}
+            />
+            <MiniStat
+              label="Pendientes"
+              value={String(load.progress.pending)}
+              sub={load.progress.pending === 1 ? 'parada' : 'paradas'}
+              tint={brand.brand}
+            />
+            <MiniStat
+              label="Por cobrar"
+              value={formatCLP(load.amounts.pending)}
+              sub={`${formatCLP(load.amounts.collected)} cobrado`}
+              tint={colors.warning}
+            />
+          </Animated.View>
+        ) : null}
+
+        {/* Mis cargas — últimas 7 con scroll horizontal */}
+        {myLoads.length > 0 ? (
+          <Animated.View
+            entering={FadeInUp.delay(260).duration(360)}
+            style={{ marginTop: 20 }}
+          >
+            <View className="flex-row items-baseline justify-between px-5 mb-3">
+              <Text variant="overline" tone="subtle">
+                Mis cargas
+              </Text>
+              <Text variant="caption" tone="muted">
+                últimas {myLoads.length}
+              </Text>
+            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: 16, gap: 10 }}
+            >
+              {myLoads.map((l, i) => (
+                <MyLoadChip key={l.id} load={l} index={i} />
+              ))}
+            </ScrollView>
+          </Animated.View>
+        ) : null}
+
+        {/* Lista de pedidos pendientes — destacado */}
         {isLoading ? (
           <View className="px-5 pt-6 gap-2">
             {[0, 1, 2, 3].map((i) => (
@@ -301,10 +417,24 @@ export default function RoutesScreen() {
             </Text>
           </View>
         ) : (
-          <View className="px-5 mt-7 gap-2">
-            <Text variant="overline" tone="subtle" className="mb-2">
-              Paradas ({orders.length})
-            </Text>
+          <Animated.View entering={FadeInUp.delay(280).duration(360)} className="px-5 mt-7 gap-2">
+            <View className="flex-row items-baseline justify-between mb-2">
+              <Text variant="overline" tone="subtle">
+                Pedidos por entregar
+              </Text>
+              <Text
+                style={{
+                  fontFamily: Fonts.medium,
+                  fontSize: 12,
+                  color: colors.fgMuted,
+                  fontVariant: ['tabular-nums'],
+                  includeFontPadding: false,
+                } as never}
+              >
+                {sortedOrders.filter((o) => o.status === 'pending').length} pendientes ·{' '}
+                {sortedOrders.filter((o) => o.status === 'delivered').length} entregadas
+              </Text>
+            </View>
             {sortedOrders.map((o, i) => (
               <Animated.View
                 key={o.id}
@@ -313,8 +443,47 @@ export default function RoutesScreen() {
                 <OrderCard order={o} onPress={() => setActiveOrder(o)} brand={brand} />
               </Animated.View>
             ))}
-          </View>
+          </Animated.View>
         )}
+
+        {/* Accesos rápidos — 2x2 grid estilo enterprise home */}
+        <Animated.View entering={FadeInUp.delay(360).duration(360)} className="mt-7">
+          <Text variant="overline" tone="subtle" style={{ marginLeft: 20, marginBottom: 12 }}>
+            Accesos rápidos
+          </Text>
+          <View className="flex-row flex-wrap px-4">
+            <DriverGridAction
+              icon={<Plus size={20} color={brand.brand} />}
+              label="Nuevo Pedido"
+              onPress={() => router.push('/(app)/routes/orders/new' as never)}
+            />
+            <DriverGridAction
+              icon={<Package size={20} color={brand.brand} />}
+              label="Pedidos"
+              onPress={() => router.push('/(app)/routes/orders' as never)}
+            />
+            <DriverGridAction
+              icon={<UserIcon size={20} color={brand.brand} />}
+              label="Clientes"
+              onPress={() => router.push('/(app)/routes/clients' as never)}
+            />
+            <DriverGridAction
+              icon={<PackageReceive size={20} color={brand.brand} />}
+              label="Producción"
+              onPress={() => router.push('/(app)/routes/production' as never)}
+            />
+            <DriverGridAction
+              icon={<Truck size={20} color={brand.brand} />}
+              label="Cargas"
+              onPress={() => router.push('/(app)/routes/loads' as never)}
+            />
+            <DriverGridAction
+              icon={<Wallet size={20} color={brand.brand} />}
+              label="Facturación"
+              onPress={() => router.push('/(app)/routes/billing' as never)}
+            />
+          </View>
+        </Animated.View>
       </ScrollView>
 
       {/* Bottom action: cerrar ruta */}
@@ -348,6 +517,398 @@ export default function RoutesScreen() {
           }}
         />
       ) : null}
+    </View>
+  );
+}
+
+/* ─────────────── MyLoadChip — tarjeta de carga histórica ─────────────── */
+
+function dateLabel(iso: string | null, isToday: boolean): string {
+  if (isToday) return 'Hoy';
+  if (!iso) return '—';
+  const d = new Date(iso);
+  const now = new Date();
+  const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+  if (
+    d.getFullYear() === yesterday.getFullYear() &&
+    d.getMonth() === yesterday.getMonth() &&
+    d.getDate() === yesterday.getDate()
+  ) {
+    return 'Ayer';
+  }
+  const days = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+  const months = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+  return `${days[d.getDay()]} ${d.getDate()} ${months[d.getMonth()]}`;
+}
+
+function MyLoadChip({ load, index }: { load: MyLoadCard; index: number }) {
+  const scheme = useColorScheme();
+  const colors = palette[scheme];
+  const brand = useBrand();
+  const isOpen = load.status === 'open';
+  const accent = isOpen ? brand.brand : colors.fgMuted;
+
+  return (
+    <Animated.View entering={FadeIn.delay(Math.min(index * 50, 250)).duration(280)}>
+      <View
+        style={{
+          width: 168,
+          backgroundColor: colors.bgElevated,
+          borderRadius: 16,
+          borderWidth: load.is_today ? 1.5 : 1,
+          borderColor: load.is_today ? brand.brand : colors.border,
+          padding: 14,
+        }}
+      >
+        <View className="flex-row items-center justify-between">
+          <Text
+            style={{
+              fontFamily: Fonts.semibold,
+              fontSize: 13,
+              letterSpacing: -0.2,
+              color: colors.fg,
+              includeFontPadding: false,
+            } as never}
+          >
+            {dateLabel(load.created_at, load.is_today)}
+          </Text>
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 4,
+              paddingHorizontal: 7,
+              paddingVertical: 1,
+              borderRadius: 999,
+              backgroundColor: accent + '18',
+            }}
+          >
+            <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: accent }} />
+            <Text
+              style={{
+                fontFamily: Fonts.medium,
+                fontSize: 9,
+                color: accent,
+                letterSpacing: 0.4,
+                includeFontPadding: false,
+              } as never}
+            >
+              {isOpen ? 'EN RUTA' : 'CERRADA'}
+            </Text>
+          </View>
+        </View>
+
+        <View className="flex-row items-baseline gap-1 mt-3">
+          <Text
+            style={{
+              fontFamily: Fonts.semibold,
+              fontSize: 22,
+              lineHeight: 28,
+              letterSpacing: -0.5,
+              color: colors.fg,
+              fontVariant: ['tabular-nums'],
+              includeFontPadding: false,
+            } as never}
+          >
+            {load.progress.delivered}
+          </Text>
+          <Text
+            style={{
+              fontFamily: Fonts.medium,
+              fontSize: 13,
+              color: colors.fgMuted,
+              fontVariant: ['tabular-nums'],
+            }}
+          >
+            /{load.progress.total}
+          </Text>
+        </View>
+        <Text variant="caption" tone="subtle" className="mt-0.5">
+          entregas
+        </Text>
+
+        {/* Mini progress bar */}
+        <View
+          style={{
+            marginTop: 10,
+            height: 4,
+            borderRadius: 999,
+            backgroundColor: colors.bgMuted,
+            overflow: 'hidden',
+          }}
+        >
+          <View
+            style={{
+              width: `${load.progress.pct}%`,
+              height: '100%',
+              backgroundColor: isOpen ? brand.brand : colors.success,
+            }}
+          />
+        </View>
+
+        <Text
+          style={{
+            marginTop: 8,
+            fontFamily: Fonts.semibold,
+            fontSize: 13,
+            color: colors.success,
+            fontVariant: ['tabular-nums'],
+            includeFontPadding: false,
+          } as never}
+          numberOfLines={1}
+        >
+          {formatCLP(load.amounts.collected)}
+        </Text>
+        {load.amounts.pending > 0 ? (
+          <Text variant="caption" tone="warning" numberOfLines={1}>
+            {formatCLP(load.amounts.pending)} por cobrar
+          </Text>
+        ) : null}
+      </View>
+    </Animated.View>
+  );
+}
+
+/* ─────────────── MiniStat (estilo enterprise home) ─────────────── */
+
+function MiniStat({
+  label,
+  value,
+  sub,
+  tint,
+}: {
+  label: string;
+  value: string;
+  sub: string;
+  tint?: string;
+}) {
+  const scheme = useColorScheme();
+  const colors = palette[scheme];
+  return (
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: colors.bgElevated,
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: colors.border,
+        padding: 14,
+      }}
+    >
+      <View className="flex-row items-center gap-1.5">
+        {tint ? (
+          <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: tint }} />
+        ) : null}
+        <Text variant="overline" tone="subtle">
+          {label}
+        </Text>
+      </View>
+      <Text
+        style={{
+          fontFamily: Fonts.semibold,
+          fontSize: 18,
+          lineHeight: 26,
+          letterSpacing: -0.4,
+          marginTop: 6,
+          color: colors.fg,
+          fontVariant: ['tabular-nums'],
+          includeFontPadding: false,
+        } as never}
+        numberOfLines={1}
+      >
+        {value}
+      </Text>
+      <Text variant="caption" tone="subtle" className="mt-0.5">
+        {sub}
+      </Text>
+    </View>
+  );
+}
+
+/* ─────────────── Driver Grid Action (estilo enterprise 2x2) ─────────────── */
+
+function DriverGridAction({
+  icon,
+  label,
+  onPress,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  onPress?: () => void;
+}) {
+  const scheme = useColorScheme();
+  const colors = palette[scheme];
+  return (
+    <View className="w-1/2 px-1.5 py-1.5">
+      <Pressable
+        onPress={onPress}
+        haptic="selection"
+        scale="subtle"
+        style={{
+          borderRadius: 16,
+          backgroundColor: colors.bgElevated,
+          borderWidth: 1,
+          borderColor: colors.border,
+          padding: 16,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 12,
+        }}
+      >
+        <View
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 10,
+            backgroundColor: colors.bgMuted,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          {icon}
+        </View>
+        <Text
+          style={{
+            fontFamily: Fonts.medium,
+            fontSize: 13,
+            color: colors.fg,
+            letterSpacing: -0.2,
+            flex: 1,
+            includeFontPadding: false,
+          } as never}
+          numberOfLines={1}
+        >
+          {label}
+        </Text>
+      </Pressable>
+    </View>
+  );
+}
+
+/* ─────────────── Driver Quick Action ─────────────── */
+
+function DriverQuickAction({
+  label,
+  icon,
+  bg,
+  fg,
+  onPress,
+}: {
+  label: string;
+  icon: React.ReactNode;
+  bg?: string;
+  fg?: string;
+  onPress: () => void;
+}) {
+  const scheme = useColorScheme();
+  const colors = palette[scheme];
+  const baseBg = bg ?? colors.bgElevated;
+  const baseFg = fg ?? colors.fg;
+  return (
+    <Pressable
+      haptic="selection"
+      scale="subtle"
+      onPress={onPress}
+      style={{
+        width: 92,
+        height: 92,
+        borderRadius: 16,
+        backgroundColor: baseBg,
+        borderWidth: bg ? 0 : 1,
+        borderColor: colors.border,
+        padding: 11,
+        justifyContent: 'space-between',
+      }}
+    >
+      <View
+        style={{
+          width: 32,
+          height: 32,
+          borderRadius: 9,
+          backgroundColor: bg ? 'rgba(255,255,255,0.18)' : colors.bgMuted,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        {icon}
+      </View>
+      <Text
+        style={{
+          fontFamily: Fonts.medium,
+          fontSize: 11,
+          lineHeight: 15,
+          color: baseFg,
+          letterSpacing: -0.1,
+          includeFontPadding: false,
+        } as never}
+        numberOfLines={1}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
+/* ─────────────── Driver KPI Card (estilo admin) ─────────────── */
+
+function DriverKpiCard({
+  label,
+  value,
+  accent,
+  icon,
+  isMoney,
+}: {
+  label: string;
+  value: string;
+  accent: string;
+  icon: React.ReactNode;
+  isMoney?: boolean;
+}) {
+  const scheme = useColorScheme();
+  const colors = palette[scheme];
+  return (
+    <View
+      style={{
+        flex: 1,
+        padding: 14,
+        borderRadius: 16,
+        backgroundColor: colors.bgElevated,
+        borderWidth: 1,
+        borderColor: colors.border,
+      }}
+    >
+      <View className="flex-row items-center gap-2">
+        <View
+          style={{
+            width: 28,
+            height: 28,
+            borderRadius: 8,
+            backgroundColor: accent + '18',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          {icon}
+        </View>
+        <Text variant="caption" tone="subtle" style={{ fontSize: 10, letterSpacing: 0.4 }}>
+          {label.toUpperCase()}
+        </Text>
+      </View>
+      <Text
+        style={{
+          fontFamily: Fonts.semibold,
+          fontSize: isMoney ? 18 : 26,
+          lineHeight: isMoney ? 26 : 36,
+          letterSpacing: isMoney ? -0.3 : -0.7,
+          color: colors.fg,
+          fontVariant: ['tabular-nums'],
+          marginTop: 8,
+          includeFontPadding: false,
+        } as never}
+        numberOfLines={1}
+      >
+        {value}
+      </Text>
     </View>
   );
 }

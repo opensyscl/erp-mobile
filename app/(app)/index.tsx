@@ -70,10 +70,8 @@ export default function HomeScreen() {
   const branchId = useTenantStore((s) => s.currentBranchId);
   const branch = branches.find((b) => b.id === branchId) ?? branches[0];
 
-  // Routing inteligente para tenants con módulo Routes:
-  //   - admin/manager → dashboard agregado (/routes/admin)
-  //   - driver (Repartidor) → su ruta del día (/routes)
-  // Otros usuarios ven este home genérico con quick actions.
+  // En tenants con Routes, TODOS (admin, manager, driver) entran al dashboard agregado.
+  // El driver llega a "Mi ruta del día" desde el tab "Rutas" o desde Accesos rápidos.
   const isAdminLike =
     user?.role === 'tenant_admin' || user?.role === 'tenant_manager';
   const isDriver = user?.role === 'tenant_driver';
@@ -105,7 +103,9 @@ export default function HomeScreen() {
   const firstName = (user?.name ?? 'equipo').split(' ')[0];
   const initial = firstName?.[0]?.toUpperCase() ?? 'O';
 
-  // Redirect ANTES del render — el home se elige según rol + módulo del tenant.
+  // Redirect ANTES del render:
+  //   - admin/manager → dashboard agregado (/routes/admin)
+  //   - driver (Repartidor) → su ruta del día con hero "X de Y entregas" (/routes)
   if (isAdminLike && hasRoutesAccess) {
     return <Redirect href={'/(app)/routes/admin' as never} />;
   }

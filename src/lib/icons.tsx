@@ -15,6 +15,7 @@ import {
   Package02Icon,
   PaintBoardIcon,
   DeliveryTruck01Icon,
+  UserGroup02Icon,
   PlusSignIcon,
   RadioIcon,
   Search01Icon,
@@ -87,6 +88,7 @@ export const BarChart = makeIcon(ChartBarLineIcon);
 
 // Profile / settings
 export const User = makeIcon(User02Icon);
+export const UserGroup = makeIcon(UserGroup02Icon);
 export const LogOut = makeIcon(Logout02Icon);
 export const Moon = makeIcon(Moon02Icon);
 export const Sun = makeIcon(Sun02Icon);

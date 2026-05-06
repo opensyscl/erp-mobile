@@ -19,15 +19,16 @@ export default function AppLayout() {
   const modules = tenant?.modules ?? [];
   const hasRoutes = modules.includes('routes');
   const hasInventory = modules.includes('inventory');
-  const hasAnalytics = modules.includes('analytics') || hasRoutes; // routes admin ve analytics
+  const hasAnalytics = modules.includes('analytics') || hasRoutes;
   const isAdminLike = user?.role === 'tenant_admin' || user?.role === 'tenant_manager';
   const isDriver = user?.role === 'tenant_driver';
-  // Driver en tenant routes: la vista "Mis rutas" YA es su home — ocultamos Inicio para no duplicar.
-  const showHomeTab = !(isDriver && hasRoutes);
-  const showRoutesTab = hasRoutes;
-  const showInventoryTab = hasInventory && !hasRoutes; // routes tenant: ocultar inventario
+  const showHomeTab = true;
+  // Driver: su Inicio YA es la vista de rutas (redirect en (app)/index.tsx). Ocultamos
+  // la tab "Rutas" para no duplicar. Admin sigue viéndola para navegar drivers.
+  const showRoutesTab = hasRoutes && !isDriver;
+  const showInventoryTab = hasInventory && !hasRoutes;
   const showScanTab = hasInventory && !hasRoutes;
-  const showAnalyticsTab = hasAnalytics && isAdminLike;
+  const showAnalyticsTab = hasAnalytics && (isAdminLike || isDriver);
 
   return (
     <Tabs
@@ -124,6 +125,13 @@ export default function AppLayout() {
       <Tabs.Screen name="cash/index" options={{ href: null }} />
       <Tabs.Screen name="sales/index" options={{ href: null }} />
       <Tabs.Screen name="routes/admin" options={{ href: null }} />
+      <Tabs.Screen name="routes/orders/index" options={{ href: null }} />
+      <Tabs.Screen name="routes/orders/new" options={{ href: null }} />
+      <Tabs.Screen name="routes/loads/index" options={{ href: null }} />
+      <Tabs.Screen name="routes/drivers/index" options={{ href: null }} />
+      <Tabs.Screen name="routes/clients/index" options={{ href: null }} />
+      <Tabs.Screen name="routes/production/index" options={{ href: null }} />
+      <Tabs.Screen name="routes/billing/index" options={{ href: null }} />
     </Tabs>
   );
 }

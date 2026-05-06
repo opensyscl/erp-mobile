@@ -10,7 +10,7 @@ import { useBrand } from '~/hooks/useBrand';
 import { useColorScheme } from '~/hooks/useColorScheme';
 import { useRealtimeInvalidate } from '~/hooks/useRealtime';
 import { apiRequest } from '~/lib/api';
-import { ArrowRight, Package, User as UserIcon } from '~/lib/icons';
+import { ArrowRight, BarChart, Package, PackageReceive, Plus, Truck, User as UserIcon, UserGroup, Wallet } from '~/lib/icons';
 import { Channels, RealtimeEvents } from '~/lib/realtime';
 import { useAuthStore } from '~/stores/auth';
 import { useTenantStore } from '~/stores/tenant';
@@ -186,6 +186,72 @@ export default function RoutesAdminDashboard() {
             </Text>
             <ArrowRight size={14} color={brand.brandFg} />
           </Pressable>
+        </Animated.View>
+
+        {/* Accesos rápidos */}
+        <Animated.View entering={FadeInDown.delay(40).duration(360)} className="mt-5 -mx-4">
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 16, gap: 10 }}
+          >
+            <QuickAction
+              label="Nuevo Pedido"
+              icon={<Plus size={20} color={brand.brandFg} strokeWidth={2.4} />}
+              bg={brand.brand}
+              fg={brand.brandFg}
+              onPress={() => router.push('/(app)/routes/orders/new' as never)}
+            />
+            <QuickAction
+              label="Pedidos"
+              icon={<Package size={20} color={colors.fg} strokeWidth={1.6} />}
+              bg={colors.bgElevated}
+              fg={colors.fg}
+              onPress={() => router.push('/(app)/routes/orders' as never)}
+            />
+            <QuickAction
+              label="Clientes"
+              icon={<UserIcon size={20} color={colors.fg} strokeWidth={1.6} />}
+              bg={colors.bgElevated}
+              fg={colors.fg}
+              onPress={() => router.push('/(app)/routes/clients' as never)}
+            />
+            <QuickAction
+              label="Producción"
+              icon={<PackageReceive size={20} color={colors.fg} strokeWidth={1.6} />}
+              bg={colors.bgElevated}
+              fg={colors.fg}
+              onPress={() => router.push('/(app)/routes/production' as never)}
+            />
+            <QuickAction
+              label="Cargas"
+              icon={<Truck size={20} color={colors.fg} strokeWidth={1.6} />}
+              bg={colors.bgElevated}
+              fg={colors.fg}
+              onPress={() => router.push('/(app)/routes/loads' as never)}
+            />
+            <QuickAction
+              label="Ruteros"
+              icon={<UserGroup size={20} color={colors.fg} strokeWidth={1.6} />}
+              bg={colors.bgElevated}
+              fg={colors.fg}
+              onPress={() => router.push('/(app)/routes/drivers' as never)}
+            />
+            <QuickAction
+              label="Facturación"
+              icon={<Wallet size={20} color={colors.fg} strokeWidth={1.6} />}
+              bg={colors.bgElevated}
+              fg={colors.fg}
+              onPress={() => router.push('/(app)/routes/billing' as never)}
+            />
+            <QuickAction
+              label="Reportes"
+              icon={<BarChart size={20} color={colors.fg} strokeWidth={1.6} />}
+              bg={colors.bgElevated}
+              fg={colors.fg}
+              onPress={() => router.push('/(app)/analytics' as never)}
+            />
+          </ScrollView>
         </Animated.View>
 
         {/* 4 KPI cards en grid 2x2 */}
@@ -556,6 +622,68 @@ function KpiCard({
         </Text>
       )}
     </View>
+  );
+}
+
+/* ─── Quick action ─── */
+
+function QuickAction({
+  label,
+  icon,
+  bg,
+  fg,
+  onPress,
+}: {
+  label: string;
+  icon: React.ReactNode;
+  bg: string;
+  fg: string;
+  onPress: () => void;
+}) {
+  const scheme = useColorScheme();
+  const colors = palette[scheme];
+  return (
+    <Pressable
+      haptic="selection"
+      scale="subtle"
+      onPress={onPress}
+      style={{
+        width: 96,
+        height: 96,
+        borderRadius: 18,
+        backgroundColor: bg,
+        borderWidth: bg === colors.bgElevated ? 1 : 0,
+        borderColor: colors.border,
+        padding: 12,
+        justifyContent: 'space-between',
+      }}
+    >
+      <View
+        style={{
+          width: 36,
+          height: 36,
+          borderRadius: 10,
+          backgroundColor: bg === colors.bgElevated ? colors.bgMuted : 'rgba(255,255,255,0.18)',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        {icon}
+      </View>
+      <Text
+        style={{
+          fontFamily: Fonts.medium,
+          fontSize: 12,
+          lineHeight: 16,
+          color: fg,
+          letterSpacing: -0.1,
+          includeFontPadding: false,
+        } as never}
+        numberOfLines={1}
+      >
+        {label}
+      </Text>
+    </Pressable>
   );
 }
 
