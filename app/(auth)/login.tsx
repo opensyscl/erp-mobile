@@ -52,11 +52,21 @@ export default function LoginScreen() {
 
   const passwordRef = useRef<RNTextInput>(null);
 
-  // Prellenado en dev para no escribir cada vez. NO shipea a prod (gated por __DEV__).
-  const [email, setEmail] = useState(__DEV__ ? 'ferreteria.routes@demo.cl' : '');
-  const [password, setPassword] = useState(__DEV__ ? 'password' : '');
+  // Prellenado en dev — chips para alternar entre admin y driver. NO shipea a prod.
+  const DEV_ACCOUNTS: { id: 'admin' | 'driver'; label: string; email: string; password: string }[] = [
+    { id: 'admin', label: 'Admin', email: 'ferreteria.routes@demo.cl', password: '12345678' },
+    { id: 'driver', label: 'Repartidor', email: 'driver.routes@demo.cl', password: '12345678' },
+  ];
+  const [email, setEmail] = useState(__DEV__ ? DEV_ACCOUNTS[0]!.email : '');
+  const [password, setPassword] = useState(__DEV__ ? DEV_ACCOUNTS[0]!.password : '');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const fillAccount = (acct: (typeof DEV_ACCOUNTS)[number]) => {
+    setEmail(acct.email);
+    setPassword(acct.password);
+    setError(null);
+  };
 
   const submitting = status === 'authenticating';
 
@@ -219,6 +229,43 @@ export default function LoginScreen() {
             >
               Iniciar sesión
             </Text>
+
+            {__DEV__ ? (
+              <View style={{ flexDirection: 'row', gap: 8, marginTop: 16 }}>
+                {DEV_ACCOUNTS.map((acct) => {
+                  const active = email === acct.email;
+                  return (
+                    <Pressable
+                      key={acct.id}
+                      haptic="selection"
+                      onPress={() => fillAccount(acct)}
+                      style={{
+                        flex: 1,
+                        height: 36,
+                        borderRadius: 999,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: active ? brand.brand : colors.bgSubtle,
+                        borderWidth: 1,
+                        borderColor: active ? brand.brand : colors.border,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color: active ? brand.brandFg : colors.fgMuted,
+                          fontFamily: Fonts.medium,
+                          fontSize: 12,
+                          letterSpacing: 0.2,
+                          includeFontPadding: false,
+                        } as never}
+                      >
+                        {acct.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            ) : null}
 
             <View style={{ marginTop: 20, gap: 14 }}>
               <FloatingInput

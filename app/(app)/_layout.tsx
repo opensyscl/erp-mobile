@@ -21,6 +21,9 @@ export default function AppLayout() {
   const hasInventory = modules.includes('inventory');
   const hasAnalytics = modules.includes('analytics') || hasRoutes; // routes admin ve analytics
   const isAdminLike = user?.role === 'tenant_admin' || user?.role === 'tenant_manager';
+  const isDriver = user?.role === 'tenant_driver';
+  // Driver en tenant routes: la vista "Mis rutas" YA es su home — ocultamos Inicio para no duplicar.
+  const showHomeTab = !(isDriver && hasRoutes);
   const showRoutesTab = hasRoutes;
   const showInventoryTab = hasInventory && !hasRoutes; // routes tenant: ocultar inventario
   const showScanTab = hasInventory && !hasRoutes;
@@ -70,6 +73,7 @@ export default function AppLayout() {
       <Tabs.Screen
         name="index"
         options={{
+          href: showHomeTab ? '/(app)/' : null,
           title: 'Inicio',
           tabBarIcon: ({ color, size }) => <Home size={size - 2} color={color} strokeWidth={1.6} />,
         }}
