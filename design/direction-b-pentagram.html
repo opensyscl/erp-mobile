@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>OpenSys — Dirección B · Pentagram Editorial Data</title>
+<meta name="viewport" content="width=1440" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700;8..60,800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --canvas: #EAE8E2;
+    --bg: #F4F2EC;
+    --surface: #FFFFFF;
+    --ink: #1A1A1A;
+    --ink-soft: #2D2D2D;
+    --muted: #5C574F;
+    --subtle: #8E887E;
+    --rule: #D8D2C5;
+    --accent: #0E5C3F;
+    --accent-soft: #DDEDE3;
+    --warning: #8A4500;
+    --danger: #931F1F;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--canvas); color: var(--ink); font-family: 'Inter', -apple-system, sans-serif; -webkit-font-smoothing: antialiased; }
+  .page { padding: 56px 48px 80px; }
+  .page-head { max-width: 1320px; margin: 0 auto 56px; border-bottom: 1.5px solid var(--ink); padding-bottom: 32px; }
+  .eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 0.18em; color: var(--accent); text-transform: uppercase; }
+  h1.title { font-family: 'Source Serif 4', Georgia, serif; font-weight: 700; font-size: 48px; letter-spacing: -0.02em; line-height: 1; margin: 14px 0 18px; color: var(--ink); }
+  h1 i { font-style: italic; color: var(--accent); }
+  .subtitle { font-size: 15px; color: var(--muted); max-width: 720px; line-height: 1.65; }
+  .meta { display: flex; gap: 36px; margin-top: 28px; flex-wrap: wrap; }
+  .meta-item { font-size: 11px; color: var(--subtle); letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; }
+  .meta-item b { display: block; color: var(--ink); font-weight: 700; font-size: 14px; margin-top: 4px; letter-spacing: 0; text-transform: none; font-family: 'Source Serif 4', serif; }
+  .stage { max-width: 1320px; margin: 0 auto; display: flex; gap: 56px; align-items: flex-start; flex-wrap: wrap; justify-content: center; }
+  .phone-wrap { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .phone-label { font-family: 'Source Serif 4', serif; font-size: 16px; font-weight: 600; color: var(--ink); font-style: italic; }
+  .phone-sub { font-size: 11px; color: var(--subtle); letter-spacing: 0.04em; text-transform: uppercase; font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="page-head">
+    <div class="eyebrow">Dirección B · Editorial Data</div>
+    <h1 class="title">Pentagram <i>/</i> Atlas — densidad orgullosa</h1>
+    <p class="subtitle">
+      Un ERP es por naturaleza denso. Esta dirección lo abraza: layout editorial estilo prensa financiera, serif Source Serif para titulares y números, charcoal sobre crema cálido, un único accent emerald. Hairlines en vez de cards. Tabla &gt; lista &gt; cuadrícula. Información sin decoración.
+    </p>
+    <div class="meta">
+      <div class="meta-item">Brand accent<b>#0E5C3F</b></div>
+      <div class="meta-item">Display<b>Source Serif 4</b></div>
+      <div class="meta-item">Body / data<b>Inter · JetBrains Mono</b></div>
+      <div class="meta-item">Reference<b>Pentagram · Stripe Atlas · FT</b></div>
+      <div class="meta-item">Mood<b>Serio · Confiado · Sin grasa</b></div>
+    </div>
+  </div>
+
+  <div id="root" class="stage"></div>
+</div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script type="text/babel">
+
+const iosFrameStyles = {
+  wrapper: { display: 'inline-block', padding: 12, background: '#000', borderRadius: 60, boxShadow: '0 0 0 2px #1f2937, 0 30px 80px rgba(0,0,0,0.18)', position: 'relative' },
+  screen: { position: 'relative', borderRadius: 48, overflow: 'hidden', background: '#fff' },
+  statusBar: { position: 'absolute', top: 0, left: 0, right: 0, height: 54, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 32px', fontSize: 16, fontWeight: 600, fontFamily: '-apple-system, "SF Pro Text", sans-serif', zIndex: 20, pointerEvents: 'none' },
+  dynamicIsland: { position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)', width: 124, height: 36, background: '#000', borderRadius: 999, zIndex: 30 },
+  statusIcons: { display: 'flex', alignItems: 'center', gap: 6 },
+  signalBar: { width: 3, background: 'currentColor', borderRadius: 1 },
+  batteryIcon: { width: 26, height: 12, border: '1.5px solid currentColor', borderRadius: 3, padding: 1, position: 'relative', opacity: 0.8 },
+  batteryCap: { position: 'absolute', top: 3, right: -3, width: 2, height: 6, background: 'currentColor', borderRadius: '0 1px 1px 0' },
+  content: { position: 'absolute', top: 54, left: 0, right: 0, bottom: 34, overflow: 'hidden' },
+  homeIndicator: { position: 'absolute', bottom: 10, left: '50%', transform: 'translateX(-50%)', width: 140, height: 5, background: 'rgba(0,0,0,0.3)', borderRadius: 999, zIndex: 10 },
+};
+
+function IosFrame({ children, time = '9:41', battery = 92, dark = false }) {
+  const fg = dark ? '#fff' : '#000';
+  return (
+    <div style={iosFrameStyles.wrapper}>
+      <div style={{ ...iosFrameStyles.screen, width: 393, height: 852, background: dark ? '#1A1A1A' : '#F4F2EC' }}>
+        <div style={{ ...iosFrameStyles.statusBar, color: fg }}>
+          <span>{time}</span>
+          <div style={iosFrameStyles.statusIcons}>
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 12 }}>
+              <div style={{ ...iosFrameStyles.signalBar, height: 4 }} />
+              <div style={{ ...iosFrameStyles.signalBar, height: 6 }} />
+              <div style={{ ...iosFrameStyles.signalBar, height: 9 }} />
+              <div style={{ ...iosFrameStyles.signalBar, height: 11 }} />
+            </div>
+            <svg width="16" height="12" viewBox="0 0 16 12" fill="none">
+              <path d="M8 11.5a1 1 0 100-2 1 1 0 000 2z" fill="currentColor" />
+              <path d="M3 7.5a7 7 0 0110 0" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinecap="round" />
+              <path d="M1 4.5a11 11 0 0114 0" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinecap="round" opacity="0.7" />
+            </svg>
+            <div style={iosFrameStyles.batteryIcon}>
+              <div style={{ width: `${battery}%`, height: '100%', background: 'currentColor', borderRadius: 1, opacity: 0.9 }} />
+              <div style={iosFrameStyles.batteryCap} />
+            </div>
+          </div>
+        </div>
+        <div style={iosFrameStyles.dynamicIsland} />
+        <div style={iosFrameStyles.content}>{children}</div>
+        <div style={{ ...iosFrameStyles.homeIndicator, background: dark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.3)' }} />
+      </div>
+    </div>
+  );
+}
+
+const T = {
+  bg: '#F4F2EC',
+  surface: '#FFFFFF',
+  ink: '#1A1A1A',
+  inkSoft: '#2D2D2D',
+  muted: '#5C574F',
+  subtle: '#8E887E',
+  rule: '#D8D2C5',
+  ruleStrong: '#A8A395',
+  accent: '#0E5C3F',
+  accentSoft: '#DDEDE3',
+  warning: '#8A4500',
+  warningSoft: '#F4E5CE',
+  danger: '#931F1F',
+  dangerSoft: '#F0DADA',
+};
+
+const FONT_SERIF = "'Source Serif 4', Georgia, serif";
+const FONT_SANS = "'Inter', -apple-system, sans-serif";
+const FONT_MONO = "'JetBrains Mono', ui-monospace, monospace";
+
+const Icon = {
+  Search: (p) => (<svg width={p.s||16} height={p.s||16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>),
+  ArrowR: (p) => (<svg width={p.s||16} height={p.s||16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>),
+  Home: (p) => (<svg width={p.s||20} height={p.s||20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>),
+  Box: (p) => (<svg width={p.s||20} height={p.s||20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M21 8L12 3 3 8l9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg>),
+  Scan: (p) => (<svg width={p.s||20} height={p.s||20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7V5a2 2 0 012-2h2M21 7V5a2 2 0 00-2-2h-2M3 17v2a2 2 0 002 2h2M21 17v2a2 2 0 01-2 2h-2M7 12h10"/></svg>),
+  Cog: (p) => (<svg width={p.s||20} height={p.s||20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06A1.65 1.65 0 0015 19.4a1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09c0 .66.39 1.25 1 1.51a1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9c.26.61.85 1 1.51 1H21a2 2 0 110 4h-.09c-.66 0-1.25.39-1.51 1z"/></svg>),
+  Plus: (p) => (<svg width={p.s||14} height={p.s||14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14"/></svg>),
+};
+
+/* ========== LOGIN — editorial frontispiece ========== */
+function LoginScreen() {
+  return (
+    <div style={{ height: '100%', background: T.bg, padding: '56px 24px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', fontFamily: FONT_SANS }}>
+      <div>
+        {/* Wordmark + masthead-style metadata */}
+        <div style={{ borderBottom: `1.5px solid ${T.ink}`, paddingBottom: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+          <div style={{ fontFamily: FONT_SERIF, fontWeight: 800, fontSize: 26, letterSpacing: '-0.04em', color: T.ink }}>
+            OpenSys<span style={{ color: T.accent }}>.</span>
+          </div>
+          <div style={{ fontFamily: FONT_MONO, fontSize: 10, color: T.subtle, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+            Vol. 12 · Mayo 2026
+          </div>
+        </div>
+
+        <div style={{ marginTop: 36 }}>
+          <div style={{ fontFamily: FONT_MONO, fontSize: 10, color: T.accent, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.16em' }}>
+            — Acceso al panel
+          </div>
+          <h1 style={{ fontFamily: FONT_SERIF, fontWeight: 700, fontSize: 38, letterSpacing: '-0.02em', lineHeight: 1, color: T.ink, margin: '12px 0 0' }}>
+            Buenos <i style={{ color: T.accent }}>días</i>,<br/>Josbert.
+          </h1>
+          <p style={{ fontSize: 14, color: T.muted, lineHeight: 1.5, marginTop: 14, maxWidth: 320 }}>
+            Estás ingresando a <b style={{ color: T.ink }}>Café Nuevo</b>. Si necesitas cambiar de empresa, hazlo después de autenticarte.
+          </p>
+        </div>
+
+        <div style={{ marginTop: 30, display: 'flex', flexDirection: 'column', gap: 18 }}>
+          <Field label="Correo electrónico" value="josbert@cafenuevo.cl" />
+          <Field label="Contraseña" value="•••••••••••" right="Mostrar" />
+        </div>
+      </div>
+
+      <div>
+        <button style={{
+          width: '100%', height: 54, background: T.ink, color: '#fff', border: 'none',
+          fontFamily: FONT_SANS, fontSize: 14, fontWeight: 600, letterSpacing: '0.02em',
+          textTransform: 'uppercase', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '0 22px',
+        }}>
+          Entrar
+          <Icon.ArrowR s={18} />
+        </button>
+        <div style={{ marginTop: 18, display: 'flex', justifyContent: 'space-between', fontFamily: FONT_MONO, fontSize: 10, color: T.subtle, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+          <span>Cambiar empresa</span>
+          <span>Olvidé mi clave</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Field({ label, value, right }) {
+  return (
+    <div style={{ borderBottom: `1px solid ${T.ruleStrong}`, paddingBottom: 8 }}>
+      <div style={{ fontFamily: FONT_MONO, fontSize: 9, color: T.subtle, textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 600 }}>{label}</div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 6 }}>
+        <span style={{ fontFamily: FONT_SERIF, fontSize: 22, color: T.ink, letterSpacing: '-0.01em' }}>{value}</span>
+        {right && <span style={{ fontFamily: FONT_MONO, fontSize: 10, color: T.accent, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{right}</span>}
+      </div>
+    </div>
+  );
+}
+
+/* ========== HOME — editorial dashboard ========== */
+function HomeScreen() {
+  return (
+    <div style={{ height: '100%', background: T.bg, fontFamily: FONT_SANS, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ flex: 1, overflow: 'hidden', padding: '20px 22px 0' }}>
+        <div style={{ borderBottom: `1.5px solid ${T.ink}`, paddingBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+          <div>
+            <div style={{ fontFamily: FONT_MONO, fontSize: 9, color: T.subtle, textTransform: 'uppercase', letterSpacing: '0.16em', fontWeight: 600 }}>Café Nuevo · Centro</div>
+            <div style={{ fontFamily: FONT_SERIF, fontWeight: 700, fontSize: 28, letterSpacing: '-0.02em', color: T.ink, marginTop: 4 }}>
+              Resumen <i style={{ color: T.accent }}>diario</i>
+            </div>
+          </div>
+          <div style={{ fontFamily: FONT_MONO, fontSize: 10, color: T.subtle, textAlign: 'right' }}>
+            Mar<br/>06.05.26
+          </div>
+        </div>
+
+        <div style={{ marginTop: 18 }}>
+          <KPIRow label="Ventas del día" value="$1.284.500" delta="+18%" up />
+          <KPIRow label="Boletas emitidas" value="42" delta="+6" up />
+          <KPIRow label="Ticket promedio" value="$30.583" delta="+11%" up />
+          <KPIRow label="Margen bruto" value="38,4%" delta="−0,9 pts" />
+        </div>
+
+        <div style={{ marginTop: 18, paddingTop: 14, borderTop: `1.5px solid ${T.ink}` }}>
+          <div style={{ fontFamily: FONT_MONO, fontSize: 9, color: T.subtle, textTransform: 'uppercase', letterSpacing: '0.16em', fontWeight: 700, marginBottom: 12 }}>Últimos 7 días · ventas</div>
+          <Sparkline />
+        </div>
+
+        <div style={{ marginTop: 18, paddingTop: 14, borderTop: `1.5px solid ${T.ink}` }}>
+          <div style={{ fontFamily: FONT_MONO, fontSize: 9, color: T.subtle, textTransform: 'uppercase', letterSpacing: '0.16em', fontWeight: 700, marginBottom: 10 }}>Pendientes</div>
+          <PendingItem n="01" title="Aprobar gasto · Insumos café" meta="$84.500 · pedido por María"/>
+          <PendingItem n="02" title="Stock crítico · 3 productos" meta="Pan amasado, leche descremada, azúcar 1kg" warn />
+          <PendingItem n="03" title="Cuadre de caja · Sucursal Centro" meta="Cerró $32.400 sobre"/>
+        </div>
+      </div>
+
+      <TabBar active="home" />
+    </div>
+  );
+}
+
+function KPIRow({ label, value, delta, up }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '10px 0', borderBottom: `1px solid ${T.rule}` }}>
+      <span style={{ fontFamily: FONT_SANS, fontSize: 13, color: T.muted, letterSpacing: '-0.01em' }}>{label}</span>
+      <span style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
+        <span style={{ fontFamily: FONT_SERIF, fontSize: 22, fontWeight: 600, color: T.ink, letterSpacing: '-0.02em' }}>{value}</span>
+        {delta && <span style={{ fontFamily: FONT_MONO, fontSize: 10, color: up ? T.accent : T.danger, fontWeight: 600 }}>{delta}</span>}
+      </span>
+    </div>
+  );
+}
+
+function Sparkline() {
+  const data = [62, 70, 58, 72, 75, 82, 92];
+  const max = 100;
+  const w = 320, h = 60, pad = 2;
+  const sw = (w - pad * 2) / (data.length - 1);
+  const pts = data.map((v, i) => `${pad + i * sw},${pad + (1 - v / max) * (h - pad * 2)}`).join(' ');
+  return (
+    <div>
+      <svg width={w} height={h} style={{ display: 'block' }}>
+        <polyline points={pts} fill="none" stroke={T.accent} strokeWidth="1.5" />
+        {data.map((v, i) => (
+          <circle key={i} cx={pad + i * sw} cy={pad + (1 - v / max) * (h - pad * 2)} r={i === data.length - 1 ? 3 : 1.5} fill={T.accent} />
+        ))}
+      </svg>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, fontFamily: FONT_MONO, fontSize: 9, color: T.subtle, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+        <span>30 abr</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span style={{ color: T.ink, fontWeight: 700 }}>HOY</span>
+      </div>
+    </div>
+  );
+}
+
+function PendingItem({ n, title, meta, warn }) {
+  return (
+    <div style={{ display: 'flex', gap: 12, padding: '10px 0', borderBottom: `1px solid ${T.rule}` }}>
+      <span style={{ fontFamily: FONT_MONO, fontSize: 10, color: warn ? T.danger : T.accent, fontWeight: 700, paddingTop: 2 }}>{n}</span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontFamily: FONT_SERIF, fontSize: 15, fontWeight: 600, color: T.ink, letterSpacing: '-0.01em', lineHeight: 1.25 }}>{title}</div>
+        <div style={{ fontSize: 11.5, color: T.muted, marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{meta}</div>
+      </div>
+    </div>
+  );
+}
+
+/* ========== INVENTORY — editorial table ========== */
+const inventoryItems = [
+  { sku: '7801…7892', name: 'Café grano 250g', desc: 'Tostado medio', cat: 'Insumos', stock: 24, price: 5990, status: 'ok' },
+  { sku: '7801…7905', name: 'Leche entera 1L', desc: 'Soprole', cat: 'Lácteos', stock: 4, price: 1290, status: 'low' },
+  { sku: '7801…7918', name: 'Pan amasado 500g', desc: 'Local · diario', cat: 'Panadería', stock: 0, price: 2490, status: 'out' },
+  { sku: '7801…7921', name: 'Azúcar rubia 1kg', desc: 'Iansa', cat: 'Insumos', stock: 11, price: 1190, status: 'ok' },
+  { sku: '7801…7934', name: 'Té Earl Grey', desc: '25 bolsitas', cat: 'Bebidas', stock: 38, price: 2790, status: 'ok' },
+  { sku: '7801…7947', name: 'Servilleta 30×30', desc: 'Pack 100u', cat: 'Insumos', stock: 6, price: 3490, status: 'low' },
+];
+
+function statusMeta(s) {
+  if (s === 'out') return { label: 'Sin stock', color: T.danger };
+  if (s === 'low') return { label: 'Stock bajo', color: T.warning };
+  return { label: 'En stock', color: T.accent };
+}
+
+function InventoryScreen() {
+  return (
+    <div style={{ height: '100%', background: T.bg, fontFamily: FONT_SANS, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ flex: 1, overflow: 'hidden', padding: '20px 22px 0' }}>
+        <div style={{ borderBottom: `1.5px solid ${T.ink}`, paddingBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+          <div>
+            <div style={{ fontFamily: FONT_MONO, fontSize: 9, color: T.subtle, textTransform: 'uppercase', letterSpacing: '0.16em', fontWeight: 600 }}>142 productos · 8 con stock bajo</div>
+            <div style={{ fontFamily: FONT_SERIF, fontWeight: 700, fontSize: 28, letterSpacing: '-0.02em', color: T.ink, marginTop: 4 }}>
+              Inventario
+            </div>
+          </div>
+          <div style={{ height: 32, padding: '0 12px', background: T.ink, color: '#fff', display: 'flex', alignItems: 'center', gap: 6, fontFamily: FONT_MONO, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700 }}>
+            <Icon.Plus s={12} /> Agregar
+          </div>
+        </div>
+
+        <div style={{ marginTop: 12, height: 38, borderBottom: `1px solid ${T.ruleStrong}`, display: 'flex', alignItems: 'center', gap: 10, paddingBottom: 4 }}>
+          <Icon.Search s={14} />
+          <span style={{ fontFamily: FONT_SERIF, fontStyle: 'italic', fontSize: 14, color: T.subtle }}>Buscar SKU, código de barras o nombre…</span>
+        </div>
+
+        <div style={{ marginTop: 8, display: 'flex', gap: 14, fontFamily: FONT_MONO, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+          <span style={{ color: T.ink, borderBottom: `2px solid ${T.accent}`, paddingBottom: 6 }}>Todos · 142</span>
+          <span style={{ color: T.subtle, paddingBottom: 6 }}>Bajo · 8</span>
+          <span style={{ color: T.subtle, paddingBottom: 6 }}>Cero · 3</span>
+          <span style={{ color: T.subtle, paddingBottom: 6 }}>Insumos · 64</span>
+        </div>
+
+        <div style={{ marginTop: 8, display: 'flex', justifyContent: 'space-between', fontFamily: FONT_MONO, fontSize: 9, color: T.subtle, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', paddingBottom: 6, borderBottom: `1.5px solid ${T.ink}` }}>
+          <span style={{ flex: 1 }}>Producto</span>
+          <span style={{ width: 50, textAlign: 'right' }}>Stock</span>
+          <span style={{ width: 64, textAlign: 'right' }}>Precio</span>
+        </div>
+
+        <div>
+          {inventoryItems.map((it, idx) => {
+            const s = statusMeta(it.status);
+            return (
+              <div key={it.sku} style={{ display: 'flex', alignItems: 'flex-start', padding: '10px 0', borderBottom: `1px solid ${T.rule}`, gap: 10 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'baseline' }}>
+                    <span style={{ fontFamily: FONT_MONO, fontSize: 9, color: T.subtle, fontWeight: 700 }}>{String(idx + 1).padStart(2, '0')}</span>
+                    <span style={{ fontFamily: FONT_SERIF, fontSize: 14.5, fontWeight: 600, color: T.ink, letterSpacing: '-0.01em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.name}</span>
+                  </div>
+                  <div style={{ marginTop: 2, fontFamily: FONT_MONO, fontSize: 10, color: T.subtle, letterSpacing: '0.02em' }}>
+                    {it.sku} · <span style={{ fontFamily: FONT_SANS, fontStyle: 'italic' }}>{it.desc}</span> · <span style={{ color: s.color, fontWeight: 600 }}>{s.label}</span>
+                  </div>
+                </div>
+                <div style={{ width: 50, textAlign: 'right', fontFamily: FONT_SERIF, fontSize: 16, fontWeight: 700, color: T.ink, letterSpacing: '-0.02em' }}>{it.stock}</div>
+                <div style={{ width: 64, textAlign: 'right', fontFamily: FONT_MONO, fontSize: 11, color: T.muted, paddingTop: 4 }}>${it.price.toLocaleString('es-CL')}</div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <TabBar active="inventory" />
+    </div>
+  );
+}
+
+/* ========== TabBar (editorial) ========== */
+function TabBar({ active }) {
+  const tabs = [
+    { id: 'home', label: 'Resumen', icon: Icon.Home },
+    { id: 'inventory', label: 'Inventario', icon: Icon.Box },
+    { id: 'scan', label: 'Escanear', icon: Icon.Scan },
+    { id: 'settings', label: 'Ajustes', icon: Icon.Cog },
+  ];
+  return (
+    <div style={{ borderTop: `1.5px solid ${T.ink}`, background: T.bg, padding: '8px 4px 0', display: 'flex' }}>
+      {tabs.map(t => (
+        <div key={t.id} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '6px 0', color: active === t.id ? T.accent : T.subtle }}>
+          <t.icon s={20} />
+          <span style={{ fontFamily: FONT_MONO, fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em' }}>{t.label}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function Stage() {
+  return (
+    <>
+      <div className="phone-wrap">
+        <IosFrame><LoginScreen /></IosFrame>
+        <div className="phone-label">Login</div>
+        <div className="phone-sub">Frontispiece estilo prensa</div>
+      </div>
+      <div className="phone-wrap">
+        <IosFrame><HomeScreen /></IosFrame>
+        <div className="phone-label">Home / Resumen diario</div>
+        <div className="phone-sub">KPI table + sparkline + pendientes numerados</div>
+      </div>
+      <div className="phone-wrap">
+        <IosFrame><InventoryScreen /></IosFrame>
+        <div className="phone-label">Inventario</div>
+        <div className="phone-sub">Tabla editorial · sin cards · hairlines</div>
+      </div>
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<Stage />);
+</script>
+</body>
+</html>

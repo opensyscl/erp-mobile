@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>OpenSys — Dirección C · Kenya Hara Honest Quiet</title>
+<meta name="viewport" content="width=1440" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,300;1,6..72,400&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@300;400&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --canvas: #EFEAE0;
+    --bg: #F7F4ED;
+    --bg-soft: #F1ECDF;
+    --ink: #2A2520;
+    --ink-soft: #423B33;
+    --muted: #6E665B;
+    --subtle: #A39A8A;
+    --rule: #DBD3C3;
+    --accent: #C04A1A;
+    --accent-soft: #F1DDD0;
+    --warning: #9A6300;
+    --danger: #962416;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--canvas); color: var(--ink); font-family: 'IBM Plex Sans', -apple-system, sans-serif; -webkit-font-smoothing: antialiased; }
+  .page { padding: 56px 48px 80px; }
+  .page-head { max-width: 1320px; margin: 0 auto 64px; }
+  .eyebrow { font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 400; letter-spacing: 0.16em; color: var(--accent); text-transform: uppercase; }
+  h1.title { font-family: 'Newsreader', Georgia, serif; font-weight: 400; font-size: 52px; letter-spacing: -0.015em; line-height: 1.05; margin: 18px 0 22px; color: var(--ink); }
+  h1 i { font-style: italic; color: var(--accent); font-weight: 300; }
+  .subtitle { font-family: 'Newsreader', serif; font-size: 18px; font-weight: 300; color: var(--ink-soft); max-width: 640px; line-height: 1.55; font-style: italic; }
+  .meta { display: flex; gap: 36px; margin-top: 36px; flex-wrap: wrap; }
+  .meta-item { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--subtle); letter-spacing: 0.14em; text-transform: uppercase; }
+  .meta-item b { display: block; font-family: 'Newsreader', serif; color: var(--ink); font-weight: 500; font-size: 16px; margin-top: 6px; letter-spacing: 0; text-transform: none; font-style: italic; }
+  .stage { max-width: 1320px; margin: 0 auto; display: flex; gap: 56px; align-items: flex-start; flex-wrap: wrap; justify-content: center; }
+  .phone-wrap { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+  .phone-label { font-family: 'Newsreader', serif; font-style: italic; font-size: 18px; font-weight: 400; color: var(--ink); }
+  .phone-sub { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--subtle); letter-spacing: 0.08em; text-transform: uppercase; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="page-head">
+    <div class="eyebrow">Dirección C · Honest Quiet</div>
+    <h1 class="title">Kenya Hara — el ERP que <i>respira</i></h1>
+    <p class="subtitle">
+      Off-white cálido, tinta marrón profunda, un único accent terracota. Newsreader humanista + Plex Sans. Mucho aire, pocas líneas. La densidad existe pero está dosificada como un libro japonés bien diseñado: un dato grande, los demás susurran. Diferenciación radical contra los ERP grises del mercado.
+    </p>
+    <div class="meta">
+      <div class="meta-item">Brand accent<b>#C04A1A</b></div>
+      <div class="meta-item">Display<b>Newsreader</b></div>
+      <div class="meta-item">Body / mono<b>IBM Plex Sans / Mono</b></div>
+      <div class="meta-item">Reference<b>MUJI · Aesop · Hara · Iwakuma</b></div>
+      <div class="meta-item">Mood<b>Cálido · Artesanal · Único</b></div>
+    </div>
+  </div>
+
+  <div id="root" class="stage"></div>
+</div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script type="text/babel">
+
+const iosFrameStyles = {
+  wrapper: { display: 'inline-block', padding: 12, background: '#000', borderRadius: 60, boxShadow: '0 0 0 2px #1f2937, 0 30px 80px rgba(0,0,0,0.18)', position: 'relative' },
+  screen: { position: 'relative', borderRadius: 48, overflow: 'hidden', background: '#fff' },
+  statusBar: { position: 'absolute', top: 0, left: 0, right: 0, height: 54, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 32px', fontSize: 16, fontWeight: 600, fontFamily: '-apple-system, "SF Pro Text", sans-serif', zIndex: 20, pointerEvents: 'none' },
+  dynamicIsland: { position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)', width: 124, height: 36, background: '#000', borderRadius: 999, zIndex: 30 },
+  statusIcons: { display: 'flex', alignItems: 'center', gap: 6 },
+  signalBar: { width: 3, background: 'currentColor', borderRadius: 1 },
+  batteryIcon: { width: 26, height: 12, border: '1.5px solid currentColor', borderRadius: 3, padding: 1, position: 'relative', opacity: 0.8 },
+  batteryCap: { position: 'absolute', top: 3, right: -3, width: 2, height: 6, background: 'currentColor', borderRadius: '0 1px 1px 0' },
+  content: { position: 'absolute', top: 54, left: 0, right: 0, bottom: 34, overflow: 'hidden' },
+  homeIndicator: { position: 'absolute', bottom: 10, left: '50%', transform: 'translateX(-50%)', width: 140, height: 5, background: 'rgba(0,0,0,0.3)', borderRadius: 999, zIndex: 10 },
+};
+
+function IosFrame({ children, time = '9:41', battery = 92 }) {
+  return (
+    <div style={iosFrameStyles.wrapper}>
+      <div style={{ ...iosFrameStyles.screen, width: 393, height: 852, background: '#F7F4ED' }}>
+        <div style={{ ...iosFrameStyles.statusBar, color: '#2A2520' }}>
+          <span>{time}</span>
+          <div style={iosFrameStyles.statusIcons}>
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 12 }}>
+              <div style={{ ...iosFrameStyles.signalBar, height: 4 }} />
+              <div style={{ ...iosFrameStyles.signalBar, height: 6 }} />
+              <div style={{ ...iosFrameStyles.signalBar, height: 9 }} />
+              <div style={{ ...iosFrameStyles.signalBar, height: 11 }} />
+            </div>
+            <svg width="16" height="12" viewBox="0 0 16 12" fill="none">
+              <path d="M8 11.5a1 1 0 100-2 1 1 0 000 2z" fill="currentColor" />
+              <path d="M3 7.5a7 7 0 0110 0" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinecap="round" />
+              <path d="M1 4.5a11 11 0 0114 0" stroke="currentColor" strokeWidth="1.3" fill="none" strokeLinecap="round" opacity="0.7" />
+            </svg>
+            <div style={iosFrameStyles.batteryIcon}>
+              <div style={{ width: `${battery}%`, height: '100%', background: 'currentColor', borderRadius: 1, opacity: 0.9 }} />
+              <div style={iosFrameStyles.batteryCap} />
+            </div>
+          </div>
+        </div>
+        <div style={iosFrameStyles.dynamicIsland} />
+        <div style={iosFrameStyles.content}>{children}</div>
+        <div style={{ ...iosFrameStyles.homeIndicator, background: 'rgba(42,37,32,0.4)' }} />
+      </div>
+    </div>
+  );
+}
+
+const T = {
+  bg: '#F7F4ED',
+  bgSoft: '#F1ECDF',
+  ink: '#2A2520',
+  inkSoft: '#423B33',
+  muted: '#6E665B',
+  subtle: '#A39A8A',
+  rule: '#DBD3C3',
+  ruleStrong: '#B7AB97',
+  accent: '#C04A1A',
+  accentSoft: '#F1DDD0',
+  warning: '#9A6300',
+  danger: '#962416',
+};
+
+const FS = "'Newsreader', Georgia, serif";
+const FB = "'IBM Plex Sans', -apple-system, sans-serif";
+const FM = "'IBM Plex Mono', ui-monospace, monospace";
+
+const Icon = {
+  Home: (p) => (<svg width={p.s||20} height={p.s||20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>),
+  Box: (p) => (<svg width={p.s||20} height={p.s||20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M21 8L12 3 3 8l9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/></svg>),
+  Scan: (p) => (<svg width={p.s||20} height={p.s||20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7V5a2 2 0 012-2h2M21 7V5a2 2 0 00-2-2h-2M3 17v2a2 2 0 002 2h2M21 17v2a2 2 0 01-2 2h-2M7 12h10"/></svg>),
+  Cog: (p) => (<svg width={p.s||20} height={p.s||20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06A1.65 1.65 0 0015 19.4a1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09c0 .66.39 1.25 1 1.51a1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9c.26.61.85 1 1.51 1H21a2 2 0 110 4h-.09c-.66 0-1.25.39-1.51 1z"/></svg>),
+  ArrowR: (p) => (<svg width={p.s||16} height={p.s||16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>),
+  Search: (p) => (<svg width={p.s||16} height={p.s||16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>),
+};
+
+/* ====== LOGIN — like a book frontispiece ====== */
+function LoginScreen() {
+  return (
+    <div style={{ height: '100%', background: T.bg, padding: '64px 32px 40px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', fontFamily: FB }}>
+      <div>
+        <div style={{ fontFamily: FM, fontSize: 10, color: T.subtle, letterSpacing: '0.18em', textTransform: 'uppercase' }}>
+          Café Nuevo · Volumen XII
+        </div>
+
+        <div style={{ marginTop: 96 }}>
+          <div style={{ fontFamily: FS, fontWeight: 300, fontSize: 36, color: T.ink, letterSpacing: '-0.015em', lineHeight: 1.1 }}>
+            <i style={{ fontStyle: 'italic', color: T.accent }}>Buenos</i> días,
+          </div>
+          <div style={{ fontFamily: FS, fontWeight: 400, fontSize: 36, color: T.ink, letterSpacing: '-0.015em', lineHeight: 1.1, marginTop: 0 }}>
+            Josbert.
+          </div>
+
+          <div style={{ marginTop: 14, fontFamily: FS, fontStyle: 'italic', fontSize: 16, fontWeight: 300, color: T.muted, lineHeight: 1.55, maxWidth: 280 }}>
+            La tienda abre en doce minutos.
+          </div>
+        </div>
+
+        <div style={{ marginTop: 56, display: 'flex', flexDirection: 'column', gap: 28 }}>
+          <Field label="correo" value="josbert@cafenuevo.cl" />
+          <Field label="contraseña" value="•••••••••••" />
+        </div>
+      </div>
+
+      <div>
+        <button style={{
+          width: '100%', height: 56, background: 'transparent', color: T.ink,
+          border: `1px solid ${T.ink}`,
+          fontFamily: FB, fontSize: 14, fontWeight: 500, letterSpacing: '0.06em',
+          textTransform: 'uppercase', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '0 22px',
+        }}>
+          Entrar
+          <Icon.ArrowR s={16} />
+        </button>
+        <div style={{ marginTop: 20, textAlign: 'center', fontFamily: FS, fontStyle: 'italic', fontSize: 13, color: T.subtle }}>
+          ¿Otra empresa? <span style={{ color: T.accent }}>cambiar</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Field({ label, value }) {
+  return (
+    <div>
+      <div style={{ fontFamily: FM, fontSize: 9, color: T.subtle, letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 8 }}>— {label}</div>
+      <div style={{ fontFamily: FS, fontSize: 22, color: T.ink, letterSpacing: '-0.01em', borderBottom: `1px solid ${T.ruleStrong}`, paddingBottom: 8 }}>
+        {value}
+      </div>
+    </div>
+  );
+}
+
+/* ====== HOME — one big number, the rest whispers ====== */
+function HomeScreen() {
+  return (
+    <div style={{ height: '100%', background: T.bg, fontFamily: FB, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ flex: 1, overflow: 'hidden', padding: '24px 28px 0' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div>
+            <div style={{ fontFamily: FM, fontSize: 9, color: T.subtle, letterSpacing: '0.16em', textTransform: 'uppercase' }}>Mar · 06.05</div>
+            <div style={{ fontFamily: FS, fontSize: 22, fontStyle: 'italic', fontWeight: 400, color: T.ink, marginTop: 6, letterSpacing: '-0.01em' }}>
+              Buenos días,
+            </div>
+            <div style={{ fontFamily: FS, fontSize: 22, fontWeight: 500, color: T.ink, letterSpacing: '-0.01em' }}>
+              Josbert.
+            </div>
+          </div>
+          <div style={{ width: 36, height: 36, borderRadius: '50%', background: T.accent, color: '#fff', fontFamily: FS, fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', fontStyle: 'italic' }}>J</div>
+        </div>
+
+        {/* Hero KPI — big, breathing */}
+        <div style={{ marginTop: 44 }}>
+          <div style={{ fontFamily: FM, fontSize: 9, color: T.subtle, letterSpacing: '0.18em', textTransform: 'uppercase' }}>
+            — Ventas hoy
+          </div>
+          <div style={{ fontFamily: FS, fontSize: 56, fontWeight: 300, color: T.ink, letterSpacing: '-0.03em', lineHeight: 1, marginTop: 14 }}>
+            $1.284<span style={{ color: T.subtle }}>.500</span>
+          </div>
+          <div style={{ marginTop: 10, fontFamily: FS, fontStyle: 'italic', fontSize: 14, color: T.muted }}>
+            18% más que ayer. <span style={{ color: T.accent }}>↗</span>
+          </div>
+        </div>
+
+        {/* Sub KPIs — quiet row */}
+        <div style={{ marginTop: 36, display: 'flex', gap: 22, paddingTop: 18, borderTop: `1px solid ${T.rule}` }}>
+          <SubKPI label="Boletas" value="42" />
+          <SubKPI label="Ticket" value="$30.583" />
+          <SubKPI label="Margen" value="38,4%" />
+        </div>
+
+        {/* Pendientes — diary entries */}
+        <div style={{ marginTop: 40 }}>
+          <div style={{ fontFamily: FM, fontSize: 9, color: T.subtle, letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 16 }}>
+            — Te esperan
+          </div>
+          <Diary num="一" title="Aprobar gasto · Insumos café" meta="$84.500 · pedido por María" />
+          <Diary num="二" title="Stock crítico de tres productos" meta="Pan, leche, azúcar" warn />
+          <Diary num="三" title="Cuadre de caja · Sucursal Centro" meta="Cerró $32.400 sobre" />
+        </div>
+      </div>
+
+      <TabBar active="home" />
+    </div>
+  );
+}
+
+function SubKPI({ label, value }) {
+  return (
+    <div style={{ flex: 1 }}>
+      <div style={{ fontFamily: FM, fontSize: 9, color: T.subtle, letterSpacing: '0.14em', textTransform: 'uppercase' }}>{label}</div>
+      <div style={{ fontFamily: FS, fontSize: 20, fontWeight: 400, color: T.ink, marginTop: 6, letterSpacing: '-0.01em' }}>{value}</div>
+    </div>
+  );
+}
+
+function Diary({ num, title, meta, warn }) {
+  return (
+    <div style={{ display: 'flex', gap: 14, padding: '12px 0', borderBottom: `1px solid ${T.rule}` }}>
+      <div style={{ fontFamily: FS, fontSize: 18, fontStyle: 'italic', color: warn ? T.danger : T.accent, fontWeight: 400, paddingTop: 2, width: 18 }}>{num}</div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontFamily: FS, fontSize: 16, fontWeight: 500, color: T.ink, letterSpacing: '-0.005em', lineHeight: 1.3 }}>{title}</div>
+        <div style={{ fontFamily: FS, fontStyle: 'italic', fontSize: 13, color: T.muted, marginTop: 4 }}>{meta}</div>
+      </div>
+    </div>
+  );
+}
+
+/* ====== INVENTORY — like a catalog page ====== */
+const inventoryItems = [
+  { name: 'Café grano · 250 gramos', desc: 'Tostado medio, origen Aconcagua', stock: 24, unit: 'unidades', price: 5990, status: 'ok' },
+  { name: 'Leche entera · 1 litro', desc: 'Soprole · ultrapasteurizada', stock: 4, unit: 'unidades', price: 1290, status: 'low' },
+  { name: 'Pan amasado · 500 gramos', desc: 'Local, horneado del día', stock: 0, unit: 'unidades', price: 2490, status: 'out' },
+  { name: 'Azúcar rubia · 1 kilo', desc: 'Iansa · sin refinar', stock: 11, unit: 'unidades', price: 1190, status: 'ok' },
+  { name: 'Té Earl Grey', desc: 'Caja, 25 sobres', stock: 38, unit: 'cajas', price: 2790, status: 'ok' },
+];
+
+function statusLabel(s) {
+  if (s === 'out') return { label: 'agotado', color: T.danger };
+  if (s === 'low') return { label: 'bajo', color: T.warning };
+  return { label: 'en stock', color: T.muted };
+}
+
+function InventoryScreen() {
+  return (
+    <div style={{ height: '100%', background: T.bg, fontFamily: FB, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ flex: 1, overflow: 'hidden', padding: '24px 28px 0' }}>
+        <div style={{ fontFamily: FM, fontSize: 9, color: T.subtle, letterSpacing: '0.16em', textTransform: 'uppercase' }}>
+          142 productos · 8 con stock bajo
+        </div>
+        <div style={{ marginTop: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+          <h2 style={{ fontFamily: FS, fontSize: 32, fontWeight: 400, color: T.ink, letterSpacing: '-0.02em', margin: 0 }}>
+            Catálogo
+          </h2>
+          <span style={{ fontFamily: FS, fontStyle: 'italic', fontSize: 14, color: T.accent }}>+ agregar</span>
+        </div>
+
+        <div style={{ marginTop: 28, paddingBottom: 14, borderBottom: `1px solid ${T.ruleStrong}`, display: 'flex', alignItems: 'center', gap: 12 }}>
+          <Icon.Search s={14} />
+          <span style={{ fontFamily: FS, fontStyle: 'italic', fontSize: 16, color: T.subtle, fontWeight: 300 }}>buscar producto, SKU, código…</span>
+        </div>
+
+        <div style={{ marginTop: 14, display: 'flex', gap: 16, fontFamily: FS, fontStyle: 'italic', fontSize: 13 }}>
+          <span style={{ color: T.ink, fontWeight: 500, borderBottom: `1px solid ${T.ink}`, paddingBottom: 2 }}>todos</span>
+          <span style={{ color: T.subtle }}>insumos</span>
+          <span style={{ color: T.subtle }}>lácteos</span>
+          <span style={{ color: T.subtle }}>panadería</span>
+          <span style={{ color: T.subtle }}>bebidas</span>
+        </div>
+
+        <div style={{ marginTop: 8 }}>
+          {inventoryItems.map((it, i) => {
+            const s = statusLabel(it.status);
+            return (
+              <div key={i} style={{ padding: '18px 0', borderBottom: `1px solid ${T.rule}` }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 14 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontFamily: FS, fontSize: 17, fontWeight: 500, color: T.ink, letterSpacing: '-0.01em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {it.name}
+                    </div>
+                    <div style={{ fontFamily: FS, fontStyle: 'italic', fontSize: 13, color: T.muted, marginTop: 2 }}>
+                      {it.desc}
+                    </div>
+                    <div style={{ fontFamily: FM, fontSize: 9, color: s.color, letterSpacing: '0.14em', textTransform: 'uppercase', marginTop: 6 }}>
+                      {s.label}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontFamily: FS, fontSize: 22, fontWeight: 400, color: T.ink, letterSpacing: '-0.02em' }}>
+                      {it.stock}
+                    </div>
+                    <div style={{ fontFamily: FM, fontSize: 9, color: T.subtle, letterSpacing: '0.06em' }}>
+                      ${it.price.toLocaleString('es-CL')}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <TabBar active="inventory" />
+    </div>
+  );
+}
+
+/* ====== TabBar — barely there ====== */
+function TabBar({ active }) {
+  const tabs = [
+    { id: 'home', label: 'inicio', icon: Icon.Home },
+    { id: 'inventory', label: 'catálogo', icon: Icon.Box },
+    { id: 'scan', label: 'escanear', icon: Icon.Scan },
+    { id: 'settings', label: 'ajustes', icon: Icon.Cog },
+  ];
+  return (
+    <div style={{ borderTop: `1px solid ${T.rule}`, background: T.bg, padding: '12px 8px 0', display: 'flex' }}>
+      {tabs.map(t => (
+        <div key={t.id} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, padding: '4px 0', color: active === t.id ? T.accent : T.subtle }}>
+          <t.icon s={18} />
+          <span style={{ fontFamily: FS, fontStyle: 'italic', fontSize: 11, fontWeight: 400 }}>{t.label}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function Stage() {
+  return (
+    <>
+      <div className="phone-wrap">
+        <IosFrame><LoginScreen /></IosFrame>
+        <div className="phone-label">Login</div>
+        <div className="phone-sub">Como página de libro</div>
+      </div>
+      <div className="phone-wrap">
+        <IosFrame><HomeScreen /></IosFrame>
+        <div className="phone-label">Home</div>
+        <div className="phone-sub">Un número grande, el resto susurra</div>
+      </div>
+      <div className="phone-wrap">
+        <IosFrame><InventoryScreen /></IosFrame>
+        <div className="phone-label">Catálogo</div>
+        <div className="phone-sub">Como un catálogo Aesop · sin cards</div>
+      </div>
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<Stage />);
+</script>
+</body>
+</html>

@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>OpenSys Mobile · escanéame con Expo Go</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    height: 100%; background: #0F0F12; color: #F5F5F8;
+    font-family: -apple-system, "Segoe UI", Inter, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  body { display: grid; place-items: center; padding: 32px; }
+  .card {
+    background: #18181F; border: 1px solid #26262E; border-radius: 24px;
+    padding: 40px; max-width: 560px; width: 100%; text-align: center;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.4);
+  }
+  .eyebrow {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 11px; letter-spacing: 0.18em; color: #827CF8;
+    text-transform: uppercase; font-weight: 600;
+  }
+  h1 {
+    font-size: 28px; font-weight: 700; letter-spacing: -0.02em;
+    margin: 12px 0 8px; line-height: 1.15;
+  }
+  .lead { font-size: 15px; color: #A5A5B4; line-height: 1.5; max-width: 420px; margin: 0 auto; }
+  .qr-wrap {
+    background: #fff; border-radius: 20px; padding: 20px;
+    width: fit-content; margin: 28px auto 24px;
+    box-shadow: 0 0 0 1px #26262E, 0 8px 24px rgba(61,99,221,0.15);
+  }
+  .qr-wrap svg { display: block; width: 280px; height: 280px; }
+  .url {
+    background: #25252E; border-radius: 12px; padding: 14px 18px;
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 14px; color: #E5E5EC; letter-spacing: -0.01em;
+    word-break: break-all; user-select: all; cursor: copy;
+  }
+  .steps {
+    margin-top: 28px; text-align: left; padding-top: 24px;
+    border-top: 1px solid #26262E; font-size: 14px; color: #C5C5D0; line-height: 1.6;
+  }
+  .steps ol { padding-left: 22px; }
+  .steps li { margin-bottom: 8px; }
+  .steps a { color: #827CF8; text-decoration: none; border-bottom: 1px solid #4A4894; }
+  .steps a:hover { color: #F5F5F8; }
+  .footer {
+    margin-top: 24px; font-size: 12px; color: #6A6A78;
+    font-family: "JetBrains Mono", ui-monospace, monospace; letter-spacing: 0.06em;
+  }
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #1E2638; color: #6E97FF;
+    padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 600;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    margin-bottom: 16px;
+  }
+  .pill::before {
+    content: ''; width: 6px; height: 6px; border-radius: 50%;
+    background: #5BD17B; box-shadow: 0 0 8px #5BD17B;
+  }
+</style>
+</head>
+<body>
+  <div class="card">
+    <span class="pill">Metro corriendo</span>
+    <div class="eyebrow">OpenSys Mobile</div>
+    <h1>Escanéame con Expo Go</h1>
+    <p class="lead">
+      Asegúrate de tener el cel en la <b>misma WiFi</b> que tu compu, abre Expo Go (Android) o la cámara (iOS) y apunta al QR.
+    </p>
+
+    <div class="qr-wrap" id="qr"></div>
+
+    <div class="url" id="url">exp://192.168.100.125:8081</div>
+
+    <div class="steps">
+      <ol>
+        <li>Instala Expo Go: <a href="https://apps.apple.com/app/expo-go/id982107779">iOS</a> · <a href="https://play.google.com/store/apps/details?id=host.exp.exponent">Android</a></li>
+        <li>Conéctate a tu WiFi (red 192.168.100.x).</li>
+        <li>Escanea el QR. Si el QR no funciona, en Expo Go elige <i>Enter URL manually</i> y pega la URL de arriba.</li>
+        <li>Verás el splash cobalto, después el tenant-picker. Mete cualquier slug (ej. <i>cafenuevo</i>) para probar el flow.</li>
+      </ol>
+    </div>
+
+    <div class="footer">v0.1.0 · build 124</div>
+  </div>
+
+  <script>
+    fetch('expo-go.svg').then(r => r.text()).then(svg => {
+      document.getElementById('qr').innerHTML = svg;
+    });
+    document.getElementById('url').addEventListener('click', e => {
+      navigator.clipboard?.writeText(e.target.textContent.trim());
+    });
+  </script>
+</body>
+</html>

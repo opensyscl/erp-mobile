@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>OpenSys Mobile — 3 direcciones de diseño</title>
+<meta name="viewport" content="width=1440" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:wght@500;600;700&family=Newsreader:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet" />
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: #0F0F12; color: #F5F5F8; font-family: 'Inter', -apple-system, sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: inherit; text-decoration: none; }
+
+  .hero { padding: 80px 48px 64px; max-width: 1320px; margin: 0 auto; border-bottom: 1px solid #26262E; }
+  .eyebrow { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.18em; color: #827CF8; text-transform: uppercase; }
+  h1 { font-size: 48px; font-weight: 700; letter-spacing: -0.025em; line-height: 1.05; margin: 16px 0 18px; max-width: 800px; }
+  .lead { font-size: 17px; color: #A5A5B4; max-width: 640px; line-height: 1.55; }
+
+  .meta { display: flex; gap: 36px; margin-top: 32px; flex-wrap: wrap; padding-top: 28px; border-top: 1px solid #26262E; }
+  .meta-item { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #7C7C8C; letter-spacing: 0.12em; text-transform: uppercase; }
+  .meta-item b { display: block; color: #F5F5F8; font-weight: 600; font-size: 13px; margin-top: 5px; letter-spacing: 0; text-transform: none; font-family: 'Inter', sans-serif; }
+
+  .sections { padding: 48px 48px 96px; max-width: 1320px; margin: 0 auto; }
+  .section-eyebrow { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.18em; color: #7C7C8C; text-transform: uppercase; margin-bottom: 24px; }
+  h2 { font-size: 24px; font-weight: 600; letter-spacing: -0.015em; margin-bottom: 32px; }
+
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+
+  .card { background: #18181F; border: 1px solid #26262E; border-radius: 16px; padding: 28px; display: flex; flex-direction: column; transition: border 0.2s, transform 0.2s; }
+  .card:hover { border-color: #4A4A5A; transform: translateY(-2px); }
+
+  .card-tag { display: inline-flex; align-items: center; gap: 8px; padding: 4px 10px; border-radius: 999px; background: #25252E; font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; align-self: flex-start; margin-bottom: 18px; }
+  .swatch { width: 8px; height: 8px; border-radius: 999px; }
+
+  .card-title { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; margin-bottom: 6px; }
+  .card-sub { font-size: 13px; color: #A5A5B4; line-height: 1.5; margin-bottom: 22px; }
+
+  .card-preview { background: #0B0B0F; border-radius: 12px; padding: 16px; aspect-ratio: 1.05; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; overflow: hidden; }
+
+  .specs { display: flex; flex-direction: column; gap: 10px; padding-top: 20px; border-top: 1px solid #26262E; margin-bottom: 20px; }
+  .spec-row { display: flex; justify-content: space-between; font-size: 12px; }
+  .spec-row span:first-child { font-family: 'JetBrains Mono', monospace; color: #7C7C8C; letter-spacing: 0.06em; text-transform: uppercase; font-size: 10px; }
+  .spec-row span:last-child { color: #E5E5EC; font-weight: 500; }
+
+  .card-cta { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; background: #25252E; border-radius: 10px; font-size: 13px; font-weight: 600; letter-spacing: -0.005em; transition: background 0.15s; margin-top: auto; }
+  .card-cta:hover { background: #3A3A48; }
+
+  .strengths { display: flex; flex-direction: column; gap: 6px; margin-bottom: 24px; }
+  .strength { display: flex; gap: 8px; align-items: flex-start; font-size: 12px; line-height: 1.4; color: #C5C5D0; }
+  .strength::before { content: '·'; color: #7C7C8C; flex-shrink: 0; }
+
+  /* Phone preview shared */
+  .mini-phone { width: 180px; aspect-ratio: 0.46; border-radius: 28px; overflow: hidden; position: relative; box-shadow: 0 0 0 1px #1f2937, 0 12px 32px rgba(0,0,0,0.5); padding: 6px; background: #000; }
+  .mini-phone-screen { width: 100%; height: 100%; border-radius: 22px; overflow: hidden; padding: 24px 14px 14px; position: relative; }
+  .mini-island { position: absolute; top: 6px; left: 50%; transform: translateX(-50%); width: 56px; height: 16px; background: #000; border-radius: 999px; }
+
+  /* Direction A preview (Linear) */
+  .preview-a { background: #FAFAFA; color: #0F0F12; font-family: 'Inter', sans-serif; }
+  .preview-a-eyebrow { font-size: 8px; letter-spacing: 0.14em; color: #9696A0; text-transform: uppercase; font-weight: 600; }
+  .preview-a-title { font-size: 16px; font-weight: 700; letter-spacing: -0.02em; margin-top: 2px; }
+  .preview-a-pills { display: flex; gap: 4px; margin-top: 6px; }
+  .preview-a-pill { font-size: 7px; padding: 2px 5px; border-radius: 999px; font-weight: 600; }
+  .preview-a-card { background: #fff; border: 1px solid #ECECEF; border-radius: 10px; padding: 10px; margin-top: 10px; }
+  .preview-a-num { font-size: 20px; font-weight: 700; letter-spacing: -0.03em; margin-top: 2px; }
+  .preview-a-bars { display: flex; gap: 2px; align-items: flex-end; height: 22px; margin-top: 8px; }
+  .preview-a-bar { flex: 1; background: #EFF2FE; border-radius: 1.5px; }
+  .preview-a-bar.last { background: #3D63DD; }
+  .preview-a-row { background: #fff; border: 1px solid #ECECEF; border-radius: 8px; padding: 7px 9px; margin-top: 6px; font-size: 9px; }
+  .preview-a-row b { font-weight: 600; }
+  .preview-a-row span { color: #5C5C66; font-size: 8px; }
+
+  /* Direction B preview (Pentagram) */
+  .preview-b { background: #F4F2EC; color: #1A1A1A; font-family: 'Inter', sans-serif; }
+  .preview-b-mast { display: flex; justify-content: space-between; align-items: flex-end; padding-bottom: 6px; border-bottom: 1.5px solid #1A1A1A; }
+  .preview-b-mast-title { font-family: 'Source Serif 4', serif; font-weight: 700; font-size: 13px; letter-spacing: -0.02em; }
+  .preview-b-mast-title i { color: #0E5C3F; font-style: italic; font-weight: 400; }
+  .preview-b-mast-meta { font-family: 'JetBrains Mono', monospace; font-size: 6px; letter-spacing: 0.08em; text-transform: uppercase; color: #8E887E; text-align: right; }
+  .preview-b-kpi { display: flex; justify-content: space-between; align-items: baseline; padding: 6px 0; border-bottom: 1px solid #D8D2C5; }
+  .preview-b-kpi span:first-child { font-size: 8px; color: #5C574F; }
+  .preview-b-kpi-val { font-family: 'Source Serif 4', serif; font-size: 14px; font-weight: 600; letter-spacing: -0.02em; }
+  .preview-b-kpi-delta { font-family: 'JetBrains Mono', monospace; font-size: 7px; color: #0E5C3F; font-weight: 600; margin-left: 4px; }
+
+  /* Direction C preview (Hara) */
+  .preview-c { background: #F7F4ED; color: #2A2520; font-family: 'IBM Plex Sans', sans-serif; padding: 28px 16px 14px !important; }
+  .preview-c-eyebrow { font-family: 'JetBrains Mono', monospace; font-size: 6px; letter-spacing: 0.18em; color: #A39A8A; text-transform: uppercase; }
+  .preview-c-greet { font-family: 'Newsreader', serif; font-size: 14px; margin-top: 4px; letter-spacing: -0.01em; }
+  .preview-c-greet i { color: #C04A1A; font-style: italic; font-weight: 300; }
+  .preview-c-hero-label { font-family: 'JetBrains Mono', monospace; font-size: 6px; letter-spacing: 0.18em; color: #A39A8A; text-transform: uppercase; margin-top: 22px; }
+  .preview-c-hero { font-family: 'Newsreader', serif; font-weight: 300; font-size: 32px; letter-spacing: -0.03em; line-height: 1; margin-top: 6px; }
+  .preview-c-hero span { color: #A39A8A; }
+  .preview-c-quip { font-family: 'Newsreader', serif; font-style: italic; font-size: 9px; color: #6E665B; margin-top: 4px; }
+  .preview-c-row { display: flex; gap: 8px; padding-top: 10px; border-top: 1px solid #DBD3C3; margin-top: 18px; }
+  .preview-c-stat { flex: 1; }
+  .preview-c-stat-l { font-family: 'JetBrains Mono', monospace; font-size: 6px; letter-spacing: 0.14em; color: #A39A8A; text-transform: uppercase; }
+  .preview-c-stat-v { font-family: 'Newsreader', serif; font-size: 13px; margin-top: 2px; }
+
+  .footer { padding: 32px 48px 64px; max-width: 1320px; margin: 0 auto; color: #6A6A78; font-size: 12px; line-height: 1.7; border-top: 1px solid #26262E; }
+  .footer h3 { color: #F5F5F8; font-size: 14px; font-weight: 600; margin-bottom: 12px; letter-spacing: -0.01em; }
+  .footer ol { padding-left: 18px; }
+  .footer ol li { margin-bottom: 6px; }
+  .footer code { background: #25252E; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-family: 'JetBrains Mono', monospace; color: #C5C5D0; }
+</style>
+</head>
+<body>
+<section class="hero">
+  <div class="eyebrow">OpenSys Mobile · Design Direction Review</div>
+  <h1>Tres direcciones para que la app se vea <i>mostra</i> y pro.</h1>
+  <p class="lead">
+    Login, home y catálogo prototipados en hi-fi dentro de un iPhone real, en tres escuelas de diseño distintas. Elige una (o mezcla "el A con el accent del C") y refinamos el código React Native sobre esa base.
+  </p>
+  <div class="meta">
+    <div class="meta-item">Producto<b>OpenSys ERP</b></div>
+    <div class="meta-item">Plataformas<b>iOS + Android</b></div>
+    <div class="meta-item">Stack<b>Expo · NativeWind · Reanimated</b></div>
+    <div class="meta-item">Pantallas<b>Login · Home · Inventario</b></div>
+    <div class="meta-item">Estado<b>Junior pass · esperando decisión</b></div>
+  </div>
+</section>
+
+<section class="sections">
+  <div class="section-eyebrow">— Las 3 direcciones</div>
+  <div class="grid">
+
+    <!-- Direction A -->
+    <a class="card" href="direction-a-linear.html">
+      <span class="card-tag"><span class="swatch" style="background:#3D63DD"></span> A · Quiet Density</span>
+      <div class="card-title">Linear / Things</div>
+      <div class="card-sub">El "Linear de los ERP". Neutros perfectos, accent cobalto, micro-sombras, tipografía limpia con datos en mono. Premium sin ser frío.</div>
+
+      <div class="card-preview">
+        <div class="mini-phone">
+          <div class="mini-phone-screen preview-a">
+            <div class="mini-island"></div>
+            <div class="preview-a-eyebrow">Buenos días</div>
+            <div class="preview-a-title">Josbert Lara</div>
+            <div class="preview-a-pills">
+              <span class="preview-a-pill" style="background:#EFF2FE;color:#3D63DD;">Café Nuevo</span>
+              <span class="preview-a-pill" style="background:#F4F4F6;color:#5C5C66;">Centro</span>
+            </div>
+            <div class="preview-a-card">
+              <div style="font-size:7px;color:#5C5C66;font-weight:500;">Ventas del día</div>
+              <div class="preview-a-num">$1.284.500</div>
+              <div class="preview-a-bars">
+                <div class="preview-a-bar" style="height:32%"></div>
+                <div class="preview-a-bar" style="height:48%"></div>
+                <div class="preview-a-bar" style="height:40%"></div>
+                <div class="preview-a-bar" style="height:62%"></div>
+                <div class="preview-a-bar" style="height:54%"></div>
+                <div class="preview-a-bar" style="height:78%"></div>
+                <div class="preview-a-bar last" style="height:92%"></div>
+              </div>
+            </div>
+            <div class="preview-a-row">
+              <b>Stock crítico</b><br/>
+              <span>3 productos bajo mínimo</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="strengths">
+        <div class="strength">Safe · sentirá familiar a quien viene de SaaS modernos</div>
+        <div class="strength">Escala bien a tablet sin replantear nada</div>
+        <div class="strength">El menos diferenciado: si tu equipo quiere "no equivocarse"</div>
+      </div>
+
+      <div class="specs">
+        <div class="spec-row"><span>Accent</span><span>#3D63DD cobalto</span></div>
+        <div class="spec-row"><span>Display</span><span>Inter</span></div>
+        <div class="spec-row"><span>Data / mono</span><span>JetBrains Mono</span></div>
+        <div class="spec-row"><span>Mood</span><span>Calmo · Premium</span></div>
+      </div>
+
+      <div class="card-cta">Ver pantallas completas <span>→</span></div>
+    </a>
+
+    <!-- Direction B -->
+    <a class="card" href="direction-b-pentagram.html">
+      <span class="card-tag"><span class="swatch" style="background:#0E5C3F"></span> B · Editorial Data</span>
+      <div class="card-title">Pentagram / Atlas</div>
+      <div class="card-sub">Layout de prensa financiera. Source Serif para titulares y números, hairlines en lugar de cards, charcoal sobre crema cálido. Para usuarios que respetan los datos.</div>
+
+      <div class="card-preview">
+        <div class="mini-phone">
+          <div class="mini-phone-screen preview-b" style="padding: 24px 12px 14px;">
+            <div class="mini-island"></div>
+            <div class="preview-b-mast">
+              <div>
+                <div class="preview-b-mast-meta" style="text-align:left;">Café Nuevo · Centro</div>
+                <div class="preview-b-mast-title">Resumen <i>diario</i></div>
+              </div>
+              <div class="preview-b-mast-meta">Mar<br/>06.05.26</div>
+            </div>
+            <div style="margin-top:8px;">
+              <div class="preview-b-kpi"><span>Ventas</span><span><span class="preview-b-kpi-val">$1.284.500</span><span class="preview-b-kpi-delta">+18%</span></span></div>
+              <div class="preview-b-kpi"><span>Boletas</span><span><span class="preview-b-kpi-val">42</span><span class="preview-b-kpi-delta">+6</span></span></div>
+              <div class="preview-b-kpi"><span>Ticket prom.</span><span><span class="preview-b-kpi-val">$30.583</span><span class="preview-b-kpi-delta">+11%</span></span></div>
+              <div class="preview-b-kpi"><span>Margen</span><span><span class="preview-b-kpi-val">38,4%</span><span class="preview-b-kpi-delta" style="color:#931F1F;">−0,9</span></span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="strengths">
+        <div class="strength">El más diferenciado en el rubro ERP — no se parece a Defontana ni a Bsale</div>
+        <div class="strength">Densidad orgullosa: muestra mucho dato sin sentirse abarrotado</div>
+        <div class="strength">Tono más serio · puede leerse "frío" para usuarios casuales</div>
+      </div>
+
+      <div class="specs">
+        <div class="spec-row"><span>Accent</span><span>#0E5C3F emerald</span></div>
+        <div class="spec-row"><span>Display</span><span>Source Serif 4</span></div>
+        <div class="spec-row"><span>Body / data</span><span>Inter · JetBrains Mono</span></div>
+        <div class="spec-row"><span>Mood</span><span>Serio · Confiado · Editorial</span></div>
+      </div>
+
+      <div class="card-cta">Ver pantallas completas <span>→</span></div>
+    </a>
+
+    <!-- Direction C -->
+    <a class="card" href="direction-c-hara.html">
+      <span class="card-tag"><span class="swatch" style="background:#C04A1A"></span> C · Honest Quiet</span>
+      <div class="card-title">Kenya Hara</div>
+      <div class="card-sub">El ERP que respira. Off-white cálido, tinta marrón, accent terracota único. Newsreader humanista, italic abundante. Diferenciación radical — único en pymes chilenas.</div>
+
+      <div class="card-preview">
+        <div class="mini-phone">
+          <div class="mini-phone-screen preview-c">
+            <div class="mini-island"></div>
+            <div class="preview-c-eyebrow">Mar · 06.05</div>
+            <div class="preview-c-greet"><i>Buenos</i> días,</div>
+            <div class="preview-c-greet" style="font-weight:500;">Josbert.</div>
+            <div class="preview-c-hero-label">— Ventas hoy</div>
+            <div class="preview-c-hero">$1.284<span>.500</span></div>
+            <div class="preview-c-quip">18% más que ayer.</div>
+            <div class="preview-c-row">
+              <div class="preview-c-stat"><div class="preview-c-stat-l">Boletas</div><div class="preview-c-stat-v">42</div></div>
+              <div class="preview-c-stat"><div class="preview-c-stat-l">Ticket</div><div class="preview-c-stat-v">$30.583</div></div>
+              <div class="preview-c-stat"><div class="preview-c-stat-l">Margen</div><div class="preview-c-stat-v">38,4%</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="strengths">
+        <div class="strength">El más memorable — la app que el dueño le muestra al amigo</div>
+        <div class="strength">Tono cálido y humano · diferencia radical en mercado chileno</div>
+        <div class="strength">Riesgo: los más conservadores pueden leerlo "experimental"</div>
+      </div>
+
+      <div class="specs">
+        <div class="spec-row"><span>Accent</span><span>#C04A1A terracota</span></div>
+        <div class="spec-row"><span>Display</span><span>Newsreader</span></div>
+        <div class="spec-row"><span>Body / mono</span><span>IBM Plex Sans · Mono</span></div>
+        <div class="spec-row"><span>Mood</span><span>Cálido · Artesanal · Único</span></div>
+      </div>
+
+      <div class="card-cta">Ver pantallas completas <span>→</span></div>
+    </a>
+
+  </div>
+</section>
+
+<section class="footer">
+  <h3>Cómo usar esto</h3>
+  <ol>
+    <li>Abre los tres HTMLs (los previews acá son mini, ahí dentro están los iPhones a tamaño real).</li>
+    <li>Elige una dirección — o mezcla (ej: "estructura del A con calidez del C", "tipografía del B con neutros del A").</li>
+    <li>Después aplico el huashu-design <code>review experto · 5 dimensiones</code> sobre la elegida y refino lo que esté abajo de 8/10.</li>
+    <li>Recién ahí actualizo los tokens de NativeWind y los componentes RN que ya scaffoldeé en <code>../</code>.</li>
+  </ol>
+  <p style="margin-top:18px;">
+    Mis assumptions abiertas: no tengo logo oficial de OpenSys, los datos son ficticios pero realistas (pyme cafetería chilena), las paletas son propuestas mías. Si tienes logo, color de marca real o referencias adicionales, mándalas y los integro.
+  </p>
+</section>
+</body>
+</html>
