@@ -14,7 +14,7 @@ import { ArrowLeft, Receipt, Wallet } from '~/lib/icons';
 import { Channels, RealtimeEvents } from '~/lib/realtime';
 import { useTenantStore } from '~/stores/tenant';
 import { Fonts } from '~/theme/fonts';
-import { palette } from '~/theme/tokens';
+import { brandShadow, palette } from '~/theme/tokens';
 
 interface BillingData {
   kpis: {
@@ -141,11 +141,7 @@ export default function RoutesBillingScreen() {
               backgroundColor: brand.brand,
               borderRadius: 22,
               padding: 20,
-              shadowColor: brand.brand,
-              shadowOffset: { width: 0, height: 8 },
-              shadowOpacity: 0.25,
-              shadowRadius: 16,
-              elevation: 6,
+              ...brandShadow(brand.brand, 'lg'),
             }}
           >
             <Text
@@ -290,7 +286,7 @@ export default function RoutesBillingScreen() {
               : unpaid.map((o, i) => (
                   <Animated.View
                     key={o.id}
-                    entering={FadeIn.delay(Math.min(i * 25, 200)).duration(220)}
+
                   >
                     <Pressable
                       haptic="selection"

@@ -14,13 +14,14 @@ export interface RouteOrderItem {
   id: number;
   product_id: number;
   product_name: string;
+  product?: { id: number; name: string; sku: string | null; image: string | null } | null;
   quantity: number;
   delivered_quantity: number;
   unit_price: number;
   subtotal: number;
 }
 
-export type RouteOrderStatus = 'pending' | 'delivered' | 'cancelled';
+export type RouteOrderStatus = 'pending' | 'in_route' | 'delivered' | 'cancelled';
 export type RoutePaymentStatus = 'unpaid' | 'partial' | 'paid';
 
 export interface RouteOrder {
@@ -35,6 +36,7 @@ export interface RouteOrder {
   payment_method: string | null;
   notes: string | null;
   client: RouteClient | null;
+  driver?: { id: number; name: string; email?: string; phone?: string | null; photo?: string | null } | null;
   items: RouteOrderItem[];
   created_at: string | null;
 }

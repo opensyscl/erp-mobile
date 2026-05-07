@@ -1,0 +1,264 @@
+import { type BottomSheetModal as BottomSheetModalType } from '@gorhom/bottom-sheet';
+import { useQuery } from '@tanstack/react-query';
+import { Image } from 'expo-image';
+import { forwardRef } from 'react';
+import { View } from 'react-native';
+
+import { AppBottomSheet } from '~/components/AppBottomSheet';
+import { Pressable, Skeleton, Text } from '~/components/ui';
+import { useColorScheme } from '~/hooks/useColorScheme';
+import { resolveApiUrl } from '~/lib/env';
+import { Fonts } from '~/theme/fonts';
+import { palette } from '~/theme/tokens';
+
+interface DemoUser {
+  name: string;
+  email: string;
+  photo: string | null;
+  role: string | null;
+}
+
+interface DemoTenant {
+  slug: string;
+  name: string;
+  brand_color: string;
+  has_routes: boolean;
+  modules: string[];
+  users: DemoUser[];
+}
+
+interface DemoAccountsResponse {
+  data: DemoTenant[];
+  default_password: string;
+}
+
+/**
+ * Sheet que muestra todos los tenants demo y sus usuarios. Al tap en un user
+ * llama a `onPick(slug, email, password)` y el caller setea tenant+credenciales
+ * en el form de login para entrar al toque.
+ *
+ * Hace fetch al ERP local/staging via /api/__dev/demos. En producción ese
+ * endpoint devuelve 404, así que el sheet quedará con error vacío — solo se
+ * monta detrás del gesto __DEV__ del logo.
+ */
+export const DemoAccountsSheet = forwardRef<
+  BottomSheetModalType,
+  {
+    onPick: (tenant: string, email: string, password: string) => void;
+  }
+>(function DemoAccountsSheet({ onPick }, ref) {
+  const scheme = useColorScheme();
+  const colors = palette[scheme];
+
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['dev', 'demo-accounts'],
+    queryFn: async () => {
+      const res = await fetch(`${resolveApiUrl()}/api/__dev/demos`, {
+        headers: { Accept: 'application/json' },
+      });
+      if (!res.ok) throw new Error('No disponible');
+      return (await res.json()) as DemoAccountsResponse;
+    },
+    staleTime: 30_000,
+  });
+
+  return (
+    <AppBottomSheet ref={ref} snapPoints={['90%']} scroll>
+      <View style={{ paddingHorizontal: 20 }}>
+        <Text variant="overline" tone="brand">
+          Cuentas demo
+        </Text>
+        <Text
+          style={{
+            fontFamily: Fonts.semibold,
+            fontSize: 22,
+            lineHeight: 30,
+            letterSpacing: -0.4,
+            color: colors.fg,
+            marginTop: 4,
+            includeFontPadding: false,
+          } as never}
+        >
+          Login rápido
+        </Text>
+        <Text variant="caption" tone="muted" className="mt-1">
+          Tap en cualquier usuario y entrás al toque · password global{' '}
+          <Text variant="caption" tone="default" style={{ fontFamily: Fonts.medium }}>
+            {data?.default_password ?? '12345678'}
+          </Text>
+        </Text>
+
+        <View style={{ marginTop: 18, gap: 18 }}>
+          {isLoading ? (
+            [0, 1, 2].map((i) => <Skeleton key={i} className="h-32 rounded-xl" />)
+          ) : isError ? (
+            <View style={{ paddingVertical: 24, alignItems: 'center' }}>
+              <Text variant="body" tone="danger">
+                No pude cargar las cuentas demo.
+              </Text>
+              <Text variant="caption" tone="muted" className="mt-1 text-center">
+                Verifica que el ERP local esté corriendo y que el switcher de
+                env esté apuntando a un entorno válido.
+              </Text>
+            </View>
+          ) : (
+            (data?.data ?? []).map((t) => (
+              <TenantBlock
+                key={t.slug}
+                tenant={t}
+                onPickUser={(email) => onPick(t.slug, email, data?.default_password ?? '12345678')}
+              />
+            ))
+          )}
+        </View>
+      </View>
+    </AppBottomSheet>
+  );
+});
+
+function TenantBlock({
+  tenant,
+  onPickUser,
+}: {
+  tenant: DemoTenant;
+  onPickUser: (email: string) => void;
+}) {
+  const scheme = useColorScheme();
+  const colors = palette[scheme];
+
+  return (
+    <View>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+        <View
+          style={{
+            width: 8,
+            height: 8,
+            borderRadius: 4,
+            backgroundColor: tenant.brand_color,
+          }}
+        />
+        <Text variant="bodyStrong" numberOfLines={1} style={{ flex: 1 }}>
+          {tenant.name}
+        </Text>
+        <Text
+          style={{
+            fontFamily: Fonts.regular,
+            fontSize: 11,
+            color: colors.fgSubtle,
+            includeFontPadding: false,
+          } as never}
+          numberOfLines={1}
+        >
+          {tenant.slug}
+        </Text>
+        {tenant.has_routes ? (
+          <View
+            style={{
+              paddingHorizontal: 6,
+              paddingVertical: 1,
+              borderRadius: 999,
+              backgroundColor: tenant.brand_color + '22',
+            }}
+          >
+            <Text
+              style={{
+                fontFamily: Fonts.medium,
+                fontSize: 9,
+                color: tenant.brand_color,
+                letterSpacing: 0.4,
+                includeFontPadding: false,
+              } as never}
+            >
+              ROUTES
+            </Text>
+          </View>
+        ) : null}
+      </View>
+
+      <View
+        style={{
+          backgroundColor: colors.bgElevated,
+          borderRadius: 14,
+          borderWidth: 1,
+          borderColor: colors.border,
+          overflow: 'hidden',
+        }}
+      >
+        {tenant.users.map((u, i) => (
+          <Pressable
+            key={u.email}
+            haptic="selection"
+            onPress={() => onPickUser(u.email)}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 12,
+              padding: 12,
+              borderTopWidth: i === 0 ? 0 : 1,
+              borderTopColor: colors.border,
+            }}
+          >
+            {u.photo ? (
+              <Image
+                source={{ uri: u.photo }}
+                style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: colors.bgMuted }}
+                contentFit="cover"
+              />
+            ) : (
+              <View
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 16,
+                  backgroundColor: colors.bgMuted,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Text
+                  style={{
+                    fontFamily: Fonts.semibold,
+                    fontSize: 12,
+                    color: colors.fgMuted,
+                    includeFontPadding: false,
+                  } as never}
+                >
+                  {u.name[0]?.toUpperCase()}
+                </Text>
+              </View>
+            )}
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text variant="bodyStrong" numberOfLines={1}>
+                {u.name}
+              </Text>
+              <Text
+                style={{
+                  fontFamily: Fonts.regular,
+                  fontSize: 11,
+                  color: colors.fgMuted,
+                  includeFontPadding: false,
+                } as never}
+                numberOfLines={1}
+              >
+                {u.email}
+              </Text>
+            </View>
+            {u.role ? (
+              <Text
+                style={{
+                  fontFamily: Fonts.medium,
+                  fontSize: 10,
+                  color: colors.fgSubtle,
+                  letterSpacing: 0.3,
+                  includeFontPadding: false,
+                } as never}
+              >
+                {u.role.replace('tenant_', '')}
+              </Text>
+            ) : null}
+          </Pressable>
+        ))}
+      </View>
+    </View>
+  );
+}

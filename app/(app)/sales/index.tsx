@@ -272,7 +272,7 @@ export default function SalesScreen() {
               {data.top_products.map((p, i) => (
                 <Animated.View
                   key={p.product_id}
-                  entering={FadeIn.delay(Math.min(i * 40, 240)).duration(280)}
+
                   style={
                     i < data.top_products.length - 1
                       ? { paddingBottom: 14, marginBottom: 14, borderBottomWidth: 1, borderBottomColor: colors.border }

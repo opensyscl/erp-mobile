@@ -4,7 +4,7 @@ import axios, {
   type AxiosRequestConfig,
   type InternalAxiosRequestConfig,
 } from 'axios';
-import { env } from './env';
+import { env, resolveApiUrl } from './env';
 import { secureStorage, StorageKeys } from './storage';
 
 export class ApiError extends Error {
@@ -25,12 +25,13 @@ export class ApiError extends Error {
  * - subdomain: tenant insertado como subdominio
  */
 function buildBaseURL(tenantSlug: string | null): string {
+  const apiUrl = resolveApiUrl();
   if (env.tenantMode === 'subdomain' && tenantSlug) {
-    const url = new URL(env.apiUrl);
+    const url = new URL(apiUrl);
     url.hostname = `${tenantSlug}.${url.hostname.replace(/^[^.]+\./, '')}`;
     return url.origin;
   }
-  return env.apiUrl;
+  return apiUrl;
 }
 
 /**

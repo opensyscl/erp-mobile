@@ -1,5 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { type BottomSheetModal as BottomSheetModalType } from '@gorhom/bottom-sheet';
 import { forwardRef, useRef, useState, type ReactNode, type Ref } from 'react';
 import {
   KeyboardAvoidingView,
@@ -20,17 +21,20 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { DemoAccountsSheet } from '~/components/DemoAccountsSheet';
+import { DevEnvSheet } from '~/components/DevEnvSheet';
 import { HeaderPattern } from '~/components/HeaderPattern';
 import { LogoMark } from '~/components/Logo';
 import { Pressable, Screen, Text } from '~/components/ui';
 import { useBrand } from '~/hooks/useBrand';
 import { useColorScheme } from '~/hooks/useColorScheme';
+import { useFourTapGesture } from '~/hooks/useFourTapGesture';
 import { ApiError } from '~/lib/api';
 import { ArrowLeft, Eye, EyeOff, Lock, Mail } from '~/lib/icons';
 import { useAuthStore } from '~/stores/auth';
 import { useTenantStore } from '~/stores/tenant';
 import { Fonts } from '~/theme/fonts';
-import { palette } from '~/theme/tokens';
+import { palette, shadows } from '~/theme/tokens';
 
 /**
  * Login pantalla — diseño "premium":
@@ -51,6 +55,18 @@ export default function LoginScreen() {
   const status = useAuthStore((s) => s.status);
 
   const passwordRef = useRef<RNTextInput>(null);
+  const devEnvSheet = useRef<BottomSheetModalType>(null);
+  const demoSheet = useRef<BottomSheetModalType>(null);
+  const logoTap = useFourTapGesture(() => devEnvSheet.current?.present());
+
+  const setSlug = useTenantStore((s) => s.setSlug);
+  const handleDemoPick = async (slug: string, em: string, pw: string) => {
+    await setSlug(slug);
+    setEmail(em);
+    setPassword(pw);
+    setError(null);
+    demoSheet.current?.dismiss();
+  };
 
   // Prellenado en dev — chips para alternar entre admin y driver. NO shipea a prod.
   const DEV_ACCOUNTS: { id: 'admin' | 'driver'; label: string; email: string; password: string }[] = [
@@ -135,7 +151,8 @@ export default function LoginScreen() {
 
             <View style={{ marginTop: 36, alignItems: 'center' }}>
               <Animated.View entering={FadeIn.duration(360)}>
-                <View
+                <Pressable
+                  onPress={logoTap.onPress}
                   style={{
                     backgroundColor: 'rgba(255,255,255,0.18)',
                     width: 76,
@@ -146,7 +163,7 @@ export default function LoginScreen() {
                   }}
                 >
                   <LogoMark size={48} variant="inverse" />
-                </View>
+                </Pressable>
               </Animated.View>
 
               <Animated.View entering={FadeInUp.delay(80).duration(360).springify()} style={{ alignItems: 'center', marginTop: 18 }}>
@@ -205,13 +222,9 @@ export default function LoginScreen() {
               marginTop: -68,
               borderRadius: 24,
               padding: 24,
-              shadowColor: '#0a0d14',
-              shadowOffset: { width: 0, height: 12 },
-              shadowOpacity: 0.08,
-              shadowRadius: 24,
-              elevation: 6,
               borderWidth: 1,
               borderColor: colors.border,
+              ...shadows.lg,
             }}
           >
             <Text variant="overline" tone="brand">
@@ -231,7 +244,46 @@ export default function LoginScreen() {
             </Text>
 
             {__DEV__ ? (
-              <View style={{ flexDirection: 'row', gap: 8, marginTop: 16 }}>
+              <Pressable
+                haptic="selection"
+                onPress={() => demoSheet.current?.present()}
+                style={{
+                  marginTop: 14,
+                  height: 38,
+                  borderRadius: 10,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: brand.brandSubtle,
+                  borderWidth: 1,
+                  borderColor: brand.brand + '33',
+                  flexDirection: 'row',
+                  gap: 8,
+                }}
+              >
+                <View
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: 3,
+                    backgroundColor: brand.brand,
+                  }}
+                />
+                <Text
+                  style={{
+                    color: brand.brand,
+                    fontFamily: Fonts.medium,
+                    fontSize: 12,
+                    letterSpacing: 0.2,
+                    includeFontPadding: false,
+                  } as never}
+                >
+                  Ver todas las cuentas demo
+                </Text>
+              </Pressable>
+            ) : null}
+
+            {__DEV__ ? (
+              <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
                 {DEV_ACCOUNTS.map((acct) => {
                   const active = email === acct.email;
                   return (
@@ -421,6 +473,12 @@ export default function LoginScreen() {
           </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Sheet oculto: tocar el LogoMark 4 veces para alternar entorno */}
+      <DevEnvSheet ref={devEnvSheet} />
+
+      {/* Sheet de cuentas demo (botón visible en __DEV__) */}
+      <DemoAccountsSheet ref={demoSheet} onPick={handleDemoPick} />
     </Screen>
   );
 }

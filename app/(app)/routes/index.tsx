@@ -1,7 +1,8 @@
+import { type BottomSheetModal as BottomSheetModalType } from '@gorhom/bottom-sheet';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Modal,
@@ -25,6 +26,7 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HeaderPattern } from '~/components/HeaderPattern';
+import { NotificationsSheet } from '~/components/NotificationsSheet';
 import { toast } from '~/components/Toast';
 import { Button, Card, Pressable, Skeleton, Text } from '~/components/ui';
 import { useBrand } from '~/hooks/useBrand';
@@ -32,9 +34,10 @@ import { useColorScheme } from '~/hooks/useColorScheme';
 import { useRealtimeInvalidate } from '~/hooks/useRealtime';
 import { useSafeBack } from '~/hooks/useSafeBack';
 import { ApiError, apiRequest } from '~/lib/api';
-import { ArrowLeft, ArrowRight, BarChart, Package, PackageReceive, Plus, Receipt, Truck, User as UserIcon, UserGroup, Wallet } from '~/lib/icons';
+import { ArrowLeft, ArrowRight, BarChart, Bell, Package, PackageReceive, Plus, Receipt, Refresh, Truck, User as UserIcon, UserGroup, Wallet } from '~/lib/icons';
 import { Channels, RealtimeEvents } from '~/lib/realtime';
 import { useAuthStore } from '~/stores/auth';
+import { useUnseenCount } from '~/stores/notifications';
 import { useTenantStore } from '~/stores/tenant';
 import { Fonts } from '~/theme/fonts';
 import { palette } from '~/theme/tokens';
@@ -43,6 +46,19 @@ import type {
   RouteOrder,
   RoutePaymentStatus,
 } from '~/types/routes';
+
+interface MyOrderCard {
+  id: number;
+  order_number: string;
+  status: 'pending' | 'in_route' | 'delivered' | 'cancelled';
+  payment_status: 'unpaid' | 'partial' | 'paid';
+  client_name: string | null;
+  client_address: string | null;
+  total: number;
+  amount_paid: number;
+  is_today: boolean;
+  created_at: string | null;
+}
 
 interface MyLoadCard {
   id: number;
@@ -67,15 +83,9 @@ function greeting(): string {
   return 'Buenas noches';
 }
 
-function dayShortLabel(): string {
-  const days = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
-  const months = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
-  const d = new Date();
-  return `${(days[d.getDay()] ?? '').slice(0, 3)} · ${d.getDate()} ${months[d.getMonth()] ?? ''}`;
-}
-
 const STATUS_LABEL: Record<RouteOrder['status'], string> = {
   pending: 'Pendiente',
+  in_route: 'En ruta',
   delivered: 'Entregada',
   cancelled: 'No entregada',
 };
@@ -116,7 +126,21 @@ export default function RoutesScreen() {
       }),
   });
 
-  // Mis cargas — últimas 7 (incluyendo hoy)
+  // Mis pedidos recientes — últimos 10 del driver
+  const myOrdersKey = ['routes', 'my-orders', driverIdParam ?? 'self'];
+  const { data: myOrdersData } = useQuery({
+    queryKey: myOrdersKey,
+    queryFn: () =>
+      apiRequest<{ data: MyOrderCard[] }>({
+        method: 'GET',
+        url: driverIdParam
+          ? `/api/mobile/routes/my-orders?driver_id=${encodeURIComponent(driverIdParam)}`
+          : '/api/mobile/routes/my-orders',
+      }).then((r) => r.data),
+  });
+  const myOrders = myOrdersData ?? [];
+
+  // Mis cargas — últimas 7 (cada una agrupa varios pedidos)
   const myLoadsKey = ['routes', 'my-loads', driverIdParam ?? 'self'];
   const { data: myLoadsData } = useQuery({
     queryKey: myLoadsKey,
@@ -133,10 +157,22 @@ export default function RoutesScreen() {
   // Realtime: el conductor debe ver cambios cuando admin confirma carga,
   // crea órdenes nuevas o cierra la jornada.
   const routesChannel = tenant ? Channels.tenantRoutes(tenant.id) : null;
-  useRealtimeInvalidate(routesChannel, RealtimeEvents.RouteLoadConfirmed, [todayKey, myLoadsKey]);
-  useRealtimeInvalidate(routesChannel, RealtimeEvents.RouteLoadClosed, [todayKey, myLoadsKey]);
-  useRealtimeInvalidate(routesChannel, RealtimeEvents.RouteOrderCreated, [todayKey, myLoadsKey]);
-  useRealtimeInvalidate(routesChannel, RealtimeEvents.RouteOrderStatusChanged, [todayKey, myLoadsKey]);
+  useRealtimeInvalidate(routesChannel, RealtimeEvents.RouteLoadConfirmed, [todayKey, myOrdersKey]);
+  useRealtimeInvalidate(routesChannel, RealtimeEvents.RouteLoadClosed, [todayKey, myOrdersKey]);
+  useRealtimeInvalidate(routesChannel, RealtimeEvents.RouteOrderCreated, [todayKey, myOrdersKey]);
+  useRealtimeInvalidate(routesChannel, RealtimeEvents.RouteOrderStatusChanged, [todayKey, myOrdersKey]);
+
+  // El feed in-app de eventos vive en (app)/_layout.tsx para que persista entre
+  // pantallas. Acá solo leemos el contador.
+  const unseenCount = useUnseenCount();
+
+  // Sheet de notificaciones + handler de reload manual
+  const notifSheet = useRef<BottomSheetModalType>(null);
+  const handleReload = () => {
+    void refetch();
+    void queryClient.invalidateQueries({ queryKey: ['routes'] });
+    toast.success('Actualizado', 'Datos refrescados.');
+  };
 
   const load = data?.data ?? null;
   const orders = load?.orders ?? [];
@@ -145,8 +181,9 @@ export default function RoutesScreen() {
   const sortedOrders = [...orders].sort((a, b) => {
     const order: Record<RouteOrder['status'], number> = {
       pending: 0,
-      delivered: 1,
-      cancelled: 2,
+      in_route: 1,
+      delivered: 2,
+      cancelled: 3,
     };
     return order[a.status] - order[b.status];
   });
@@ -200,7 +237,7 @@ export default function RoutesScreen() {
           }}
         >
           <HeaderPattern color={brand.brandFg} intensity={1.0} />
-          <Animated.View entering={FadeInDown.duration(360)}>
+          <Animated.View entering={FadeInDown.duration(220)}>
             <View className="flex-row items-center justify-between">
               <View className="flex-row items-center gap-2.5">
                 <View
@@ -235,21 +272,53 @@ export default function RoutesScreen() {
                   {tenant?.name ?? 'OpenSys'}
                 </Text>
               </View>
-              <View
-                className="px-3 py-1.5 rounded-full flex-row items-center gap-1.5"
-                style={{ backgroundColor: 'rgba(255,255,255,0.14)' }}
-              >
-                <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: brand.brandFg, opacity: 0.7 }} />
-                <Text
-                  style={{
-                    color: brand.brandFg,
-                    fontFamily: Fonts.medium,
-                    fontSize: 11,
-                    letterSpacing: 0.3,
-                  }}
+              <View className="flex-row items-center gap-2">
+                <Pressable
+                  haptic="selection"
+                  onPress={handleReload}
+                  className="h-9 w-9 rounded-full items-center justify-center"
+                  style={{ backgroundColor: 'rgba(255,255,255,0.18)' }}
                 >
-                  {dayShortLabel()}
-                </Text>
+                  <Refresh size={16} color={brand.brandFg} strokeWidth={1.8} />
+                </Pressable>
+                <Pressable
+                  haptic="selection"
+                  onPress={() => notifSheet.current?.present()}
+                  className="h-9 w-9 rounded-full items-center justify-center"
+                  style={{ backgroundColor: 'rgba(255,255,255,0.18)' }}
+                >
+                  <Bell size={16} color={brand.brandFg} strokeWidth={1.8} />
+                  {unseenCount > 0 ? (
+                    <View
+                      style={{
+                        position: 'absolute',
+                        top: 2,
+                        right: 2,
+                        minWidth: 16,
+                        height: 16,
+                        paddingHorizontal: 4,
+                        borderRadius: 999,
+                        backgroundColor: '#ef4444',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        borderWidth: 1.5,
+                        borderColor: brand.brand,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color: '#fff',
+                          fontFamily: Fonts.semibold,
+                          fontSize: 9,
+                          fontVariant: ['tabular-nums'],
+                          includeFontPadding: false,
+                        } as never}
+                      >
+                        {unseenCount > 9 ? '9+' : unseenCount}
+                      </Text>
+                    </View>
+                  ) : null}
+                </Pressable>
               </View>
             </View>
 
@@ -292,15 +361,33 @@ export default function RoutesScreen() {
           </Animated.View>
         </View>
 
-        {/* Hero Card flotante — KPI principal estilo enterprise */}
+        {/* Hero Card flotante — KPI principal estilo enterprise · tappable → detalle */}
         {load ? (
-          <Animated.View entering={FadeInUp.delay(140).duration(360)} className="mx-5" style={{ marginTop: -68 }}>
+          <Animated.View entering={FadeInUp.delay(140).duration(220)} className="mx-5" style={{ marginTop: -68 }}>
+            <Pressable
+              haptic="selection"
+              scale="subtle"
+              onPress={() => router.push(`/(app)/routes/load/${load.id}` as never)}
+            >
             <Card variant="elevated" padding="lg" className="overflow-hidden">
               <View className="flex-row items-start">
                 <View className="flex-1 pr-2">
-                  <Text variant="overline" tone="brand">
-                    Mi ruta de hoy
-                  </Text>
+                  <View className="flex-row items-center justify-between">
+                    <Text variant="overline" tone="brand">
+                      Mi ruta de hoy
+                    </Text>
+                    <Text
+                      style={{
+                        fontFamily: Fonts.medium,
+                        fontSize: 11,
+                        color: brand.brand,
+                        letterSpacing: 0.2,
+                        includeFontPadding: false,
+                      } as never}
+                    >
+                      Ver detalle →
+                    </Text>
+                  </View>
                   <View className="flex-row items-baseline gap-2 mt-2">
                     <Text
                       style={{
@@ -347,12 +434,13 @@ export default function RoutesScreen() {
               {/* Progress bar */}
               <ProgressBar pct={load.progress.pct} brand={brand.brand} bg={colors.bgMuted} />
             </Card>
+            </Pressable>
           </Animated.View>
         ) : null}
 
         {/* 3 KPI cards — Entregado · Pendiente · Por cobrar */}
         {load ? (
-          <Animated.View entering={FadeInUp.delay(220).duration(360)} className="flex-row gap-2.5 mx-5 mt-3">
+          <Animated.View entering={FadeInUp.delay(220).duration(220)} className="flex-row gap-2.5 mx-5 mt-3">
             <MiniStat
               label="Entregadas"
               value={String(load.progress.delivered)}
@@ -374,11 +462,41 @@ export default function RoutesScreen() {
           </Animated.View>
         ) : null}
 
-        {/* Mis cargas — últimas 7 con scroll horizontal */}
+        {/* Mis pedidos recientes — últimos 10 con scroll horizontal */}
+        {myOrders.length > 0 ? (
+          <Animated.View
+            entering={FadeInUp.delay(260).duration(220)}
+            style={{ marginTop: 20 }}
+          >
+            <View className="flex-row items-baseline justify-between px-5 mb-3">
+              <Text variant="overline" tone="subtle">
+                Mis pedidos recientes
+              </Text>
+              <Text variant="caption" tone="muted">
+                últimos {myOrders.length}
+              </Text>
+            </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: 16, gap: 10 }}
+            >
+              {myOrders.map((o) => (
+                <MyOrderChip
+                  key={o.id}
+                  order={o}
+                  onPress={() => router.push(`/(app)/routes/orders/${o.id}` as never)}
+                />
+              ))}
+            </ScrollView>
+          </Animated.View>
+        ) : null}
+
+        {/* Mis cargas — agrupa los pedidos en jornadas (loads) */}
         {myLoads.length > 0 ? (
           <Animated.View
-            entering={FadeInUp.delay(260).duration(360)}
-            style={{ marginTop: 20 }}
+            entering={FadeInUp.delay(280).duration(220)}
+            style={{ marginTop: 18 }}
           >
             <View className="flex-row items-baseline justify-between px-5 mb-3">
               <Text variant="overline" tone="subtle">
@@ -393,8 +511,12 @@ export default function RoutesScreen() {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={{ paddingHorizontal: 16, gap: 10 }}
             >
-              {myLoads.map((l, i) => (
-                <MyLoadChip key={l.id} load={l} index={i} />
+              {myLoads.map((l) => (
+                <MyLoadChip
+                  key={l.id}
+                  load={l}
+                  onPress={() => router.push(`/(app)/routes/load/${l.id}` as never)}
+                />
               ))}
             </ScrollView>
           </Animated.View>
@@ -417,7 +539,7 @@ export default function RoutesScreen() {
             </Text>
           </View>
         ) : (
-          <Animated.View entering={FadeInUp.delay(280).duration(360)} className="px-5 mt-7 gap-2">
+          <Animated.View entering={FadeInUp.delay(280).duration(220)} className="px-5 mt-7 gap-2">
             <View className="flex-row items-baseline justify-between mb-2">
               <Text variant="overline" tone="subtle">
                 Pedidos por entregar
@@ -435,19 +557,16 @@ export default function RoutesScreen() {
                 {sortedOrders.filter((o) => o.status === 'delivered').length} entregadas
               </Text>
             </View>
-            {sortedOrders.map((o, i) => (
-              <Animated.View
-                key={o.id}
-                entering={FadeInDown.delay(Math.min(i * 40, 320)).duration(300)}
-              >
-                <OrderCard order={o} onPress={() => setActiveOrder(o)} brand={brand} />
-              </Animated.View>
+            {sortedOrders.map((o) => (
+              <View key={o.id}>
+                <OrderCard order={o} onPress={() => router.push(`/(app)/routes/orders/${o.id}` as never)} brand={brand} />
+              </View>
             ))}
           </Animated.View>
         )}
 
         {/* Accesos rápidos — 2x2 grid estilo enterprise home */}
-        <Animated.View entering={FadeInUp.delay(360).duration(360)} className="mt-7">
+        <Animated.View entering={FadeInUp.delay(360).duration(220)} className="mt-7">
           <Text variant="overline" tone="subtle" style={{ marginLeft: 20, marginBottom: 12 }}>
             Accesos rápidos
           </Text>
@@ -517,6 +636,9 @@ export default function RoutesScreen() {
           }}
         />
       ) : null}
+
+      {/* Sheet con feed de notificaciones realtime */}
+      <NotificationsSheet ref={notifSheet} />
     </View>
   );
 }
@@ -541,7 +663,135 @@ function dateLabel(iso: string | null, isToday: boolean): string {
   return `${days[d.getDay()]} ${d.getDate()} ${months[d.getMonth()]}`;
 }
 
-function MyLoadChip({ load, index }: { load: MyLoadCard; index: number }) {
+const ORDER_STATUS_META: Record<
+  MyOrderCard['status'],
+  { label: string; tone: 'warning' | 'success' | 'danger' | 'brand' }
+> = {
+  pending: { label: 'PENDIENTE', tone: 'warning' },
+  in_route: { label: 'EN RUTA', tone: 'brand' },
+  delivered: { label: 'ENTREGADO', tone: 'success' },
+  cancelled: { label: 'NO ENTREGADO', tone: 'danger' },
+};
+
+function MyOrderChip({ order, onPress }: { order: MyOrderCard; onPress: () => void }) {
+  const scheme = useColorScheme();
+  const colors = palette[scheme];
+  const brand = useBrand();
+  const meta = ORDER_STATUS_META[order.status];
+  const accent =
+    meta.tone === 'success'
+      ? colors.success
+      : meta.tone === 'warning'
+        ? colors.warning
+        : meta.tone === 'danger'
+          ? colors.danger
+          : brand.brand;
+  const pending = Math.max(0, order.total - order.amount_paid);
+
+  return (
+    <Pressable
+      haptic="selection"
+      scale="subtle"
+      onPress={onPress}
+      style={{
+        width: 192,
+        backgroundColor: colors.bgElevated,
+        borderRadius: 16,
+        borderWidth: order.is_today ? 1.5 : 1,
+        borderColor: order.is_today ? brand.brand : colors.border,
+        padding: 14,
+      }}
+    >
+      <View className="flex-row items-center justify-between">
+        <Text
+          style={{
+            fontFamily: Fonts.medium,
+            fontSize: 11,
+            letterSpacing: 0.2,
+            color: brand.brand,
+            includeFontPadding: false,
+          } as never}
+          numberOfLines={1}
+        >
+          {order.order_number}
+        </Text>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 4,
+            paddingHorizontal: 6,
+            paddingVertical: 1,
+            borderRadius: 999,
+            backgroundColor: accent + '18',
+          }}
+        >
+          <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: accent }} />
+          <Text
+            style={{
+              fontFamily: Fonts.medium,
+              fontSize: 9,
+              color: accent,
+              letterSpacing: 0.4,
+              includeFontPadding: false,
+            } as never}
+          >
+            {meta.label}
+          </Text>
+        </View>
+      </View>
+
+      <Text
+        style={{
+          marginTop: 8,
+          fontFamily: Fonts.semibold,
+          fontSize: 14,
+          lineHeight: 20,
+          color: colors.fg,
+          includeFontPadding: false,
+        } as never}
+        numberOfLines={1}
+      >
+        {order.client_name ?? '—'}
+      </Text>
+      <Text variant="caption" tone="muted" numberOfLines={1}>
+        {dateLabel(order.created_at, order.is_today)}
+      </Text>
+
+      <Text
+        style={{
+          marginTop: 10,
+          fontFamily: Fonts.semibold,
+          fontSize: 16,
+          lineHeight: 22,
+          color: colors.fg,
+          fontVariant: ['tabular-nums'],
+          includeFontPadding: false,
+        } as never}
+        numberOfLines={1}
+      >
+        {formatCLP(order.total)}
+      </Text>
+      {pending > 0 && order.status === 'delivered' ? (
+        <Text variant="caption" tone="warning" numberOfLines={1}>
+          {formatCLP(pending)} por cobrar
+        </Text>
+      ) : order.amount_paid > 0 ? (
+        <Text variant="caption" tone="success" numberOfLines={1}>
+          {formatCLP(order.amount_paid)} cobrado
+        </Text>
+      ) : (
+        <Text variant="caption" tone="subtle" numberOfLines={1}>
+          sin cobro
+        </Text>
+      )}
+    </Pressable>
+  );
+}
+
+/* ─────────────── MyLoadChip — chip de carga (jornada) ─────────────── */
+
+function MyLoadChip({ load, onPress }: { load: MyLoadCard; onPress: () => void }) {
   const scheme = useColorScheme();
   const colors = palette[scheme];
   const brand = useBrand();
@@ -549,123 +799,125 @@ function MyLoadChip({ load, index }: { load: MyLoadCard; index: number }) {
   const accent = isOpen ? brand.brand : colors.fgMuted;
 
   return (
-    <Animated.View entering={FadeIn.delay(Math.min(index * 50, 250)).duration(280)}>
-      <View
-        style={{
-          width: 168,
-          backgroundColor: colors.bgElevated,
-          borderRadius: 16,
-          borderWidth: load.is_today ? 1.5 : 1,
-          borderColor: load.is_today ? brand.brand : colors.border,
-          padding: 14,
-        }}
-      >
-        <View className="flex-row items-center justify-between">
-          <Text
-            style={{
-              fontFamily: Fonts.semibold,
-              fontSize: 13,
-              letterSpacing: -0.2,
-              color: colors.fg,
-              includeFontPadding: false,
-            } as never}
-          >
-            {dateLabel(load.created_at, load.is_today)}
-          </Text>
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 4,
-              paddingHorizontal: 7,
-              paddingVertical: 1,
-              borderRadius: 999,
-              backgroundColor: accent + '18',
-            }}
-          >
-            <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: accent }} />
-            <Text
-              style={{
-                fontFamily: Fonts.medium,
-                fontSize: 9,
-                color: accent,
-                letterSpacing: 0.4,
-                includeFontPadding: false,
-              } as never}
-            >
-              {isOpen ? 'EN RUTA' : 'CERRADA'}
-            </Text>
-          </View>
-        </View>
-
-        <View className="flex-row items-baseline gap-1 mt-3">
-          <Text
-            style={{
-              fontFamily: Fonts.semibold,
-              fontSize: 22,
-              lineHeight: 28,
-              letterSpacing: -0.5,
-              color: colors.fg,
-              fontVariant: ['tabular-nums'],
-              includeFontPadding: false,
-            } as never}
-          >
-            {load.progress.delivered}
-          </Text>
-          <Text
-            style={{
-              fontFamily: Fonts.medium,
-              fontSize: 13,
-              color: colors.fgMuted,
-              fontVariant: ['tabular-nums'],
-            }}
-          >
-            /{load.progress.total}
-          </Text>
-        </View>
-        <Text variant="caption" tone="subtle" className="mt-0.5">
-          entregas
-        </Text>
-
-        {/* Mini progress bar */}
-        <View
-          style={{
-            marginTop: 10,
-            height: 4,
-            borderRadius: 999,
-            backgroundColor: colors.bgMuted,
-            overflow: 'hidden',
-          }}
-        >
-          <View
-            style={{
-              width: `${load.progress.pct}%`,
-              height: '100%',
-              backgroundColor: isOpen ? brand.brand : colors.success,
-            }}
-          />
-        </View>
-
+    <Pressable
+      haptic="selection"
+      scale="subtle"
+      onPress={onPress}
+      style={{
+        width: 168,
+        backgroundColor: colors.bgElevated,
+        borderRadius: 16,
+        borderWidth: load.is_today ? 1.5 : 1,
+        borderColor: load.is_today ? brand.brand : colors.border,
+        padding: 14,
+      }}
+    >
+      <View className="flex-row items-center justify-between">
         <Text
           style={{
-            marginTop: 8,
             fontFamily: Fonts.semibold,
             fontSize: 13,
-            color: colors.success,
-            fontVariant: ['tabular-nums'],
+            letterSpacing: -0.2,
+            color: colors.fg,
             includeFontPadding: false,
           } as never}
           numberOfLines={1}
         >
-          {formatCLP(load.amounts.collected)}
+          {dateLabel(load.created_at, load.is_today)}
         </Text>
-        {load.amounts.pending > 0 ? (
-          <Text variant="caption" tone="warning" numberOfLines={1}>
-            {formatCLP(load.amounts.pending)} por cobrar
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 4,
+            paddingHorizontal: 7,
+            paddingVertical: 1,
+            borderRadius: 999,
+            backgroundColor: accent + '18',
+          }}
+        >
+          <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: accent }} />
+          <Text
+            style={{
+              fontFamily: Fonts.medium,
+              fontSize: 9,
+              color: accent,
+              letterSpacing: 0.4,
+              includeFontPadding: false,
+            } as never}
+          >
+            {isOpen ? 'EN RUTA' : 'CERRADA'}
           </Text>
-        ) : null}
+        </View>
       </View>
-    </Animated.View>
+
+      <View className="flex-row items-baseline gap-1 mt-3">
+        <Text
+          style={{
+            fontFamily: Fonts.semibold,
+            fontSize: 22,
+            lineHeight: 28,
+            letterSpacing: -0.5,
+            color: colors.fg,
+            fontVariant: ['tabular-nums'],
+            includeFontPadding: false,
+          } as never}
+        >
+          {load.progress.delivered}
+        </Text>
+        <Text
+          style={{
+            fontFamily: Fonts.medium,
+            fontSize: 13,
+            color: colors.fgMuted,
+            fontVariant: ['tabular-nums'],
+          }}
+        >
+          /{load.progress.total}
+        </Text>
+      </View>
+      <Text variant="caption" tone="subtle" className="mt-0.5">
+        entregas
+      </Text>
+
+      {/* Mini progress bar */}
+      <View
+        style={{
+          marginTop: 10,
+          height: 4,
+          borderRadius: 999,
+          backgroundColor: colors.bgMuted,
+          overflow: 'hidden',
+        }}
+      >
+        <View
+          style={{
+            width: `${load.progress.pct}%`,
+            height: '100%',
+            backgroundColor: isOpen ? brand.brand : colors.success,
+          }}
+        />
+      </View>
+
+      <Text
+        style={{
+          marginTop: 8,
+          fontFamily: Fonts.semibold,
+          fontSize: 13,
+          color: colors.success,
+          fontVariant: ['tabular-nums'],
+          includeFontPadding: false,
+        } as never}
+        numberOfLines={1}
+      >
+        {formatCLP(load.amounts.collected)}
+      </Text>
+      {load.amounts.pending > 0 ? (
+        <Text variant="caption" tone="warning" numberOfLines={1}>
+          {formatCLP(load.amounts.pending)} por cobrar
+        </Text>
+      ) : null}
+    </Pressable>
   );
 }
 

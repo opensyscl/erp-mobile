@@ -15,7 +15,7 @@ import { Channels, RealtimeEvents } from '~/lib/realtime';
 import { useAuthStore } from '~/stores/auth';
 import { useTenantStore } from '~/stores/tenant';
 import { Fonts } from '~/theme/fonts';
-import { palette } from '~/theme/tokens';
+import { brandShadow, palette } from '~/theme/tokens';
 
 interface DashboardData {
   kpis: {
@@ -165,11 +165,7 @@ export default function RoutesAdminDashboard() {
               flexDirection: 'row',
               alignItems: 'center',
               gap: 6,
-              shadowColor: brand.brand,
-              shadowOffset: { width: 0, height: 6 },
-              shadowOpacity: 0.24,
-              shadowRadius: 12,
-              elevation: 4,
+              ...brandShadow(brand.brand, 'md'),
             }}
           >
             <Text
@@ -385,7 +381,7 @@ export default function RoutesAdminDashboard() {
                 {data!.top_drivers.map((d, i) => (
                   <Animated.View
                     key={d.driver_id}
-                    entering={FadeIn.delay(Math.min(i * 60, 240)).duration(280)}
+
                   >
                     <Pressable
                       haptic="selection"

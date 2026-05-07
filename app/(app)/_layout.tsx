@@ -2,7 +2,9 @@ import { BlurView } from 'expo-blur';
 import { Tabs } from 'expo-router';
 import { Platform, View } from 'react-native';
 
+import { useRealtimeRouteNotifications } from '~/hooks/useRealtimeNotifications';
 import { BarChart, Home, Package, ScanLine, Settings, Truck } from '~/lib/icons';
+import { Channels } from '~/lib/realtime';
 import { useAuthStore } from '~/stores/auth';
 import { useTenantStore } from '~/stores/tenant';
 import { palette } from '~/theme/tokens';
@@ -15,6 +17,11 @@ export default function AppLayout() {
   const brand = useBrand();
   const tenant = useTenantStore((s) => s.tenant);
   const user = useAuthStore((s) => s.user);
+
+  // Suscripción global a eventos de Routes — vive mientras el usuario
+  // esté autenticado, así el bell se actualiza desde cualquier pantalla.
+  const routesChannelName = tenant ? Channels.tenantRoutes(tenant.id) : null;
+  useRealtimeRouteNotifications(routesChannelName);
 
   const modules = tenant?.modules ?? [];
   const hasRoutes = modules.includes('routes');
@@ -127,11 +134,13 @@ export default function AppLayout() {
       <Tabs.Screen name="routes/admin" options={{ href: null }} />
       <Tabs.Screen name="routes/orders/index" options={{ href: null }} />
       <Tabs.Screen name="routes/orders/new" options={{ href: null }} />
+      <Tabs.Screen name="routes/orders/[id]" options={{ href: null }} />
       <Tabs.Screen name="routes/loads/index" options={{ href: null }} />
       <Tabs.Screen name="routes/drivers/index" options={{ href: null }} />
       <Tabs.Screen name="routes/clients/index" options={{ href: null }} />
       <Tabs.Screen name="routes/production/index" options={{ href: null }} />
       <Tabs.Screen name="routes/billing/index" options={{ href: null }} />
+      <Tabs.Screen name="routes/load/[id]" options={{ href: null }} />
     </Tabs>
   );
 }

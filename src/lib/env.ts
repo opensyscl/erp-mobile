@@ -1,7 +1,13 @@
 /**
  * Variables de entorno expuestas por Expo (prefijo EXPO_PUBLIC_).
  * Las leemos en un solo lugar para tipar y validar.
+ *
+ * Soportamos override en runtime via `useDevEnvStore` — el primer request
+ * después de cambiar el switch ya usa la nueva URL (api.ts lee
+ * `resolveApiUrl()` per-request via interceptor).
  */
+
+import { getActivePreset } from '~/stores/devEnv';
 
 const apiUrl = process.env.EXPO_PUBLIC_API_URL;
 if (!apiUrl) {
@@ -25,3 +31,28 @@ export const env = {
   sentryDsn: process.env.EXPO_PUBLIC_SENTRY_DSN || null,
   posthogKey: process.env.EXPO_PUBLIC_POSTHOG_KEY || null,
 } as const;
+
+/** API base URL — chequea override de devEnv primero. */
+export function resolveApiUrl(): string {
+  const preset = getActivePreset();
+  return preset?.apiUrl ?? env.apiUrl;
+}
+
+/** Realtime config — chequea override de devEnv primero. */
+export function resolveRealtime(): {
+  host: string | null;
+  port: number;
+  scheme: 'http' | 'https';
+  key: string | null;
+} {
+  const preset = getActivePreset();
+  if (preset) {
+    return {
+      host: preset.realtimeHost,
+      port: preset.realtimePort,
+      scheme: preset.realtimeScheme,
+      key: preset.realtimeKey,
+    };
+  }
+  return env.realtime;
+}

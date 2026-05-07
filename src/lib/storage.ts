@@ -55,4 +55,5 @@ export const StorageKeys = {
   TenantData: 'opensys.tenant.data',
   BranchId: 'opensys.branch.id',
   ThemePreference: 'opensys.theme.preference',
+  DevEnv: 'opensys.dev.env',
 } as const;

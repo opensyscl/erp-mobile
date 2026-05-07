@@ -32,11 +32,9 @@ interface OrderRow {
   created_at: string | null;
 }
 
-const FILTERS = [
-  { id: 'all', label: 'Todos' },
+const TABS = [
   { id: 'pending', label: 'Pendientes' },
   { id: 'delivered', label: 'Entregados' },
-  { id: 'cancelled', label: 'No entregados' },
 ] as const;
 
 const STATUS_TONE: Record<OrderRow['status'], 'warning' | 'success' | 'danger'> = {
@@ -82,19 +80,39 @@ export default function RoutesOrdersScreen() {
   const tenant = useTenantStore((s) => s.tenant);
   const safeBack = useSafeBack('/(app)/routes/admin');
 
-  const [filter, setFilter] = useState<(typeof FILTERS)[number]['id']>('all');
+  const [tab, setTab] = useState<(typeof TABS)[number]['id']>('pending');
 
-  const queryKey = ['routes', 'orders', filter];
+  const queryKey = ['routes', 'orders', tab];
   const { data, isLoading, refetch, isRefetching } = useQuery({
     queryKey,
     queryFn: () =>
       apiRequest<{ data: OrderRow[] }>({
         method: 'GET',
-        url: filter === 'all'
-          ? '/api/mobile/routes/orders'
-          : `/api/mobile/routes/orders?status=${filter}`,
+        url: `/api/mobile/routes/orders?status=${tab}`,
       }).then((r) => r.data),
   });
+
+  // Counts para badges en los tabs
+  const { data: pendingCount } = useQuery({
+    queryKey: ['routes', 'orders', 'count', 'pending'],
+    queryFn: () =>
+      apiRequest<{ data: OrderRow[] }>({
+        method: 'GET',
+        url: '/api/mobile/routes/orders?status=pending',
+      }).then((r) => r.data.length),
+  });
+  const { data: deliveredCount } = useQuery({
+    queryKey: ['routes', 'orders', 'count', 'delivered'],
+    queryFn: () =>
+      apiRequest<{ data: OrderRow[] }>({
+        method: 'GET',
+        url: '/api/mobile/routes/orders?status=delivered',
+      }).then((r) => r.data.length),
+  });
+  const counts: Record<(typeof TABS)[number]['id'], number | undefined> = {
+    pending: pendingCount,
+    delivered: deliveredCount,
+  };
 
   const ch = tenant ? Channels.tenantRoutes(tenant.id) : null;
   useRealtimeInvalidate(ch, RealtimeEvents.RouteOrderCreated, [['routes', 'orders']]);
@@ -145,6 +163,76 @@ export default function RoutesOrdersScreen() {
         </Pressable>
       </View>
 
+      {/* Tabs sticky bajo el header */}
+      <View
+        style={{
+          flexDirection: 'row',
+          backgroundColor: colors.bgElevated,
+          borderBottomWidth: 1,
+          borderBottomColor: colors.border,
+        }}
+      >
+        {TABS.map((t) => {
+          const active = tab === t.id;
+          const count = counts[t.id];
+          return (
+            <Pressable
+              key={t.id}
+              haptic="selection"
+              onPress={() => setTab(t.id)}
+              style={{
+                flex: 1,
+                paddingVertical: 14,
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderBottomWidth: 2,
+                borderBottomColor: active ? brand.brand : 'transparent',
+                marginBottom: -1,
+              }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text
+                  style={{
+                    fontFamily: active ? Fonts.semibold : Fonts.medium,
+                    fontSize: 13,
+                    color: active ? colors.fg : colors.fgMuted,
+                    letterSpacing: -0.1,
+                    includeFontPadding: false,
+                  } as never}
+                >
+                  {t.label}
+                </Text>
+                {typeof count === 'number' ? (
+                  <View
+                    style={{
+                      paddingHorizontal: 6,
+                      minWidth: 20,
+                      height: 18,
+                      borderRadius: 999,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: active ? brand.brand : colors.bgMuted,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontFamily: Fonts.semibold,
+                        fontSize: 10,
+                        color: active ? brand.brandFg : colors.fgMuted,
+                        fontVariant: ['tabular-nums'],
+                        includeFontPadding: false,
+                      } as never}
+                    >
+                      {count}
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
+            </Pressable>
+          );
+        })}
+      </View>
+
       <ScrollView
         contentContainerStyle={{ padding: 16, paddingBottom: 80 }}
         showsVerticalScrollIndicator={false}
@@ -157,79 +245,15 @@ export default function RoutesOrdersScreen() {
           />
         }
       >
-        <Animated.View entering={FadeInDown.duration(360)}>
-          <Text variant="caption" tone="muted">
-            Todos los pedidos
-          </Text>
-          <Text
-            style={{
-              fontFamily: Fonts.semibold,
-              fontSize: 26,
-              lineHeight: 36,
-              letterSpacing: -0.6,
-              color: colors.fg,
-              marginTop: 4,
-              includeFontPadding: false,
-            } as never}
-          >
-            Pedidos · {orders.length}
-          </Text>
-        </Animated.View>
-
-        {/* Chips filtros */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: 8, paddingVertical: 16, paddingRight: 16 }}
-          style={{ marginHorizontal: -16 }}
-        >
-          <View style={{ width: 16 }} />
-          {FILTERS.map((f) => {
-            const active = filter === f.id;
-            return (
-              <Pressable
-                key={f.id}
-                haptic="selection"
-                onPress={() => setFilter(f.id)}
-                style={{
-                  paddingHorizontal: 14,
-                  height: 36,
-                  borderRadius: 999,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: active ? colors.fg : colors.bgElevated,
-                  borderWidth: 1,
-                  borderColor: active ? colors.fg : colors.border,
-                }}
-              >
-                <Text
-                  style={{
-                    fontFamily: Fonts.medium,
-                    fontSize: 12,
-                    color: active ? colors.bgElevated : colors.fg,
-                    includeFontPadding: false,
-                  } as never}
-                >
-                  {f.label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
-
         <View className="gap-2">
           {isLoading
             ? [0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-20 rounded-xl" />)
             : orders.map((o, i) => (
-                <Animated.View key={o.id} entering={FadeIn.delay(Math.min(i * 25, 200)).duration(220)}>
+                <Animated.View key={o.id}>
                   <Pressable
                     haptic="selection"
                     scale="subtle"
-                    onPress={() =>
-                      o.driver_id
-                        ? router.push(`/(app)/routes?driver_id=${o.driver_id}` as never)
-                        : router.push('/(app)/routes' as never)
-                    }
+                    onPress={() => router.push(`/(app)/routes/orders/${o.id}` as never)}
                     style={{
                       backgroundColor: colors.bgElevated,
                       borderRadius: 14,

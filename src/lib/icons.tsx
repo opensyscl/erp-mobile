@@ -16,6 +16,8 @@ import {
   PaintBoardIcon,
   DeliveryTruck01Icon,
   UserGroup02Icon,
+  Notification01Icon,
+  RefreshIcon,
   PlusSignIcon,
   RadioIcon,
   Search01Icon,
@@ -96,3 +98,5 @@ export const Palette = makeIcon(PaintBoardIcon);
 
 // Misc
 export const Radio = makeIcon(RadioIcon);
+export const Bell = makeIcon(Notification01Icon);
+export const Refresh = makeIcon(RefreshIcon);

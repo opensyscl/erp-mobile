@@ -191,7 +191,7 @@ export default function ApprovalsScreen() {
             </View>
           }
           renderItem={({ item, index }) => (
-            <Animated.View entering={FadeIn.delay(Math.min(index * 30, 240)).duration(280)}>
+            <Animated.View>
               <ApprovalRow approval={item} onPress={() => setActiveApproval(item)} />
             </Animated.View>
           )}

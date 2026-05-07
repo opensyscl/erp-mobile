@@ -174,7 +174,7 @@ export default function RoutesLoadsScreen() {
           {isLoading
             ? [0, 1, 2].map((i) => <Skeleton key={i} className="h-32 rounded-2xl" />)
             : loads.map((l, i) => (
-                <Animated.View key={l.id} entering={FadeIn.delay(Math.min(i * 50, 250)).duration(280)}>
+                <Animated.View key={l.id}>
                   <Pressable
                     haptic="selection"
                     scale="subtle"

@@ -327,7 +327,7 @@ function ProductionCard({
   );
 
   return (
-    <Animated.View entering={FadeIn.delay(Math.min(index * 50, 250)).duration(280)}>
+    <Animated.View>
       {onPress ? (
         <Pressable haptic="selection" scale="subtle" onPress={onPress}>
           {inner}

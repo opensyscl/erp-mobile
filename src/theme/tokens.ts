@@ -56,39 +56,79 @@ export const palette = {
 } as const;
 
 /**
- * Sombras — extra suaves para mantener la sensación "cozy".
- * Calibradas contra `--shadow-regular-xs: 0 1px 2px 0 #0a0d1408` del web (8% alpha).
+ * Sombras — sistema "Linear/Things". Soft + tight, nunca harsh.
+ *
+ * El color base es un azul-slate oscuro (#0a0d14), no negro puro — los negros
+ * puros se ven sucios sobre fondos claros. Las opacities están tuneadas para
+ * ser visibles pero discretas; valores más altos vienen de offsets más altos,
+ * no de opacity.
+ *
+ * En Android `elevation` controla la altura de Material — mantenemos valores
+ * bajos para que la sombra no se vea tipo "stack". iOS respeta los 4 props.
  */
+const SHADOW_COLOR = '#0a0d14';
+
 export const shadows = {
+  /** Borders sutiles, hover state, chips presionados. */
   xs: {
-    shadowColor: '#0a0d14',
+    shadowColor: SHADOW_COLOR,
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
+    shadowOpacity: 0.04,
     shadowRadius: 2,
     elevation: 1,
   },
+  /** Cards listadas, dropdowns, toolbars. */
   sm: {
-    shadowColor: '#0a0d14',
+    shadowColor: SHADOW_COLOR,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
     elevation: 2,
   },
+  /** Cards elevated por default — Hero cards flotantes, Card variant="elevated". */
   md: {
-    shadowColor: '#0a0d14',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.05,
-    shadowRadius: 16,
+    shadowColor: SHADOW_COLOR,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 14,
     elevation: 4,
   },
+  /** Sheets, modals, floating action bar, callouts importantes. */
   lg: {
-    shadowColor: '#0a0d14',
-    shadowOffset: { width: 0, height: 14 },
-    shadowOpacity: 0.07,
-    shadowRadius: 28,
-    elevation: 10,
+    shadowColor: SHADOW_COLOR,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.10,
+    shadowRadius: 24,
+    elevation: 8,
+  },
+  /** Hero callouts, splash overlays. */
+  xl: {
+    shadowColor: SHADOW_COLOR,
+    shadowOffset: { width: 0, height: 20 },
+    shadowOpacity: 0.14,
+    shadowRadius: 36,
+    elevation: 14,
   },
 } as const;
+
+/**
+ * Sombra tintada con color de marca — usar SOLO en CTAs primarios y hero
+ * brand-colored cards para que destaquen. No abusar.
+ */
+export function brandShadow(brand: string, intensity: 'sm' | 'md' | 'lg' = 'md') {
+  const cfg = {
+    sm: { offset: 4, radius: 10, opacity: 0.18, elevation: 3 },
+    md: { offset: 8, radius: 18, opacity: 0.24, elevation: 5 },
+    lg: { offset: 14, radius: 28, opacity: 0.30, elevation: 8 },
+  }[intensity];
+  return {
+    shadowColor: brand,
+    shadowOffset: { width: 0, height: cfg.offset },
+    shadowOpacity: cfg.opacity,
+    shadowRadius: cfg.radius,
+    elevation: cfg.elevation,
+  };
+}
 
 export const radii = {
   xs: 4,

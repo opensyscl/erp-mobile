@@ -135,7 +135,7 @@ export default function RoutesDriversScreen() {
           {isLoading
             ? [0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-24 rounded-2xl" />)
             : drivers.map((d, i) => (
-                <Animated.View key={d.id} entering={FadeIn.delay(Math.min(i * 50, 250)).duration(280)}>
+                <Animated.View key={d.id}>
                   <Pressable
                     haptic="selection"
                     scale="subtle"

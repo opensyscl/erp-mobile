@@ -143,7 +143,7 @@ export default function InventoryScreen() {
             </Text>
           }
           renderItem={({ item, index }) => (
-            <Animated.View entering={FadeIn.delay(Math.min(index * 30, 300)).duration(280)}>
+            <Animated.View>
               <ProductRow product={item} />
             </Animated.View>
           )}

@@ -20,6 +20,7 @@ import { usePushRegistration } from '~/hooks/usePushRegistration';
 import { primeApiCache, setApiHooks } from '~/lib/api';
 import { queryClient } from '~/lib/queryClient';
 import { useAuthStore } from '~/stores/auth';
+import { useDevEnvStore } from '~/stores/devEnv';
 import { useTenantStore } from '~/stores/tenant';
 import { useThemeStore } from '~/stores/theme';
 
@@ -38,6 +39,7 @@ export default function RootLayout() {
   const hydrateAuth = useAuthStore((s) => s.hydrate);
   const hydrateTenant = useTenantStore((s) => s.hydrate);
   const hydrateTheme = useThemeStore((s) => s.hydrate);
+  const hydrateDevEnv = useDevEnvStore((s) => s.hydrate);
   const logout = useAuthStore((s) => s.logout);
 
   const [splashDone, setSplashDone] = useState(false);
@@ -45,6 +47,9 @@ export default function RootLayout() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      // devEnv hidratado ANTES de primeApiCache para que los resolvers
+      // de env.ts ya devuelvan el preset correcto en el primer request.
+      await hydrateDevEnv();
       await primeApiCache();
       await Promise.all([hydrateTheme(), hydrateTenant(), hydrateAuth()]);
       if (!cancelled) {
@@ -56,7 +61,7 @@ export default function RootLayout() {
     return () => {
       cancelled = true;
     };
-  }, [hydrateAuth, hydrateTenant, hydrateTheme]);
+  }, [hydrateAuth, hydrateTenant, hydrateTheme, hydrateDevEnv]);
 
   useEffect(() => {
     setApiHooks({

@@ -8,7 +8,7 @@
 // Probamos en orden hasta encontrar algo callable.
 import * as PusherModule from 'pusher-js/react-native';
 
-import { env } from './env';
+import { resolveRealtime } from './env';
 import { secureStorage, StorageKeys } from './storage';
 
 function resolvePusherCtor(): any {
@@ -53,13 +53,19 @@ const refCount = new Map<string, number>();
 
 function ensureClient(): PusherClient | null {
   if (pusher) return pusher;
-  if (!env.realtime.host || !env.realtime.key) return null;
+  const cfg = resolveRealtime();
+  if (!cfg.host || !cfg.key) {
+    console.warn('[realtime] No realtime config — host/key faltan');
+    return null;
+  }
 
-  pusher = new PusherCtor(env.realtime.key, {
-    wsHost: env.realtime.host,
-    wsPort: env.realtime.port,
-    wssPort: env.realtime.port,
-    forceTLS: env.realtime.scheme === 'https',
+  console.log(`[realtime] Conectando a ${cfg.scheme}://${cfg.host}:${cfg.port}`);
+
+  pusher = new PusherCtor(cfg.key, {
+    wsHost: cfg.host,
+    wsPort: cfg.port,
+    wssPort: cfg.port,
+    forceTLS: cfg.scheme === 'https',
     enabledTransports: ['ws', 'wss'],
     cluster: '', // Reverb no usa cluster
     authorizer: (channel: { name: string }) => ({
@@ -67,7 +73,8 @@ function ensureClient(): PusherClient | null {
         try {
           const token = await secureStorage.get(StorageKeys.AuthToken);
           const tenant = await secureStorage.get(StorageKeys.TenantSlug);
-          const url = `${env.apiUrl}/broadcasting/auth`;
+          const { resolveApiUrl } = await import('./env');
+          const url = `${resolveApiUrl()}/broadcasting/auth`;
           const res = await fetch(url, {
             method: 'POST',
             headers: {
@@ -80,17 +87,30 @@ function ensureClient(): PusherClient | null {
             body: JSON.stringify({ socket_id: socketId, channel_name: channel.name }),
           });
           if (!res.ok) {
+            console.warn(`[realtime] auth failed for ${channel.name}: ${res.status}`);
             callback(new Error(`broadcasting/auth ${res.status}`), null);
             return;
           }
           const data = await res.json();
           callback(null, data);
         } catch (err) {
+          console.warn('[realtime] auth threw', err);
           callback(err as Error, null);
         }
       },
     }),
   });
+
+  // Logs de estado de conexión — útil para debug del bell de notificaciones
+  const conn = (pusher as any)?.connection;
+  if (conn?.bind) {
+    conn.bind('state_change', (states: { previous: string; current: string }) => {
+      console.log(`[realtime] WS state: ${states.previous} → ${states.current}`);
+    });
+    conn.bind('error', (err: any) => {
+      console.warn('[realtime] WS error', err);
+    });
+  }
 
   return pusher;
 }
@@ -115,13 +135,24 @@ export function subscribe<TPayload = unknown>(
 
   let channel = channelCache.get(channelName);
   if (!channel) {
+    console.log(`[realtime] Suscribiendo a ${channelName}`);
     channel = client.subscribe(channelName);
     channelCache.set(channelName, channel);
+    // Listeners de éxito/error de subscripción para canales privados
+    (channel as any).bind?.('pusher:subscription_succeeded', () => {
+      console.log(`[realtime] ✓ Subscrito a ${channelName}`);
+    });
+    (channel as any).bind?.('pusher:subscription_error', (err: any) => {
+      console.warn(`[realtime] ✗ Falló subscripción a ${channelName}`, err);
+    });
   }
   const ch = channel;
   refCount.set(channelName, (refCount.get(channelName) ?? 0) + 1);
 
-  const wrappedHandler = (data: any) => handler(data as TPayload);
+  const wrappedHandler = (data: any) => {
+    console.log(`[realtime] Evento "${eventName}" en ${channelName}`, data);
+    handler(data as TPayload);
+  };
   ch.bind(eventName, wrappedHandler);
 
   return {

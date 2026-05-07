@@ -14,7 +14,7 @@ import { ApiError, apiRequest } from '~/lib/api';
 import { ArrowLeft, Plus, Search, ShoppingCart } from '~/lib/icons';
 import { useCartStore } from '~/stores/cart';
 import { Fonts } from '~/theme/fonts';
-import { palette } from '~/theme/tokens';
+import { palette, shadows } from '~/theme/tokens';
 
 interface SearchProduct {
   id: number;
@@ -172,11 +172,7 @@ export default function PosScreen() {
             bottom: insets.bottom + 12,
             backgroundColor: colors.fg,
             borderRadius: 18,
-            shadowColor: '#0a0d14',
-            shadowOffset: { width: 0, height: 8 },
-            shadowOpacity: 0.18,
-            shadowRadius: 24,
-            elevation: 12,
+            ...shadows.lg,
           }}
         >
           <Pressable

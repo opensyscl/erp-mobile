@@ -1,6 +1,7 @@
+import { type BottomSheetModal as BottomSheetModalType } from '@gorhom/bottom-sheet';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { forwardRef, useState, type ReactNode, type Ref } from 'react';
+import { forwardRef, useRef, useState, type ReactNode, type Ref } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -20,11 +21,13 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { DevEnvSheet } from '~/components/DevEnvSheet';
 import { HeaderPattern } from '~/components/HeaderPattern';
 import { LogoMark, Wordmark } from '~/components/Logo';
 import { Pressable, Screen, Text } from '~/components/ui';
 import { useBrand } from '~/hooks/useBrand';
 import { useColorScheme } from '~/hooks/useColorScheme';
+import { useFourTapGesture } from '~/hooks/useFourTapGesture';
 import { Building } from '~/lib/icons';
 import { useTenantStore } from '~/stores/tenant';
 import { Fonts } from '~/theme/fonts';
@@ -46,6 +49,8 @@ export default function TenantScreen() {
 
   const [value, setValue] = useState(__DEV__ ? 'ferreteria-routes' : '');
   const [error, setError] = useState<string | null>(null);
+  const devEnvSheet = useRef<BottomSheetModalType>(null);
+  const logoTap = useFourTapGesture(() => devEnvSheet.current?.present());
 
   const handleContinue = async () => {
     const slug = value.trim().toLowerCase();
@@ -102,7 +107,12 @@ export default function TenantScreen() {
                     shadowRadius: 18,
                   }}
                 >
-                  <LogoMark size={52} variant="inverse" />
+                  <Pressable
+                    onPress={logoTap.onPress}
+                    style={{ alignItems: 'center', justifyContent: 'center' }}
+                  >
+                    <LogoMark size={52} variant="inverse" />
+                  </Pressable>
                 </View>
               </Animated.View>
 
@@ -326,6 +336,9 @@ export default function TenantScreen() {
           style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 80, pointerEvents: 'none' }}
         />
       ) : null}
+
+      {/* Sheet oculto: tocar el LogoMark 4 veces para alternar entorno */}
+      <DevEnvSheet ref={devEnvSheet} />
     </Screen>
   );
 }

@@ -365,10 +365,11 @@ export default function NewRouteOrderScreen() {
             borderTopColor: colors.border,
             padding: 16,
             paddingBottom: insets.bottom + 16,
+            // Inverted shadow (apunta hacia arriba) — barra inferior sticky
             shadowColor: '#0a0d14',
-            shadowOffset: { width: 0, height: -4 },
-            shadowOpacity: 0.08,
-            shadowRadius: 12,
+            shadowOffset: { width: 0, height: -6 },
+            shadowOpacity: 0.06,
+            shadowRadius: 18,
             elevation: 6,
           }}
         >
