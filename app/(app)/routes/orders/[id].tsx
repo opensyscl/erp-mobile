@@ -229,7 +229,13 @@ export default function OrderDetailScreen() {
                           includeFontPadding: false,
                         } as never}
                       >
-                        {order.status === 'delivered' ? 'Entregada' : order.status === 'cancelled' ? 'Cancelada' : 'Pendiente'}
+                        {order.status === 'delivered'
+                          ? 'Entregada'
+                          : order.status === 'cancelled'
+                            ? 'Cancelada'
+                            : order.status === 'in_route'
+                              ? 'En ruta'
+                              : 'Pendiente'}
                       </Text>
                     </View>
                   ) : null}

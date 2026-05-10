@@ -27,13 +27,13 @@ export interface EnvPreset {
 export const ENV_PRESETS: EnvPreset[] = [
   {
     id: 'local',
-    label: 'Local · LAN',
-    description: 'ERP corriendo en Docker en tu compu (192.168.100.125)',
-    apiUrl: 'http://192.168.100.125:8680',
-    realtimeHost: '192.168.100.125',
-    realtimePort: 9000,
+    label: 'Local · localhost',
+    description: 'ERP corriendo en Docker (localhost:8000) — vía adb reverse desde emulador / web',
+    apiUrl: 'http://localhost:8000',
+    realtimeHost: 'localhost',
+    realtimePort: 8080,
     realtimeScheme: 'http',
-    realtimeKey: 'reverb-key',
+    realtimeKey: 'local-key',
   },
   {
     id: 'staging',

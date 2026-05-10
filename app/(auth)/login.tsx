@@ -30,6 +30,7 @@ import { useBrand } from '~/hooks/useBrand';
 import { useColorScheme } from '~/hooks/useColorScheme';
 import { useFourTapGesture } from '~/hooks/useFourTapGesture';
 import { ApiError } from '~/lib/api';
+import { toast } from '~/components/Toast';
 import { ArrowLeft, Eye, EyeOff, Lock, Mail } from '~/lib/icons';
 import { useAuthStore } from '~/stores/auth';
 import { useTenantStore } from '~/stores/tenant';
@@ -92,21 +93,22 @@ export default function LoginScreen() {
       return;
     }
     if (!email.trim() || !password) {
-      setError('Email y contraseña son requeridos.');
+      toast.error('Faltan datos', 'Email y contraseña son requeridos.');
       return;
     }
     setError(null);
     try {
       await login({ email: email.trim(), password, tenantSlug: slug });
+      toast.success('Bienvenido', `Sesión iniciada como ${email.trim()}`);
     } catch (e) {
       if (e instanceof ApiError) {
-        setError(
-          e.status === 422 || e.status === 401
-            ? 'Credenciales incorrectas.'
-            : e.message,
+        const isAuth = e.status === 422 || e.status === 401;
+        toast.error(
+          isAuth ? 'Credenciales incorrectas' : 'Error al iniciar sesión',
+          isAuth ? 'Revisa tu email y contraseña.' : (e.message || 'Intenta de nuevo en unos segundos.'),
         );
       } else {
-        setError('No pudimos iniciar sesión. Reintenta.');
+        toast.error('Sin conexión', 'No pudimos iniciar sesión. Reintenta.');
       }
     }
   };
@@ -367,48 +369,7 @@ export default function LoginScreen() {
               />
             </View>
 
-            {error ? (
-              <Animated.View entering={FadeIn.duration(180)} className="mt-3">
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    gap: 8,
-                    padding: 10,
-                    borderRadius: 10,
-                    backgroundColor: colors.danger + '15',
-                    borderWidth: 1,
-                    borderColor: colors.danger + '30',
-                  }}
-                >
-                  <View
-                    style={{
-                      width: 18,
-                      height: 18,
-                      borderRadius: 9,
-                      backgroundColor: colors.danger,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <Text
-                      style={{ color: '#fff', fontFamily: Fonts.bold, fontSize: 11, lineHeight: 12 }}
-                    >
-                      !
-                    </Text>
-                  </View>
-                  <Text
-                    style={{
-                      color: colors.danger,
-                      fontFamily: Fonts.medium,
-                      fontSize: 13,
-                      flex: 1,
-                    }}
-                  >
-                    {error}
-                  </Text>
-                </View>
-              </Animated.View>
-            ) : null}
+            {/* Errores ahora se muestran via toast (~/components/Toast) */}
 
             <View className="flex-row items-center justify-between mt-4">
               <View />
