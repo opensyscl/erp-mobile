@@ -1,8 +1,29 @@
-import * as Location from 'expo-location';
 import { useEffect, useRef, useState } from 'react';
 import { AppState, type AppStateStatus } from 'react-native';
 
 import { apiRequest } from '~/lib/api';
+
+/**
+ * expo-location es un módulo nativo. Si la app no fue rebuildeada después
+ * de agregarlo (APK viejo), el require explota con "Cannot find native
+ * module 'ExpoLocation'". Lo cargamos lazy y silenciamos para que el resto
+ * de la app siga funcionando — el tracking simplemente queda 'unavailable'.
+ */
+type LocationModule = typeof import('expo-location');
+let LocationLib: LocationModule | null = null;
+let locationLoadAttempted = false;
+
+function tryLoadLocation(): LocationModule | null {
+  if (locationLoadAttempted) return LocationLib;
+  locationLoadAttempted = true;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    LocationLib = require('expo-location') as LocationModule;
+  } catch {
+    LocationLib = null;
+  }
+  return LocationLib;
+}
 
 interface UseDriverLocationTrackingArgs {
   /** True cuando el user es driver y tiene ruta activa. Si false, no trackea. */
@@ -38,14 +59,14 @@ export function useDriverLocationTracking({
   loadId,
   intervalMs = 30_000,
 }: UseDriverLocationTrackingArgs): {
-  status: 'idle' | 'permission-denied' | 'tracking' | 'error';
+  status: 'idle' | 'permission-denied' | 'tracking' | 'error' | 'unavailable';
   lastPing: PingPayload | null;
 } {
   const [status, setStatus] = useState<
-    'idle' | 'permission-denied' | 'tracking' | 'error'
+    'idle' | 'permission-denied' | 'tracking' | 'error' | 'unavailable'
   >('idle');
   const [lastPing, setLastPing] = useState<PingPayload | null>(null);
-  const subRef = useRef<Location.LocationSubscription | null>(null);
+  const subRef = useRef<{ remove: () => void } | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const inFlightRef = useRef(false);
   const appStateRef = useRef<AppStateStatus>(AppState.currentState);
@@ -59,6 +80,13 @@ export function useDriverLocationTracking({
         return;
       }
 
+      const Location = tryLoadLocation();
+      if (!Location) {
+        // APK viejo sin el módulo nativo. La app sigue funcionando sin GPS.
+        setStatus('unavailable');
+        return;
+      }
+
       const { status: perm } = await Location.requestForegroundPermissionsAsync();
       if (cancelled) return;
 
@@ -69,7 +97,6 @@ export function useDriverLocationTracking({
 
       setStatus('tracking');
 
-      // Watch continuo (más eficiente que getCurrentPosition cada N ms).
       const sub = await Location.watchPositionAsync(
         {
           accuracy: Location.Accuracy.Balanced,
@@ -88,7 +115,7 @@ export function useDriverLocationTracking({
 
       const ping = async (): Promise<void> => {
         if (inFlightRef.current) return;
-        if (appStateRef.current !== 'active') return; // foreground only por ahora
+        if (appStateRef.current !== 'active') return;
         inFlightRef.current = true;
         try {
           const pos = await Location.getCurrentPositionAsync({
@@ -116,7 +143,6 @@ export function useDriverLocationTracking({
         }
       };
 
-      // Primer ping inmediato + interval
       void ping();
       timerRef.current = setInterval(ping, intervalMs);
     }
