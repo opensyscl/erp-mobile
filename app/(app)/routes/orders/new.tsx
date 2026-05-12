@@ -20,6 +20,7 @@ import { useColorScheme } from '~/hooks/useColorScheme';
 import { useSafeBack } from '~/hooks/useSafeBack';
 import { ApiError, apiRequest } from '~/lib/api';
 import { ArrowLeft, Plus, Search } from '~/lib/icons';
+import { useAuthStore } from '~/stores/auth';
 import { Fonts } from '~/theme/fonts';
 import { palette } from '~/theme/tokens';
 
@@ -63,8 +64,24 @@ export default function NewRouteOrderScreen() {
   const queryClient = useQueryClient();
   const safeBack = useSafeBack('/(app)/routes/orders');
 
+  const me = useAuthStore((s) => s.user);
+  const isDriverRole = me?.role === 'tenant_driver';
+
   const [client, setClient] = useState<ClientItem | null>(null);
-  const [driver, setDriver] = useState<DriverItem | null>(null);
+  // Si el user es repartidor, él mismo es el driver del pedido (no puede
+  // asignar a otro). Si es admin/manager, elige desde el sheet.
+  const [driver, setDriver] = useState<DriverItem | null>(
+    isDriverRole && me
+      ? { id: me.id, name: me.name, is_on_route: false }
+      : null,
+  );
+
+  // Auto-seguir-asignándolo si el user cambia (logout/login)
+  useEffect(() => {
+    if (isDriverRole && me) {
+      setDriver({ id: me.id, name: me.name, is_on_route: false });
+    }
+  }, [isDriverRole, me?.id, me?.name]);
   const [lines, setLines] = useState<OrderLine[]>([]);
   const [notes, setNotes] = useState('');
 
@@ -190,17 +207,53 @@ export default function NewRouteOrderScreen() {
             />
           </Animated.View>
 
-          {/* Driver */}
+          {/* Driver — auto-asignado si el user logueado ES el repartidor */}
           <Animated.View entering={FadeInDown.delay(120).duration(360)} className="mt-4">
             <Text variant="overline" tone="subtle" className="mb-2">
               Repartidor
             </Text>
-            <PickerRow
-              placeholder="Asignar repartidor"
-              value={driver?.name}
-              sub={driver?.is_on_route ? 'En ruta · sumará a su carga' : 'Disponible · creará nueva carga'}
-              onPress={() => driverSheet.current?.present()}
-            />
+            {isDriverRole ? (
+              // Driver: card de solo-lectura mostrando que él es el asignado
+              <Card padding="md">
+                <View className="flex-row items-center gap-3">
+                  <View
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 20,
+                      backgroundColor: brand.brand + '20',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: brand.brand,
+                        fontFamily: Fonts.bold,
+                        fontSize: 14,
+                      }}
+                    >
+                      {(driver?.name?.[0] ?? '?').toUpperCase()}
+                    </Text>
+                  </View>
+                  <View className="flex-1 min-w-0">
+                    <Text variant="bodyStrong" numberOfLines={1}>
+                      {driver?.name ?? 'Vos'}
+                    </Text>
+                    <Text variant="caption" tone="muted">
+                      Asignado a vos automáticamente
+                    </Text>
+                  </View>
+                </View>
+              </Card>
+            ) : (
+              <PickerRow
+                placeholder="Asignar repartidor"
+                value={driver?.name}
+                sub={driver?.is_on_route ? 'En ruta · sumará a su carga' : 'Disponible · creará nueva carga'}
+                onPress={() => driverSheet.current?.present()}
+              />
+            )}
           </Animated.View>
 
           {/* Items */}

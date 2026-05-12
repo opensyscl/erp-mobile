@@ -69,6 +69,48 @@ export const toast = {
   },
 };
 
+/**
+ * customSileo — API espejo del de la web (resources/js/providers/SileoProvider.tsx).
+ * Acepta string | { title, description } igual que en la web, así el código compartido
+ * funciona sin cambios. Internamente usa el mismo store de toast.
+ *
+ *   import { customSileo } from '~/components/Toast';
+ *   customSileo.success('Stock actualizado');
+ *   customSileo.error({ title: 'No se pudo guardar', description: 'Reintenta.' });
+ */
+type SileoContent = string | { title: string; description?: string };
+
+const fromContent = (content: SileoContent): { title: string; description?: string } =>
+  typeof content === 'string' ? { title: content } : content;
+
+export const customSileo = {
+  success(content: SileoContent, _actions?: unknown, options?: { duration?: number }) {
+    const { title, description } = fromContent(content);
+    return toast.success(title, description, options?.duration);
+  },
+  error(content: SileoContent, _actions?: unknown, options?: { duration?: number }) {
+    const { title, description } = fromContent(content);
+    return toast.error(title, description, options?.duration);
+  },
+  warning(content: SileoContent, _actions?: unknown, options?: { duration?: number }) {
+    const { title, description } = fromContent(content);
+    return toast.warning(title, description, options?.duration);
+  },
+  info(content: SileoContent, _actions?: unknown, options?: { duration?: number }) {
+    const { title, description } = fromContent(content);
+    return toast.info(title, description, options?.duration);
+  },
+  dismiss(id: string) {
+    toast.dismiss(id);
+  },
+  hide(id: string) {
+    toast.dismiss(id);
+  },
+};
+
+/** Hook con el mismo nombre que la web. */
+export const useSileo = () => customSileo;
+
 export function ToastViewport() {
   const items = useToastStore((s) => s.items);
   const insets = useSafeAreaInsets();

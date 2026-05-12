@@ -1,8 +1,11 @@
+import { useQuery } from '@tanstack/react-query';
 import { BlurView } from 'expo-blur';
 import { Tabs } from 'expo-router';
 import { Platform, View } from 'react-native';
 
+import { useDriverLocationTracking } from '~/hooks/useDriverLocationTracking';
 import { useRealtimeRouteNotifications } from '~/hooks/useRealtimeNotifications';
+import { apiRequest } from '~/lib/api';
 import { BarChart, Home, Package, ScanLine, Settings, Truck } from '~/lib/icons';
 import { Channels } from '~/lib/realtime';
 import { useAuthStore } from '~/stores/auth';
@@ -22,6 +25,26 @@ export default function AppLayout() {
   // esté autenticado, así el bell se actualiza desde cualquier pantalla.
   const routesChannelName = tenant ? Channels.tenantRoutes(tenant.id) : null;
   useRealtimeRouteNotifications(routesChannelName);
+
+  // GPS tracking del driver — solo cuando es driver y tiene una ruta activa.
+  // El backend deduce el load_id si no lo pasamos, pero lo precargamos para
+  // que el primer ping ya quede asociado correctamente.
+  const isDriverRole = user?.role === 'tenant_driver';
+  const { data: todayLoad } = useQuery({
+    queryKey: ['routes', 'today', 'self'],
+    queryFn: () =>
+      apiRequest<{ data: { id: number } | null }>({
+        method: 'GET',
+        url: '/api/mobile/routes/today',
+      }),
+    enabled: isDriverRole,
+    refetchInterval: 60_000,
+  });
+  useDriverLocationTracking({
+    enabled: isDriverRole && !!todayLoad?.data?.id,
+    loadId: todayLoad?.data?.id ?? null,
+    intervalMs: 30_000,
+  });
 
   const modules = tenant?.modules ?? [];
   const hasRoutes = modules.includes('routes');

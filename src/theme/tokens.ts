@@ -6,6 +6,25 @@
  * Cuando un API es imperativo (Reanimated, gradientes, StatusBar) usa estos.
  */
 
+/**
+ * Aplica alpha a un color en formato `rgb(R G B)` o `rgb(R, G, B)` o `#RRGGBB`.
+ * Necesario porque concatenar hex alpha (`color + '18'`) a strings `rgb(...)`
+ * produce strings inválidas que RN no parsea — el alpha se pierde y el fondo
+ * sale 100% opaco, ocultando texto del mismo color encima.
+ */
+export function withAlpha(color: string, alpha: number): string {
+  if (color.startsWith('#')) {
+    const hex = color.slice(1);
+    const r = parseInt(hex.slice(0, 2), 16);
+    const g = parseInt(hex.slice(2, 4), 16);
+    const b = parseInt(hex.slice(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+  const m = color.match(/rgb\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)\s*\)/);
+  if (!m) return color;
+  return `rgba(${m[1]}, ${m[2]}, ${m[3]}, ${alpha})`;
+}
+
 export const palette = {
   light: {
     bg: 'rgb(247 248 250)',

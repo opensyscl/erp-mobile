@@ -21,7 +21,7 @@
         "ITSAppUsesNonExemptEncryption": false,
         "NSCameraUsageDescription": "OpenSys usa la cámara para escanear códigos de barra y QR de productos.",
         "NSPhotoLibraryUsageDescription": "OpenSys accede a tus fotos para subir comprobantes y archivos.",
-        "NSLocationWhenInUseUsageDescription": "OpenSys usa tu ubicación para mostrarte en el mapa de flota cuando estás entregando.",
+        "NSLocationWhenInUseUsageDescription": "Usamos tu ubicación para mostrar a tu equipo dónde estás durante tus rutas de entrega.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "OpenSys usa tu ubicación incluso en segundo plano para mantener tu posición visible durante las entregas.",
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": true,
@@ -71,8 +71,8 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "OpenSys usa tu ubicación durante las entregas para mostrarte en el mapa de flota.",
-          "locationWhenInUsePermission": "OpenSys usa tu ubicación durante las entregas para mostrarte en el mapa de flota.",
+          "locationAlwaysAndWhenInUsePermission": "Usamos tu ubicación para mostrar a tu equipo dónde estás durante tus rutas de entrega.",
+          "locationWhenInUsePermission": "Usamos tu ubicación para mostrar a tu equipo dónde estás durante tus rutas de entrega.",
           "isAndroidBackgroundLocationEnabled": false
         }
       ],

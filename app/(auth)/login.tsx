@@ -31,6 +31,7 @@ import { useColorScheme } from '~/hooks/useColorScheme';
 import { useFourTapGesture } from '~/hooks/useFourTapGesture';
 import { ApiError } from '~/lib/api';
 import { resolveApiUrl } from '~/lib/env';
+import { toast } from '~/components/Toast';
 import { ArrowLeft, Eye, EyeOff, Lock, Mail } from '~/lib/icons';
 import { useAuthStore } from '~/stores/auth';
 import { useTenantStore } from '~/stores/tenant';
@@ -65,7 +66,6 @@ export default function LoginScreen() {
     await setSlug(slug);
     setEmail(em);
     setPassword(pw);
-    setError(null);
     demoSheet.current?.dismiss();
   };
 
@@ -86,39 +86,45 @@ export default function LoginScreen() {
   const [email, setEmail] = useState(__DEV__ ? DEV_ACCOUNTS[0]!.email : '');
   const [password, setPassword] = useState(__DEV__ ? DEV_ACCOUNTS[0]!.password : '');
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const fillAccount = async (acct: (typeof DEV_ACCOUNTS)[number]) => {
     await setSlug(acct.tenant);
     setEmail(acct.email);
     setPassword(acct.password);
-    setError(null);
   };
 
   const submitting = status === 'authenticating';
 
   const handleSubmit = async () => {
     if (!email.trim() || !password) {
-      setError('Email y contraseña son requeridos.');
+      toast.error('Faltan datos', 'Email y contraseña son requeridos.');
       return;
     }
-    setError(null);
     try {
       // slug es opcional: si no está, el backend deduce el tenant del email
       await login({ email: email.trim(), password, tenantSlug: slug });
+      toast.success('Bienvenido', `Sesión iniciada como ${email.trim()}`);
     } catch (e) {
       if (e instanceof ApiError) {
         if (e.status === 422 || e.status === 401) {
-          setError(`Credenciales incorrectas para el tenant "${slug}". ¿Es el tenant correcto?`);
+          toast.error(
+            'Credenciales incorrectas',
+            slug
+              ? `Revisa email/contraseña (tenant "${slug}").`
+              : 'Revisa tu email y contraseña.',
+          );
         } else if (e.status === 0 || e.status >= 500) {
-          setError(`Error de conexión (status ${e.status}). ¿El backend está corriendo en ${resolveApiUrl()}?`);
+          toast.error(
+            'Error de conexión',
+            `Status ${e.status}. ¿El backend está corriendo en ${resolveApiUrl()}?`,
+          );
         } else {
-          setError(e.message || `Error ${e.status} desde el backend`);
+          toast.error('Error', e.message || `Error ${e.status} desde el backend`);
         }
       } else if (e instanceof Error) {
-        setError(e.message || 'No pudimos iniciar sesión. Reintenta.');
+        toast.error('Error', e.message || 'No pudimos iniciar sesión.');
       } else {
-        setError('No pudimos iniciar sesión. Reintenta.');
+        toast.error('Sin conexión', 'No pudimos iniciar sesión. Reintenta.');
       }
     }
   };
@@ -379,75 +385,9 @@ export default function LoginScreen() {
               />
             </View>
 
-            {error ? (
-              <Animated.View entering={FadeIn.duration(180)} className="mt-3">
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'flex-start',
-                    gap: 10,
-                    padding: 14,
-                    borderRadius: 14,
-                    backgroundColor: '#dc2626',
-                    shadowColor: '#dc2626',
-                    shadowOffset: { width: 0, height: 4 },
-                    shadowOpacity: 0.25,
-                    shadowRadius: 8,
-                    elevation: 4,
-                  }}
-                >
-                  <View
-                    style={{
-                      width: 22,
-                      height: 22,
-                      borderRadius: 11,
-                      backgroundColor: 'rgba(255,255,255,0.25)',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      marginTop: 1,
-                    }}
-                  >
-                    <Text
-                      style={{
-                        color: '#fff',
-                        fontFamily: Fonts.bold,
-                        fontSize: 14,
-                        lineHeight: 16,
-                        includeFontPadding: false,
-                      } as never}
-                    >
-                      !
-                    </Text>
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text
-                      style={{
-                        color: '#fff',
-                        fontFamily: Fonts.bold,
-                        fontSize: 12,
-                        letterSpacing: 0.6,
-                        textTransform: 'uppercase',
-                        marginBottom: 2,
-                        includeFontPadding: false,
-                      } as never}
-                    >
-                      Error
-                    </Text>
-                    <Text
-                      style={{
-                        color: '#fff',
-                        fontFamily: Fonts.medium,
-                        fontSize: 13.5,
-                        lineHeight: 19,
-                        includeFontPadding: false,
-                      } as never}
-                    >
-                      {error || 'Algo salió mal. Revisá tenant, conexión y credenciales.'}
-                    </Text>
-                  </View>
-                </View>
-              </Animated.View>
-            ) : null}
+            {/* Banner inline + toast: el catch usa toast.error() pero si querés
+                volver al banner inline rojo, descomentar el state `error` y
+                este bloque (estaba en commit anterior). Hoy: solo toast. */}
 
             <View className="flex-row items-center justify-between mt-4">
               <View />

@@ -11,7 +11,7 @@ import { secureStorage, StorageKeys } from '~/lib/storage';
  * `disconnectRealtime()` y el próximo subscribe re-conecta al host nuevo.
  */
 
-export type DevEnvId = 'default' | 'local' | 'prod' | 'staging';
+export type DevEnvId = 'default' | 'local' | 'localhost' | 'prod' | 'staging';
 
 export interface EnvPreset {
   id: DevEnvId;
@@ -34,6 +34,16 @@ export const ENV_PRESETS: EnvPreset[] = [
     realtimePort: 8095,
     realtimeScheme: 'http',
     realtimeKey: 'reverb-key',
+  },
+  {
+    id: 'localhost',
+    label: 'Local · localhost',
+    description: 'ERP corriendo en Docker (localhost:8000) — vía adb reverse desde emulador / web',
+    apiUrl: 'http://localhost:8000',
+    realtimeHost: 'localhost',
+    realtimePort: 8080,
+    realtimeScheme: 'http',
+    realtimeKey: 'local-key',
   },
   {
     id: 'staging',
@@ -71,7 +81,7 @@ export const useDevEnvStore = create<DevEnvState>((set) => ({
   hydrate: async () => {
     try {
       const raw = await secureStorage.get(StorageKeys.DevEnv);
-      if (raw === 'local' || raw === 'prod' || raw === 'staging' || raw === 'default') {
+      if (raw === 'local' || raw === 'localhost' || raw === 'prod' || raw === 'staging' || raw === 'default') {
         set({ current: raw, hydrated: true });
         return;
       }
