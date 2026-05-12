@@ -31,7 +31,7 @@ export const ENV_PRESETS: EnvPreset[] = [
     description: 'ERP corriendo en Docker en tu compu (192.168.100.125)',
     apiUrl: 'http://192.168.100.125:8680',
     realtimeHost: '192.168.100.125',
-    realtimePort: 9000,
+    realtimePort: 8095,
     realtimeScheme: 'http',
     realtimeKey: 'reverb-key',
   },

@@ -119,7 +119,7 @@ function AuthGate() {
     if (status === 'idle') return;
     const inAuthGroup = segments[0] === '(auth)';
     if (status === 'unauthenticated' && !inAuthGroup) {
-      router.replace('/(auth)/tenant');
+      router.replace('/(auth)/login');
     } else if (status === 'authenticated' && inAuthGroup) {
       router.replace('/(app)');
     }

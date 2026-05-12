@@ -20,12 +20,19 @@
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSCameraUsageDescription": "OpenSys usa la cámara para escanear códigos de barra y QR de productos.",
-        "NSPhotoLibraryUsageDescription": "OpenSys accede a tus fotos para subir comprobantes y archivos."
+        "NSPhotoLibraryUsageDescription": "OpenSys accede a tus fotos para subir comprobantes y archivos.",
+        "NSLocationWhenInUseUsageDescription": "OpenSys usa tu ubicación para mostrarte en el mapa de flota cuando estás entregando.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "OpenSys usa tu ubicación incluso en segundo plano para mantener tu posición visible durante las entregas.",
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true,
+          "NSAllowsLocalNetworking": true
+        }
       }
     },
     "android": {
       "package": "io.opensys.erp",
       "versionCode": 1,
+      "usesCleartextTraffic": true,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#0B0B0F"
@@ -35,7 +42,9 @@
         "CAMERA",
         "VIBRATE",
         "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO"
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
       ]
     },
     "web": {
@@ -57,6 +66,14 @@
         "expo-notifications",
         {
           "color": "#116DFB"
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "OpenSys usa tu ubicación durante las entregas para mostrarte en el mapa de flota.",
+          "locationWhenInUsePermission": "OpenSys usa tu ubicación durante las entregas para mostrarte en el mapa de flota.",
+          "isAndroidBackgroundLocationEnabled": false
         }
       ],
       [

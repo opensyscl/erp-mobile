@@ -462,6 +462,44 @@ export default function RoutesScreen() {
           </Animated.View>
         ) : null}
 
+        {/* CTA — Iniciar tracking GPS para que admin vea al driver en vivo */}
+        <Animated.View
+          entering={FadeInUp.delay(220).duration(220)}
+          style={{ marginTop: 18, marginHorizontal: 20 }}
+        >
+          <Pressable
+            haptic="selection"
+            scale="subtle"
+            onPress={() => router.push('/(app)/routes/track' as never)}
+          >
+            <Card padding="md" variant="elevated" className="overflow-hidden">
+              <View className="flex-row items-center gap-3">
+                <View
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 22,
+                    backgroundColor: brand.brand + '20',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Truck size={22} color={brand.brand} />
+                </View>
+                <View className="flex-1 min-w-0">
+                  <Text variant="bodyStrong" numberOfLines={1}>
+                    Iniciar mi ubicación
+                  </Text>
+                  <Text variant="caption" tone="muted" numberOfLines={1}>
+                    El panel de flota te va a ver en vivo
+                  </Text>
+                </View>
+                <ArrowRight size={18} color={colors.fgSubtle} />
+              </View>
+            </Card>
+          </Pressable>
+        </Animated.View>
+
         {/* Mis pedidos recientes — últimos 10 con scroll horizontal */}
         {myOrders.length > 0 ? (
           <Animated.View

@@ -12,7 +12,7 @@ interface AuthState {
   user: User | null;
   token: string | null;
   hydrate: () => Promise<void>;
-  login: (input: { email: string; password: string; tenantSlug: string }) => Promise<void>;
+  login: (input: { email: string; password: string; tenantSlug?: string | null }) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -41,7 +41,11 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   login: async ({ email, password, tenantSlug }) => {
     set({ status: 'authenticating' });
-    await useTenantStore.getState().setSlug(tenantSlug);
+    // Si vino slug explícito, lo seteamos antes para que el interceptor mande
+    // X-Tenant. Si no, el backend deduce el tenant del email.
+    if (tenantSlug) {
+      await useTenantStore.getState().setSlug(tenantSlug);
+    }
     try {
       const res = await apiRequest<AuthResponse>({
         method: 'POST',
@@ -50,6 +54,8 @@ export const useAuthStore = create<AuthState>((set) => ({
       });
       setAuthToken(res.token);
       await secureStorage.set(StorageKeys.AuthUser, JSON.stringify(res.user));
+      // Backend devolvió el tenant resuelto → siempre lo guardamos
+      await useTenantStore.getState().setSlug(res.tenant.slug);
       await useTenantStore.getState().setTenantData(res.tenant, res.branches);
       set({ status: 'authenticated', token: res.token, user: res.user });
     } catch (error) {

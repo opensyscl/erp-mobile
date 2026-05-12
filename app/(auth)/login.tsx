@@ -30,6 +30,7 @@ import { useBrand } from '~/hooks/useBrand';
 import { useColorScheme } from '~/hooks/useColorScheme';
 import { useFourTapGesture } from '~/hooks/useFourTapGesture';
 import { ApiError } from '~/lib/api';
+import { resolveApiUrl } from '~/lib/env';
 import { ArrowLeft, Eye, EyeOff, Lock, Mail } from '~/lib/icons';
 import { useAuthStore } from '~/stores/auth';
 import { useTenantStore } from '~/stores/tenant';
@@ -68,17 +69,27 @@ export default function LoginScreen() {
     demoSheet.current?.dismiss();
   };
 
-  // Prellenado en dev — chips para alternar entre admin y driver. NO shipea a prod.
-  const DEV_ACCOUNTS: { id: 'admin' | 'driver'; label: string; email: string; password: string }[] = [
-    { id: 'admin', label: 'Admin', email: 'ferreteria.routes@demo.cl', password: '12345678' },
-    { id: 'driver', label: 'Repartidor', email: 'driver.routes@demo.cl', password: '12345678' },
+  // Prellenado en dev — chips para alternar entre admin / driver / despacho. NO shipea a prod.
+  // Cada cuenta lleva su tenant para que el quick-pick lo setee automáticamente
+  // y no haya que ir al tenant-picker.
+  const DEV_ACCOUNTS: {
+    id: 'admin' | 'driver' | 'dispatch';
+    label: string;
+    email: string;
+    password: string;
+    tenant: string;
+  }[] = [
+    { id: 'admin', label: 'Admin', email: 'ferreteria.enterprise@demo.cl', password: '12345678', tenant: 'ferreteria-enterprise' },
+    { id: 'driver', label: 'Repartidor', email: 'repartidor.enterprise@demo.cl', password: '12345678', tenant: 'ferreteria-enterprise' },
+    { id: 'dispatch', label: 'Despacho', email: 'despacho.enterprise@demo.cl', password: '12345678', tenant: 'ferreteria-enterprise' },
   ];
   const [email, setEmail] = useState(__DEV__ ? DEV_ACCOUNTS[0]!.email : '');
   const [password, setPassword] = useState(__DEV__ ? DEV_ACCOUNTS[0]!.password : '');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fillAccount = (acct: (typeof DEV_ACCOUNTS)[number]) => {
+  const fillAccount = async (acct: (typeof DEV_ACCOUNTS)[number]) => {
+    await setSlug(acct.tenant);
     setEmail(acct.email);
     setPassword(acct.password);
     setError(null);
@@ -87,24 +98,25 @@ export default function LoginScreen() {
   const submitting = status === 'authenticating';
 
   const handleSubmit = async () => {
-    if (!slug) {
-      router.replace('/(auth)/tenant');
-      return;
-    }
     if (!email.trim() || !password) {
       setError('Email y contraseña son requeridos.');
       return;
     }
     setError(null);
     try {
+      // slug es opcional: si no está, el backend deduce el tenant del email
       await login({ email: email.trim(), password, tenantSlug: slug });
     } catch (e) {
       if (e instanceof ApiError) {
-        setError(
-          e.status === 422 || e.status === 401
-            ? 'Credenciales incorrectas.'
-            : e.message,
-        );
+        if (e.status === 422 || e.status === 401) {
+          setError(`Credenciales incorrectas para el tenant "${slug}". ¿Es el tenant correcto?`);
+        } else if (e.status === 0 || e.status >= 500) {
+          setError(`Error de conexión (status ${e.status}). ¿El backend está corriendo en ${resolveApiUrl()}?`);
+        } else {
+          setError(e.message || `Error ${e.status} desde el backend`);
+        }
+      } else if (e instanceof Error) {
+        setError(e.message || 'No pudimos iniciar sesión. Reintenta.');
       } else {
         setError('No pudimos iniciar sesión. Reintenta.');
       }
@@ -372,40 +384,67 @@ export default function LoginScreen() {
                 <View
                   style={{
                     flexDirection: 'row',
-                    gap: 8,
-                    padding: 10,
-                    borderRadius: 10,
-                    backgroundColor: colors.danger + '15',
-                    borderWidth: 1,
-                    borderColor: colors.danger + '30',
+                    alignItems: 'flex-start',
+                    gap: 10,
+                    padding: 14,
+                    borderRadius: 14,
+                    backgroundColor: '#dc2626',
+                    shadowColor: '#dc2626',
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.25,
+                    shadowRadius: 8,
+                    elevation: 4,
                   }}
                 >
                   <View
                     style={{
-                      width: 18,
-                      height: 18,
-                      borderRadius: 9,
-                      backgroundColor: colors.danger,
+                      width: 22,
+                      height: 22,
+                      borderRadius: 11,
+                      backgroundColor: 'rgba(255,255,255,0.25)',
                       alignItems: 'center',
                       justifyContent: 'center',
+                      marginTop: 1,
                     }}
                   >
                     <Text
-                      style={{ color: '#fff', fontFamily: Fonts.bold, fontSize: 11, lineHeight: 12 }}
+                      style={{
+                        color: '#fff',
+                        fontFamily: Fonts.bold,
+                        fontSize: 14,
+                        lineHeight: 16,
+                        includeFontPadding: false,
+                      } as never}
                     >
                       !
                     </Text>
                   </View>
-                  <Text
-                    style={{
-                      color: colors.danger,
-                      fontFamily: Fonts.medium,
-                      fontSize: 13,
-                      flex: 1,
-                    }}
-                  >
-                    {error}
-                  </Text>
+                  <View style={{ flex: 1 }}>
+                    <Text
+                      style={{
+                        color: '#fff',
+                        fontFamily: Fonts.bold,
+                        fontSize: 12,
+                        letterSpacing: 0.6,
+                        textTransform: 'uppercase',
+                        marginBottom: 2,
+                        includeFontPadding: false,
+                      } as never}
+                    >
+                      Error
+                    </Text>
+                    <Text
+                      style={{
+                        color: '#fff',
+                        fontFamily: Fonts.medium,
+                        fontSize: 13.5,
+                        lineHeight: 19,
+                        includeFontPadding: false,
+                      } as never}
+                    >
+                      {error || 'Algo salió mal. Revisá tenant, conexión y credenciales.'}
+                    </Text>
+                  </View>
                 </View>
               </Animated.View>
             ) : null}
