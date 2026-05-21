@@ -22,6 +22,8 @@ interface DemoTenant {
   slug: string;
   name: string;
   brand_color: string;
+  logo: string | null;
+  cover_photo: string | null;
   has_routes: boolean;
   modules: string[];
   users: DemoUser[];
@@ -59,7 +61,8 @@ export const DemoAccountsSheet = forwardRef<
       if (!res.ok) throw new Error('No disponible');
       return (await res.json()) as DemoAccountsResponse;
     },
-    staleTime: 30_000,
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   return (
@@ -128,15 +131,28 @@ function TenantBlock({
 
   return (
     <View>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-        <View
-          style={{
-            width: 8,
-            height: 8,
-            borderRadius: 4,
-            backgroundColor: tenant.brand_color,
-          }}
-        />
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+        {tenant.logo ? (
+          <Image
+            source={{ uri: tenant.logo }}
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: 8,
+              backgroundColor: tenant.brand_color,
+            }}
+            contentFit="cover"
+          />
+        ) : (
+          <View
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: 4,
+              backgroundColor: tenant.brand_color,
+            }}
+          />
+        )}
         <Text variant="bodyStrong" numberOfLines={1} style={{ flex: 1 }}>
           {tenant.name}
         </Text>

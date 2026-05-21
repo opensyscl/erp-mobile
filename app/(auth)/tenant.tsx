@@ -1,5 +1,7 @@
 import { type BottomSheetModal as BottomSheetModalType } from '@gorhom/bottom-sheet';
+import { useQuery } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { forwardRef, useRef, useState, type ReactNode, type Ref } from 'react';
 import {
@@ -28,10 +30,18 @@ import { Pressable, Screen, Text } from '~/components/ui';
 import { useBrand } from '~/hooks/useBrand';
 import { useColorScheme } from '~/hooks/useColorScheme';
 import { useFourTapGesture } from '~/hooks/useFourTapGesture';
+import { resolveApiUrl } from '~/lib/env';
 import { Building } from '~/lib/icons';
 import { useTenantStore } from '~/stores/tenant';
 import { Fonts } from '~/theme/fonts';
 import { palette } from '~/theme/tokens';
+
+interface DemoTenantBrief {
+  slug: string;
+  name: string;
+  logo: string | null;
+  brand_color: string;
+}
 
 /**
  * Tenant picker — primer paso de auth.
@@ -58,6 +68,28 @@ export default function TenantScreen() {
       setError('Usa solo letras, números y guiones (2–40 caracteres).');
       return;
     }
+    setError(null);
+    await setSlug(slug);
+    router.push('/(auth)/login');
+  };
+
+  // Listado visual de demos disponibles (solo en dev).
+  const { data: demos } = useQuery({
+    queryKey: ['dev', 'demo-tenants-brief'],
+    enabled: __DEV__,
+    queryFn: async () => {
+      const res = await fetch(`${resolveApiUrl()}/api/__dev/demos`, {
+        headers: { Accept: 'application/json' },
+      });
+      if (!res.ok) throw new Error('no demos');
+      const json = (await res.json()) as { data: DemoTenantBrief[] };
+      return json.data;
+    },
+    staleTime: 0,
+  });
+
+  const pickDemo = async (slug: string) => {
+    setValue(slug);
     setError(null);
     await setSlug(slug);
     router.push('/(auth)/login');
@@ -256,6 +288,82 @@ export default function TenantScreen() {
               />
             </View>
           </Animated.View>
+
+          {/* Demo tenants visual list (DEV) */}
+          {__DEV__ && demos && demos.length > 0 ? (
+            <Animated.View
+              entering={FadeIn.delay(320).duration(360)}
+              style={{ marginHorizontal: 20, marginTop: 20 }}
+            >
+              <Text
+                style={{
+                  color: colors.fgSubtle,
+                  fontFamily: Fonts.medium,
+                  fontSize: 11,
+                  letterSpacing: 1.4,
+                  textTransform: 'uppercase',
+                  marginBottom: 10,
+                }}
+              >
+                O tocá una demo
+              </Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+                {demos.map((t) => (
+                  <Pressable
+                    key={t.slug}
+                    haptic="selection"
+                    onPress={() => pickDemo(t.slug)}
+                    style={{
+                      width: '31%',
+                      aspectRatio: 1,
+                      borderRadius: 16,
+                      backgroundColor: colors.bgElevated,
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                      padding: 10,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 6,
+                    }}
+                  >
+                    {t.logo ? (
+                      <Image
+                        source={{ uri: t.logo }}
+                        style={{
+                          width: 44,
+                          height: 44,
+                          borderRadius: 10,
+                          backgroundColor: t.brand_color + '22',
+                        }}
+                        contentFit="cover"
+                      />
+                    ) : (
+                      <View
+                        style={{
+                          width: 44,
+                          height: 44,
+                          borderRadius: 10,
+                          backgroundColor: t.brand_color,
+                        }}
+                      />
+                    )}
+                    <Text
+                      numberOfLines={2}
+                      style={{
+                        color: colors.fg,
+                        fontFamily: Fonts.medium,
+                        fontSize: 10.5,
+                        textAlign: 'center',
+                        lineHeight: 13,
+                      }}
+                    >
+                      {t.name}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </Animated.View>
+          ) : null}
 
           {/* Info card */}
           <Animated.View

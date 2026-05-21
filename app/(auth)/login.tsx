@@ -1,4 +1,3 @@
-import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { type BottomSheetModal as BottomSheetModalType } from '@gorhom/bottom-sheet';
 import { forwardRef, useRef, useState, type ReactNode, type Ref } from 'react';
@@ -12,7 +11,6 @@ import {
 } from 'react-native';
 import Animated, {
   FadeIn,
-  FadeInDown,
   FadeInUp,
   useAnimatedStyle,
   useSharedValue,
@@ -23,7 +21,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { DemoAccountsSheet } from '~/components/DemoAccountsSheet';
 import { DevEnvSheet } from '~/components/DevEnvSheet';
-import { HeaderPattern } from '~/components/HeaderPattern';
 import { LogoMark } from '~/components/Logo';
 import { Pressable, Screen, Text } from '~/components/ui';
 import { useBrand } from '~/hooks/useBrand';
@@ -32,19 +29,19 @@ import { useFourTapGesture } from '~/hooks/useFourTapGesture';
 import { ApiError } from '~/lib/api';
 import { resolveApiUrl } from '~/lib/env';
 import { toast } from '~/components/Toast';
-import { ArrowLeft, Eye, EyeOff, Lock, Mail } from '~/lib/icons';
+import { ArrowLeft, Eye, EyeOff } from '~/lib/icons';
 import { useAuthStore } from '~/stores/auth';
 import { useTenantStore } from '~/stores/tenant';
 import { Fonts } from '~/theme/fonts';
-import { palette, shadows } from '~/theme/tokens';
+import { palette } from '~/theme/tokens';
 
 /**
- * Login pantalla — diseño "premium":
- *   - Hero con bg de marca + pattern delicado + LogoMark grande
- *   - Card flotante blanca que overlap el hero (estilo wallet apps)
- *   - Inputs flotantes con label que sube al focusear
- *   - Botón con shine y haptic
- *   - Footer compliance discreto
+ * Login pantalla — variante "minimal":
+ *   - Fondo plano, sin hero ni patrón
+ *   - Logo pequeño centrado, tipografía grande
+ *   - Inputs tipo píldora con borde sutil
+ *   - Botón primario pill (alto contraste con el bg de la pantalla)
+ *   - Acciones secundarias como links de texto al pie
  */
 export default function LoginScreen() {
   const router = useRouter();
@@ -69,19 +66,17 @@ export default function LoginScreen() {
     demoSheet.current?.dismiss();
   };
 
-  // Prellenado en dev — chips para alternar entre admin / driver / despacho. NO shipea a prod.
-  // Cada cuenta lleva su tenant para que el quick-pick lo setee automáticamente
-  // y no haya que ir al tenant-picker.
+  // Prellenado en dev — chips por plan (botillería). NO shipea a prod.
   const DEV_ACCOUNTS: {
-    id: 'admin' | 'driver' | 'dispatch';
+    id: 'starter' | 'growth' | 'enterprise';
     label: string;
     email: string;
     password: string;
     tenant: string;
   }[] = [
-    { id: 'admin', label: 'Admin', email: 'ferreteria.enterprise@demo.cl', password: '12345678', tenant: 'ferreteria-enterprise' },
-    { id: 'driver', label: 'Repartidor', email: 'repartidor.enterprise@demo.cl', password: '12345678', tenant: 'ferreteria-enterprise' },
-    { id: 'dispatch', label: 'Despacho', email: 'despacho.enterprise@demo.cl', password: '12345678', tenant: 'ferreteria-enterprise' },
+    { id: 'starter',    label: 'Starter',    email: 'botilleria.starter@demo.cl',    password: '12345678', tenant: 'botilleria-starter' },
+    { id: 'growth',     label: 'Growth',     email: 'botilleria.growth@demo.cl',     password: '12345678', tenant: 'botilleria-growth' },
+    { id: 'enterprise', label: 'Enterprise', email: 'botilleria.enterprise@demo.cl', password: '12345678', tenant: 'botilleria-enterprise' },
   ];
   const [email, setEmail] = useState(__DEV__ ? DEV_ACCOUNTS[0]!.email : '');
   const [password, setPassword] = useState(__DEV__ ? DEV_ACCOUNTS[0]!.password : '');
@@ -101,7 +96,6 @@ export default function LoginScreen() {
       return;
     }
     try {
-      // slug es opcional: si no está, el backend deduce el tenant del email
       await login({ email: email.trim(), password, tenantSlug: slug });
       toast.success('Bienvenido', `Sesión iniciada como ${email.trim()}`);
     } catch (e) {
@@ -109,9 +103,7 @@ export default function LoginScreen() {
         if (e.status === 422 || e.status === 401) {
           toast.error(
             'Credenciales incorrectas',
-            slug
-              ? `Revisa email/contraseña (tenant "${slug}").`
-              : 'Revisa tu email y contraseña.',
+            slug ? `Revisa email/contraseña (tenant "${slug}").` : 'Revisa tu email y contraseña.',
           );
         } else if (e.status === 0 || e.status >= 500) {
           toast.error(
@@ -129,29 +121,23 @@ export default function LoginScreen() {
     }
   };
 
+  // Botón primario: alto contraste contra el bg (negro en light, blanco en dark)
+  const primaryBg = scheme === 'dark' ? colors.fg : colors.fg;
+  const primaryFg = scheme === 'dark' ? colors.bg : colors.bg;
+
   return (
     <Screen padded={false} edges={{ top: false, bottom: false }}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={{ flex: 1 }}
+        style={{ flex: 1, backgroundColor: colors.bg }}
       >
         <ScrollView
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ flexGrow: 1 }}
+          contentContainerStyle={{ flexGrow: 1, paddingTop: insets.top + 8 }}
         >
-          {/* HERO con bg de marca */}
-          <View
-            style={{
-              backgroundColor: brand.brand,
-              paddingTop: insets.top + 12,
-              paddingHorizontal: 20,
-              paddingBottom: 96,
-              overflow: 'hidden',
-            }}
-          >
-            <HeaderPattern color={brand.brandFg} intensity={1.2} />
-
+          {/* Top bar — solo back */}
+          <View style={{ paddingHorizontal: 20, height: 44, justifyContent: 'center' }}>
             <Pressable
               haptic="selection"
               onPress={() => router.back()}
@@ -159,149 +145,74 @@ export default function LoginScreen() {
                 width: 40,
                 height: 40,
                 borderRadius: 20,
-                backgroundColor: 'rgba(255,255,255,0.18)',
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
             >
-              <ArrowLeft size={18} color={brand.brandFg} />
+              <ArrowLeft size={20} color={colors.fg} />
             </Pressable>
+          </View>
 
-            <View style={{ marginTop: 36, alignItems: 'center' }}>
-              <Animated.View entering={FadeIn.duration(360)}>
-                <Pressable
-                  onPress={logoTap.onPress}
-                  style={{
-                    backgroundColor: 'rgba(255,255,255,0.18)',
-                    width: 76,
-                    height: 76,
-                    borderRadius: 22,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <LogoMark size={48} variant="inverse" />
-                </Pressable>
-              </Animated.View>
+          {/* Hero centrado */}
+          <View style={{ alignItems: 'center', paddingTop: 28, paddingBottom: 36 }}>
+            <Animated.View entering={FadeIn.duration(380)}>
+              <Pressable
+                onPress={logoTap.onPress}
+                style={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: 18,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: colors.bgSubtle,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                }}
+              >
+                <LogoMark size={32} />
+              </Pressable>
+            </Animated.View>
 
-              <Animated.View entering={FadeInUp.delay(80).duration(360).springify()} style={{ alignItems: 'center', marginTop: 18 }}>
-                <Text
-                  style={{
-                    color: brand.brandFg,
-                    fontFamily: Fonts.medium,
-                    fontSize: 11,
-                    letterSpacing: 1.6,
-                    textTransform: 'uppercase',
-                    opacity: 0.7,
-                  }}
-                >
-                  Estás entrando a
-                </Text>
-                <Text
-                  style={{
-                    color: brand.brandFg,
-                    fontFamily: Fonts.semibold,
-                    fontSize: 26,
-                lineHeight: 36,
-                    letterSpacing: -0.6,
-                    marginTop: 6,
-                  }}
-                  numberOfLines={1}
-                >
-                  {slug ?? 'OpenSys'}
-                </Text>
+            <Animated.View
+              entering={FadeInUp.delay(80).duration(360).springify()}
+              style={{ alignItems: 'center', marginTop: 26 }}
+            >
+              <Text
+                style={{
+                  color: colors.fg,
+                  fontFamily: Fonts.semibold,
+                  fontSize: 30,
+                  lineHeight: 38,
+                  letterSpacing: -0.8,
+                }}
+              >
+                Bienvenido
+              </Text>
+              {slug ? (
                 <Pressable
                   haptic="selection"
                   onPress={() => router.replace('/(auth)/tenant')}
-                  className="mt-3"
+                  style={{ marginTop: 6 }}
                 >
                   <Text
                     style={{
-                      color: brand.brandFg,
-                      opacity: 0.75,
+                      color: colors.fgMuted,
                       fontFamily: Fonts.regular,
-                      fontSize: 12,
-                      textDecorationLine: 'underline',
+                      fontSize: 14,
+                      letterSpacing: -0.1,
                     }}
                   >
-                    Cambiar de empresa
+                    a <Text style={{ color: colors.fg, fontFamily: Fonts.medium }}>{slug}</Text>
                   </Text>
                 </Pressable>
-              </Animated.View>
-            </View>
+              ) : null}
+            </Animated.View>
           </View>
 
-          {/* CARD FLOTANTE con form */}
-          <Animated.View
-            entering={FadeInDown.delay(160).duration(420).springify()}
-            style={{
-              backgroundColor: colors.bgElevated,
-              marginHorizontal: 20,
-              marginTop: -68,
-              borderRadius: 24,
-              padding: 24,
-              borderWidth: 1,
-              borderColor: colors.border,
-              ...shadows.lg,
-            }}
-          >
-            <Text variant="overline" tone="brand">
-              Acceso
-            </Text>
-            <Text
-              style={{
-                fontFamily: Fonts.semibold,
-                fontSize: 24,
-                lineHeight: 34,
-                letterSpacing: -0.6,
-                color: colors.fg,
-                marginTop: 4,
-              }}
-            >
-              Iniciar sesión
-            </Text>
-
+          {/* Form */}
+          <View style={{ paddingHorizontal: 24, gap: 12 }}>
             {__DEV__ ? (
-              <Pressable
-                haptic="selection"
-                onPress={() => demoSheet.current?.present()}
-                style={{
-                  marginTop: 14,
-                  height: 38,
-                  borderRadius: 10,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: brand.brandSubtle,
-                  borderWidth: 1,
-                  borderColor: brand.brand + '33',
-                  flexDirection: 'row',
-                  gap: 8,
-                }}
-              >
-                <View
-                  style={{
-                    width: 6,
-                    height: 6,
-                    borderRadius: 3,
-                    backgroundColor: brand.brand,
-                  }}
-                />
-                <Text
-                  style={{
-                    color: brand.brand,
-                    fontFamily: Fonts.medium,
-                    fontSize: 12,
-                    letterSpacing: 0.2,
-                    includeFontPadding: false,
-                  } as never}
-                >
-                  Ver todas las cuentas demo
-                </Text>
-              </Pressable>
-            ) : null}
-
-            {__DEV__ ? (
-              <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
+              <View style={{ flexDirection: 'row', gap: 8, marginBottom: 4 }}>
                 {DEV_ACCOUNTS.map((acct) => {
                   const active = email === acct.email;
                   return (
@@ -311,21 +222,21 @@ export default function LoginScreen() {
                       onPress={() => fillAccount(acct)}
                       style={{
                         flex: 1,
-                        height: 36,
+                        height: 34,
                         borderRadius: 999,
                         alignItems: 'center',
                         justifyContent: 'center',
-                        backgroundColor: active ? brand.brand : colors.bgSubtle,
+                        backgroundColor: active ? colors.fg : 'transparent',
                         borderWidth: 1,
-                        borderColor: active ? brand.brand : colors.border,
+                        borderColor: active ? colors.fg : colors.border,
                       }}
                     >
                       <Text
                         style={{
-                          color: active ? brand.brandFg : colors.fgMuted,
+                          color: active ? colors.bg : colors.fgMuted,
                           fontFamily: Fonts.medium,
                           fontSize: 12,
-                          letterSpacing: 0.2,
+                          letterSpacing: 0.1,
                           includeFontPadding: false,
                         } as never}
                       >
@@ -337,103 +248,113 @@ export default function LoginScreen() {
               </View>
             ) : null}
 
-            <View style={{ marginTop: 20, gap: 14 }}>
-              <FloatingInput
-                label="Correo electrónico"
-                placeholder="tucorreo@empresa.com"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoComplete="email"
-                autoCorrect={false}
-                returnKeyType="next"
-                onSubmitEditing={() => passwordRef.current?.focus()}
-                icon={<Mail size={18} color={colors.fgMuted} />}
-              />
+            <PillInput
+              placeholder="Correo electrónico"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoComplete="email"
+              autoCorrect={false}
+              returnKeyType="next"
+              onSubmitEditing={() => passwordRef.current?.focus()}
+            />
 
-              <FloatingInput
-                ref={passwordRef}
-                label="Contraseña"
-                placeholder="••••••••••"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!showPassword}
-                autoCapitalize="none"
-                autoComplete="password"
-                returnKeyType="go"
-                onSubmitEditing={handleSubmit}
-                icon={<Lock size={18} color={colors.fgMuted} />}
-                rightSlot={
-                  <Pressable
-                    haptic="selection"
-                    onPress={() => setShowPassword((v) => !v)}
-                    style={{
-                      width: 36,
-                      height: 36,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    {showPassword ? (
-                      <EyeOff size={18} color={colors.fgSubtle} />
-                    ) : (
-                      <Eye size={18} color={colors.fgSubtle} />
-                    )}
-                  </Pressable>
-                }
+            <PillInput
+              ref={passwordRef}
+              placeholder="Contraseña"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={!showPassword}
+              autoCapitalize="none"
+              autoComplete="password"
+              returnKeyType="go"
+              onSubmitEditing={handleSubmit}
+              rightSlot={
+                <Pressable
+                  haptic="selection"
+                  onPress={() => setShowPassword((v) => !v)}
+                  style={{
+                    width: 40,
+                    height: 40,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  {showPassword ? (
+                    <EyeOff size={18} color={colors.fgSubtle} />
+                  ) : (
+                    <Eye size={18} color={colors.fgSubtle} />
+                  )}
+                </Pressable>
+              }
+            />
+
+            <View style={{ marginTop: 8 }}>
+              <PillButton
+                onPress={handleSubmit}
+                loading={submitting}
+                bg={primaryBg}
+                fg={primaryFg}
+                label="Continuar"
               />
             </View>
 
-            {/* Banner inline + toast: el catch usa toast.error() pero si querés
-                volver al banner inline rojo, descomentar el state `error` y
-                este bloque (estaba en commit anterior). Hoy: solo toast. */}
-
-            <View className="flex-row items-center justify-between mt-4">
-              <View />
+            {/* Acciones secundarias */}
+            <View style={{ marginTop: 22, alignItems: 'center', gap: 14 }}>
               <Pressable haptic="selection">
                 <Text
                   style={{
-                    color: brand.brand,
+                    color: colors.fgMuted,
                     fontFamily: Fonts.medium,
-                    fontSize: 12,
-                    letterSpacing: -0.1,
+                    fontSize: 13,
                   }}
                 >
-                  Olvidé mi clave
+                  ¿Olvidaste tu clave?
                 </Text>
               </Pressable>
-            </View>
 
-            <View style={{ marginTop: 18 }}>
-              <ShinyButton
-                onPress={handleSubmit}
-                loading={submitting}
-                bg={brand.brand}
-                fg={brand.brandFg}
-                label="Entrar"
-              />
+              {__DEV__ ? (
+                <Pressable
+                  haptic="selection"
+                  onPress={() => demoSheet.current?.present()}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
+                >
+                  <View
+                    style={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: 3,
+                      backgroundColor: brand.brand,
+                    }}
+                  />
+                  <Text
+                    style={{
+                      color: brand.brand,
+                      fontFamily: Fonts.medium,
+                      fontSize: 13,
+                      letterSpacing: -0.1,
+                    }}
+                  >
+                    Ver todas las cuentas demo
+                  </Text>
+                </Pressable>
+              ) : null}
             </View>
-          </Animated.View>
+          </View>
 
           {/* Footer compliance */}
-          <Animated.View
-            entering={FadeIn.delay(360).duration(360)}
+          <View
             style={{
               alignItems: 'center',
               paddingHorizontal: 32,
-              paddingVertical: 24,
-              paddingBottom: insets.bottom + 16,
-              gap: 4,
+              paddingBottom: insets.bottom + 18,
+              paddingTop: 36,
+              marginTop: 'auto',
+              gap: 6,
             }}
           >
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 6,
-              }}
-            >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               <View
                 style={{
                   width: 6,
@@ -446,26 +367,22 @@ export default function LoginScreen() {
                 Conexión segura · TLS encriptado
               </Text>
             </View>
-            <Text variant="caption" tone="subtle" className="text-center" style={{ opacity: 0.7 }}>
-              © OpenSys ERP · Tus datos no salen del tenant
+            <Text variant="caption" tone="subtle" style={{ opacity: 0.6, textAlign: 'center' }}>
+              © OpenSys ERP
             </Text>
-          </Animated.View>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Sheet oculto: tocar el LogoMark 4 veces para alternar entorno */}
       <DevEnvSheet ref={devEnvSheet} />
-
-      {/* Sheet de cuentas demo (botón visible en __DEV__) */}
       <DemoAccountsSheet ref={demoSheet} onPick={handleDemoPick} />
     </Screen>
   );
 }
 
-/* ─────────────────────── FloatingInput ─────────────────────── */
+/* ─────────────────────── PillInput ─────────────────────── */
 
-interface FloatingInputProps {
-  label: string;
+interface PillInputProps {
   placeholder?: string;
   value: string;
   onChangeText: (v: string) => void;
@@ -476,13 +393,11 @@ interface FloatingInputProps {
   autoComplete?: 'email' | 'password' | 'off';
   returnKeyType?: 'done' | 'next' | 'go';
   onSubmitEditing?: () => void;
-  icon?: ReactNode;
   rightSlot?: ReactNode;
 }
 
-const FloatingInput = forwardRef<RNTextInput, FloatingInputProps>(function FloatingInput(
+const PillInput = forwardRef<RNTextInput, PillInputProps>(function PillInput(
   {
-    label,
     placeholder,
     value,
     onChangeText,
@@ -493,7 +408,6 @@ const FloatingInput = forwardRef<RNTextInput, FloatingInputProps>(function Float
     autoComplete,
     returnKeyType = 'next',
     onSubmitEditing,
-    icon,
     rightSlot,
   },
   ref,
@@ -503,75 +417,54 @@ const FloatingInput = forwardRef<RNTextInput, FloatingInputProps>(function Float
   const brand = useBrand();
   const [focused, setFocused] = useState(false);
 
-  const containerStyle = useAnimatedStyle(() => ({
-    borderColor: focused ? brand.brand : value ? colors.borderStrong : colors.border,
-  }));
-
   return (
-    <View>
-      <Text
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        height: 56,
+        borderRadius: 999,
+        backgroundColor: colors.bgSubtle,
+        paddingHorizontal: 20,
+        paddingRight: rightSlot ? 8 : 20,
+        borderWidth: 1,
+        borderColor: focused ? colors.fg : colors.border,
+      }}
+    >
+      <TextInput
+        ref={ref as Ref<RNTextInput>}
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
+        placeholderTextColor={colors.fgSubtle}
+        selectionColor={brand.brand}
+        cursorColor={brand.brand}
+        secureTextEntry={secureTextEntry}
+        keyboardType={keyboardType}
+        autoCapitalize={autoCapitalize}
+        autoCorrect={autoCorrect}
+        autoComplete={autoComplete}
+        returnKeyType={returnKeyType}
+        onSubmitEditing={onSubmitEditing}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
         style={{
-          color: focused ? brand.brand : colors.fgSubtle,
-          fontFamily: Fonts.medium,
-          fontSize: 11,
-          letterSpacing: 1.2,
-          textTransform: 'uppercase',
-          marginBottom: 8,
+          flex: 1,
+          fontFamily: Fonts.regular,
+          fontSize: 15,
+          letterSpacing: -0.1,
+          color: colors.fg,
+          paddingVertical: 0,
         }}
-      >
-        {label}
-      </Text>
-
-      <Animated.View
-        style={[
-          {
-            flexDirection: 'row',
-            alignItems: 'center',
-            height: 52,
-            borderRadius: 14,
-            backgroundColor: colors.bgSubtle,
-            paddingHorizontal: 14,
-            borderWidth: 1.5,
-          },
-          containerStyle,
-        ]}
-      >
-        {icon ? <View style={{ marginRight: 10 }}>{icon}</View> : null}
-        <TextInput
-          ref={ref as Ref<RNTextInput>}
-          value={value}
-          onChangeText={onChangeText}
-          placeholder={placeholder}
-          placeholderTextColor={colors.fgSubtle}
-          selectionColor={brand.brand}
-          cursorColor={brand.brand}
-          secureTextEntry={secureTextEntry}
-          keyboardType={keyboardType}
-          autoCapitalize={autoCapitalize}
-          autoCorrect={autoCorrect}
-          autoComplete={autoComplete}
-          returnKeyType={returnKeyType}
-          onSubmitEditing={onSubmitEditing}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          style={{
-            flex: 1,
-            fontFamily: Fonts.regular,
-            fontSize: 15,
-            letterSpacing: -0.1,
-            color: colors.fg,
-            paddingVertical: 0,
-          }}
-        />
-        {rightSlot}
-      </Animated.View>
+      />
+      {rightSlot}
     </View>
   );
 });
 
-/* ─────────────────────── ShinyButton ─────────────────────── */
+/* ─────────────────────── PillButton ─────────────────────── */
 
-interface ShinyButtonProps {
+interface PillButtonProps {
   onPress: () => void;
   loading?: boolean;
   bg: string;
@@ -579,7 +472,7 @@ interface ShinyButtonProps {
   label: string;
 }
 
-function ShinyButton({ onPress, loading, bg, fg, label }: ShinyButtonProps) {
+function PillButton({ onPress, loading, bg, fg, label }: PillButtonProps) {
   const scale = useSharedValue(1);
   const animStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -601,79 +494,42 @@ function ShinyButton({ onPress, loading, bg, fg, label }: ShinyButtonProps) {
       <Animated.View
         style={[
           {
-            height: 54,
-            borderRadius: 14,
-            overflow: 'hidden',
-            shadowColor: bg,
-            shadowOffset: { width: 0, height: 8 },
-            shadowOpacity: 0.28,
-            shadowRadius: 16,
-            elevation: 6,
+            height: 56,
+            borderRadius: 999,
+            backgroundColor: bg,
+            alignItems: 'center',
+            justifyContent: 'center',
+            opacity: loading ? 0.85 : 1,
           },
           animStyle,
         ]}
       >
-        <LinearGradient
-          colors={[bg, mixColor(bg, '#000', 0.18)]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={{
-            flex: 1,
-            alignItems: 'center',
-            justifyContent: 'center',
-            opacity: loading ? 0.85 : 1,
-          }}
-        >
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            {loading ? (
-              <Animated.View
-                entering={FadeIn.duration(160)}
-                style={{
-                  width: 18,
-                  height: 18,
-                  borderRadius: 9,
-                  borderWidth: 2,
-                  borderColor: fg,
-                  borderTopColor: 'transparent',
-                }}
-              />
-            ) : null}
-            <Text
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          {loading ? (
+            <Animated.View
+              entering={FadeIn.duration(160)}
               style={{
-                color: fg,
-                fontFamily: Fonts.semibold,
-                fontSize: 15,
-                letterSpacing: -0.2,
+                width: 16,
+                height: 16,
+                borderRadius: 8,
+                borderWidth: 2,
+                borderColor: fg,
+                borderTopColor: 'transparent',
               }}
-            >
-              {loading ? 'Verificando…' : label}
-            </Text>
-          </View>
-        </LinearGradient>
+            />
+          ) : null}
+          <Text
+            style={{
+              color: fg,
+              fontFamily: Fonts.semibold,
+              fontSize: 15,
+              letterSpacing: -0.2,
+            }}
+          >
+            {loading ? 'Verificando…' : label}
+          </Text>
+        </View>
       </Animated.View>
     </Pressable>
   );
-}
-
-/** Mezcla simple en RGB hex. ratio 0..1 (0=color, 1=mix). */
-function mixColor(hexA: string, hexB: string, ratio: number): string {
-  const toRgb = (h: string): [number, number, number] | null => {
-    if (h.startsWith('rgb')) {
-      const m = h.match(/\d+/g);
-      if (!m) return null;
-      return [Number(m[0]), Number(m[1]), Number(m[2])];
-    }
-    const v = h.replace('#', '');
-    if (v.length !== 6) return null;
-    return [
-      parseInt(v.slice(0, 2), 16),
-      parseInt(v.slice(2, 4), 16),
-      parseInt(v.slice(4, 6), 16),
-    ];
-  };
-  const a = toRgb(hexA);
-  const b = toRgb(hexB);
-  if (!a || !b) return hexA;
-  const mix = a.map((c, i) => Math.round(c * (1 - ratio) + b[i]! * ratio));
-  return `rgb(${mix.join(' ')})`;
 }

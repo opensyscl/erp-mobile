@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -13,7 +14,7 @@ import { SoftHeader } from '~/components/dashboard/SoftHeader';
 import { Pressable, Text } from '~/components/ui';
 import { useBrand } from '~/hooks/useBrand';
 import { useColorScheme } from '~/hooks/useColorScheme';
-import { useRealtimeInvalidate } from '~/hooks/useRealtime';
+import { useRealtime, useRealtimeInvalidate } from '~/hooks/useRealtime';
 import { apiRequest } from '~/lib/api';
 import {
   ArrowUpRight,
@@ -85,28 +86,33 @@ export default function AdminGeneralDashboard() {
   useRealtimeInvalidate(salesChannel, RealtimeEvents.SaleUpdated, [KPI_QUERY_KEY]);
   useRealtimeInvalidate(inventoryChannel, RealtimeEvents.ProductStockChanged, [['products']]);
 
+  // Contador de notificaciones de venta nueva — se incrementa con cada
+  // SaleCreated en realtime y se reset al tocar la campanita.
+  const [salesNotif, setSalesNotif] = useState(0);
+  useRealtime(salesChannel, RealtimeEvents.SaleCreated, () => {
+    setSalesNotif((n) => n + 1);
+  });
+
   const firstName = (user?.name ?? 'Equipo').split(' ')[0] ?? 'Equipo';
   const initial = firstName[0]?.toUpperCase() ?? 'O';
 
   // Mock placeholder de actividad reciente — reemplazar cuando exista endpoint.
   const recentActivity: ActivityItem[] = [];
 
-  // Mock placeholder de ventas por día — reemplazar cuando exista endpoint
-  // `/api/mobile/dashboard/weekly-sales`. Marcamos el día actual con `current`.
-  const todayIdx = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1; // Lun=0
-  const weekly = [
-    { label: 'Lun', value: 0 },
-    { label: 'Mar', value: 0 },
-    { label: 'Mié', value: 0 },
-    { label: 'Jue', value: 0 },
-    { label: 'Vie', value: 0 },
-    { label: 'Sáb', value: 0 },
-    { label: 'Dom', value: 0 },
-  ].map((d, i) =>
-    i === todayIdx
-      ? { ...d, value: kpis?.sales_total ?? 0, current: true }
-      : d,
-  );
+  // Trend de últimos 7 días viene del endpoint /api/mobile/dashboard/today
+  // como array de 7 floats: [hace 6d, hace 5d, ..., hoy]. Mapeamos cada
+  // índice a su día de la semana real y al último le marcamos `current`.
+  const WEEKDAY_LABELS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+  const trend = kpis?.trend ?? [0, 0, 0, 0, 0, 0, 0];
+  const weekly = trend.map((value, i) => {
+    const date = new Date();
+    date.setDate(date.getDate() - (6 - i));
+    return {
+      label: WEEKDAY_LABELS[date.getDay()]!,
+      value,
+      current: i === trend.length - 1,
+    };
+  });
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bgSubtle }}>
@@ -118,7 +124,11 @@ export default function AdminGeneralDashboard() {
         initial={initial}
         avatarColor={brand.brand}
         hasNotifications={approvalsPending > 0}
-        onBellPress={() => router.push('/(app)/approvals' as never)}
+        notificationCount={salesNotif}
+        onBellPress={() => {
+          setSalesNotif(0);
+          router.push('/(app)/approvals' as never);
+        }}
         topInset={insets.top}
       />
 

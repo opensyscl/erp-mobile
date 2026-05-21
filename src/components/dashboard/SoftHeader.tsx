@@ -17,6 +17,7 @@ export function SoftHeader({
   initial,
   avatarColor = '#6366F1',
   hasNotifications,
+  notificationCount,
   onBellPress,
   topInset,
 }: {
@@ -25,9 +26,14 @@ export function SoftHeader({
   initial: string;
   avatarColor?: string;
   hasNotifications?: boolean;
+  /** Si > 0, se muestra como número en el badge. Tiene prioridad sobre `hasNotifications`. */
+  notificationCount?: number;
   onBellPress?: () => void;
   topInset: number;
 }) {
+  const count = notificationCount ?? 0;
+  const showBadge = count > 0 || hasNotifications;
+  const badgeText = count > 99 ? '99+' : String(count);
   const scheme = useColorScheme();
   const colors = palette[scheme];
 
@@ -107,21 +113,55 @@ export function SoftHeader({
           justifyContent: 'center',
         }}
       >
-        {hasNotifications ? (
-          <View
-            style={{
-              position: 'absolute',
-              top: 9,
-              right: 11,
-              width: 8,
-              height: 8,
-              borderRadius: 4,
-              backgroundColor: colors.danger,
-              borderWidth: 2,
-              borderColor: colors.bgElevated,
-              zIndex: 1,
-            }}
-          />
+        {showBadge ? (
+          count > 0 ? (
+            <View
+              style={{
+                position: 'absolute',
+                top: -2,
+                right: -4,
+                minWidth: 18,
+                height: 18,
+                paddingHorizontal: 5,
+                borderRadius: 9,
+                backgroundColor: colors.danger,
+                borderWidth: 2,
+                borderColor: colors.bgElevated,
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 1,
+              }}
+            >
+              <Text
+                style={
+                  {
+                    color: '#FFFFFF',
+                    fontFamily: Fonts.bold,
+                    fontSize: 10,
+                    lineHeight: 12,
+                    includeFontPadding: false,
+                  } as never
+                }
+              >
+                {badgeText}
+              </Text>
+            </View>
+          ) : (
+            <View
+              style={{
+                position: 'absolute',
+                top: 9,
+                right: 11,
+                width: 8,
+                height: 8,
+                borderRadius: 4,
+                backgroundColor: colors.danger,
+                borderWidth: 2,
+                borderColor: colors.bgElevated,
+                zIndex: 1,
+              }}
+            />
+          )
         ) : null}
         <Bell size={18} color={colors.fg} strokeWidth={1.7} />
       </Pressable>

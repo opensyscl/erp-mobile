@@ -33,6 +33,12 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
       return true;
     });
 
+  // En dev, los toasts de Expo Go viven en bottom ~0-60px y tapan el dock.
+  // Lo subimos en __DEV__ y mantenemos el offset minimal en producción.
+  const bottomOffset = __DEV__
+    ? Math.max(insets.bottom + 56, 80)
+    : Math.max(insets.bottom, 14);
+
   return (
     <View
       pointerEvents="box-none"
@@ -40,7 +46,7 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
         position: 'absolute',
         left: 0,
         right: 0,
-        bottom: Math.max(insets.bottom, 14),
+        bottom: bottomOffset,
         alignItems: 'center',
       }}
     >
@@ -48,18 +54,18 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
         style={{
           flexDirection: 'row',
           alignItems: 'center',
-          gap: 4,
-          paddingHorizontal: 8,
-          paddingVertical: 8,
+          gap: 2,
+          paddingHorizontal: 5,
+          paddingVertical: 5,
           borderRadius: 999,
           backgroundColor: colors.bgElevated,
           borderWidth: 1,
           borderColor: colors.border,
           shadowColor: '#000',
-          shadowOpacity: scheme === 'dark' ? 0.4 : 0.12,
-          shadowRadius: 16,
-          shadowOffset: { width: 0, height: 8 },
-          elevation: Platform.OS === 'android' ? 6 : 0,
+          shadowOpacity: scheme === 'dark' ? 0.32 : 0.10,
+          shadowRadius: 12,
+          shadowOffset: { width: 0, height: 6 },
+          elevation: Platform.OS === 'android' ? 4 : 0,
         }}
       >
         {visibleRoutes.map(({ route, index }) => {
@@ -88,16 +94,16 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
               onPress={onPress}
               haptic="selection"
               style={{
-                width: 46,
-                height: 46,
-                borderRadius: 23,
+                width: 36,
+                height: 36,
+                borderRadius: 18,
                 alignItems: 'center',
                 justifyContent: 'center',
                 backgroundColor: isFocused ? brand.brand : 'transparent',
               }}
             >
               {IconFn
-                ? IconFn({ color: iconColor, size: 20, focused: isFocused })
+                ? IconFn({ color: iconColor, size: 18, focused: isFocused })
                 : null}
             </Pressable>
           );
