@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { View } from 'react-native';
 import Svg, { Circle, Rect } from 'react-native-svg';
 
@@ -39,9 +40,11 @@ interface LogoMarkProps {
   size?: number;
   /** "filled" = brand bg + white ring · "outline" = transparent bg + brand ring */
   variant?: 'filled' | 'outline' | 'inverse';
+  /** URL del logo del tenant. Si está, se renderiza la imagen en vez de la marca por defecto. */
+  src?: string | null;
 }
 
-export function LogoMark({ size = 44, variant = 'filled' }: LogoMarkProps) {
+export function LogoMark({ size = 44, variant = 'filled', src }: LogoMarkProps) {
   const brand = useBrand();
 
   const isFilled = variant === 'filled';
@@ -51,6 +54,31 @@ export function LogoMark({ size = 44, variant = 'filled' }: LogoMarkProps) {
   const ring = isFilled ? brand.brandFg : brand.brand;
 
   const cornerRadius = size * 0.25;
+
+  // Si el tenant subió logo, lo mostramos en un contenedor con el bg de marca.
+  if (src) {
+    return (
+      <View
+        style={{
+          width: size,
+          height: size,
+          borderRadius: cornerRadius,
+          backgroundColor: bg,
+          overflow: 'hidden',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <Image
+          source={{ uri: src }}
+          style={{ width: size * 0.86, height: size * 0.86, borderRadius: cornerRadius * 0.7 }}
+          contentFit="cover"
+          transition={120}
+        />
+      </View>
+    );
+  }
+
   const ringRadius = size * 0.225;
   const ringStroke = Math.max(2.5, size * 0.085);
 

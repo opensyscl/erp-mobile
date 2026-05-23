@@ -2,7 +2,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
 import { Stack, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { FlatList, KeyboardAvoidingView, Modal, Platform, TextInput, View } from 'react-native';
+import { Image } from 'expo-image';
+import { FlatList, KeyboardAvoidingView, Modal, Platform, ScrollView, TextInput, View } from 'react-native';
 import Animated, { FadeIn, SlideInDown, SlideOutDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -23,6 +24,7 @@ interface SearchProduct {
   price: number;
   stock: number;
   status: 'ok' | 'low' | 'out';
+  image_url: string | null;
 }
 
 interface SearchResp {
@@ -30,12 +32,29 @@ interface SearchResp {
   meta: { total: number };
 }
 
-async function searchProducts(query: string): Promise<SearchResp> {
-  const qs = query ? `?search=${encodeURIComponent(query)}` : '';
+async function searchProducts(query: string, categoryId: number | null): Promise<SearchResp> {
+  const params = new URLSearchParams();
+  if (query) params.set('search', query);
+  if (categoryId !== null) params.set('category_id', String(categoryId));
+  const qs = params.toString() ? `?${params.toString()}` : '';
   return apiRequest<SearchResp>({
     method: 'GET',
     url: `/api/mobile/products${qs}`,
   });
+}
+
+interface PosCategory {
+  id: number;
+  name: string;
+  count: number;
+}
+
+async function fetchCategories(): Promise<PosCategory[]> {
+  const res = await apiRequest<{ data: PosCategory[] }>({
+    method: 'GET',
+    url: '/api/mobile/products/categories',
+  });
+  return res.data;
 }
 
 interface CreateSaleResponse {
@@ -65,11 +84,19 @@ export default function PosScreen() {
   const clearCart = useCartStore((s) => s.clear);
 
   const [query, setQuery] = useState('');
+  const [categoryId, setCategoryId] = useState<number | null>(null);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
 
+  const { data: categoriesData } = useQuery({
+    queryKey: ['pos', 'categories'],
+    queryFn: fetchCategories,
+    staleTime: 5 * 60_000,
+  });
+  const categories = categoriesData ?? [];
+
   const { data, isLoading } = useQuery({
-    queryKey: ['pos', 'search', query],
-    queryFn: () => searchProducts(query),
+    queryKey: ['pos', 'search', query, categoryId],
+    queryFn: () => searchProducts(query, categoryId),
   });
 
   const products = data?.data ?? [];
@@ -131,6 +158,32 @@ export default function PosScreen() {
             autoFocus
           />
         </View>
+
+        {categories.length > 0 ? (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingTop: 12, paddingHorizontal: 0, gap: 6 }}
+            style={{ marginHorizontal: -16 }}
+          >
+            <View style={{ width: 16 }} />
+            <CategoryPill
+              label="Todos"
+              active={categoryId === null}
+              onPress={() => setCategoryId(null)}
+            />
+            {categories.map((c) => (
+              <CategoryPill
+                key={c.id}
+                label={c.name}
+                count={c.count}
+                active={categoryId === c.id}
+                onPress={() => setCategoryId(c.id)}
+              />
+            ))}
+            <View style={{ width: 16 }} />
+          </ScrollView>
+        ) : null}
       </View>
 
       {/* Lista de productos */}
@@ -239,69 +292,111 @@ function PosProductRow({ product, onAdd }: { product: SearchProduct; onAdd: () =
       onPress={onAdd}
       disabled={isOut}
       haptic="none"
-      className={`rounded-xl border bg-bg-elevated p-3.5 flex-row items-center gap-3 ${isOut ? 'opacity-50' : 'border-border'}`}
-      style={{ borderColor: cartItem ? brand.brand : colors.border, borderWidth: cartItem ? 1.5 : 1 }}
+      className={`rounded-2xl bg-bg-elevated px-3 py-2 flex-row items-center gap-2.5 ${isOut ? 'opacity-50' : ''}`}
+      style={{
+        borderColor: cartItem ? brand.brand : colors.border,
+        borderWidth: cartItem ? 1.5 : 1,
+      }}
     >
-      <View
-        style={{
-          width: 38,
-          height: 38,
-          borderRadius: 10,
-          backgroundColor: colors.bgMuted,
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <Text style={{ fontFamily: Fonts.semibold, fontSize: 13, color: colors.fgSubtle }}>
-          {product.name[0]?.toUpperCase()}
-        </Text>
-      </View>
+      {product.image_url ? (
+        <Image
+          source={{ uri: product.image_url }}
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: 10,
+            backgroundColor: colors.bgMuted,
+          }}
+          contentFit="cover"
+          transition={120}
+        />
+      ) : (
+        <View
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: 10,
+            backgroundColor: colors.bgMuted,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Text style={{ fontFamily: Fonts.semibold, fontSize: 12, color: colors.fgSubtle }}>
+            {product.name[0]?.toUpperCase()}
+          </Text>
+        </View>
+      )}
       <View className="flex-1 min-w-0">
-        <Text variant="bodyStrong" numberOfLines={1}>
+        <Text
+          numberOfLines={1}
+          style={{
+            fontFamily: Fonts.medium,
+            fontSize: 13,
+            lineHeight: 17,
+            color: colors.fg,
+            letterSpacing: -0.1,
+            includeFontPadding: false,
+          } as never}
+        >
           {product.name}
         </Text>
         <Text
-          variant="caption"
-          tone="subtle"
-          style={{ fontFamily: Fonts.regular }}
+          numberOfLines={1}
+          style={{
+            fontFamily: Fonts.regular,
+            fontSize: 11,
+            lineHeight: 15,
+            color: colors.fgSubtle,
+            marginTop: 1,
+            includeFontPadding: false,
+          } as never}
         >
           {product.sku || '—'} · stock {product.stock}
         </Text>
       </View>
-      <View className="items-end">
+      <View className="items-end" style={{ minWidth: 64 }}>
         <Text
           style={{
-            fontFamily: Fonts.medium,
-            fontSize: 14,
+            fontFamily: Fonts.semibold,
+            fontSize: 13,
+            lineHeight: 17,
             letterSpacing: -0.2,
             color: colors.fg,
             fontVariant: ['tabular-nums'],
-          }}
+            includeFontPadding: false,
+          } as never}
         >
           {formatCLP(product.price)}
         </Text>
         {cartItem ? (
-          <View className="flex-row items-center gap-2 mt-1">
+          <View className="flex-row items-center gap-1.5 mt-1">
             <Pressable
               haptic="selection"
               onPress={(e) => {
                 e.stopPropagation?.();
                 setQty(product.id, cartItem.quantity - 1);
               }}
-              className="h-7 w-7 rounded-full items-center justify-center"
-              style={{ backgroundColor: colors.bgMuted }}
+              style={{
+                width: 24,
+                height: 24,
+                borderRadius: 12,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: colors.bgMuted,
+              }}
             >
-              <Text style={{ fontFamily: Fonts.medium, color: colors.fg }}>−</Text>
+              <Text style={{ fontFamily: Fonts.medium, fontSize: 13, color: colors.fg }}>−</Text>
             </Pressable>
             <Text
               style={{
                 fontFamily: Fonts.semibold,
-                fontSize: 13,
+                fontSize: 12,
                 color: brand.brand,
-                minWidth: 16,
+                minWidth: 14,
                 textAlign: 'center',
                 fontVariant: ['tabular-nums'],
-              }}
+                includeFontPadding: false,
+              } as never}
             >
               {cartItem.quantity}
             </Text>
@@ -311,14 +406,29 @@ function PosProductRow({ product, onAdd }: { product: SearchProduct; onAdd: () =
                 e.stopPropagation?.();
                 setQty(product.id, cartItem.quantity + 1);
               }}
-              className="h-7 w-7 rounded-full items-center justify-center"
-              style={{ backgroundColor: colors.brand }}
+              style={{
+                width: 24,
+                height: 24,
+                borderRadius: 12,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: brand.brand,
+              }}
             >
-              <Plus size={12} color={brand.brandFg} />
+              <Plus size={11} color={brand.brandFg} />
             </Pressable>
           </View>
         ) : (
-          <Text variant="caption" tone={isOut ? 'danger' : 'subtle'} className="mt-0.5">
+          <Text
+            style={{
+              fontFamily: Fonts.regular,
+              fontSize: 10,
+              lineHeight: 14,
+              color: isOut ? colors.danger : colors.fgSubtle,
+              marginTop: 2,
+              includeFontPadding: false,
+            } as never}
+          >
             {isOut ? 'sin stock' : 'tap +'}
           </Text>
         )}
@@ -581,3 +691,67 @@ function CheckoutSheet({ visible, onClose }: { visible: boolean; onClose: () => 
 
 // Suprimir lint warning de iconos no usados directamente
 void ShoppingCart;
+
+/* ─────────────────────── CategoryPill ─────────────────────── */
+
+function CategoryPill({
+  label,
+  count,
+  active,
+  onPress,
+}: {
+  label: string;
+  count?: number;
+  active: boolean;
+  onPress: () => void;
+}) {
+  const scheme = useColorScheme();
+  const colors = palette[scheme];
+
+  return (
+    <Pressable
+      onPress={onPress}
+      haptic="selection"
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        height: 32,
+        paddingHorizontal: 12,
+        borderRadius: 999,
+        backgroundColor: active ? colors.fg : colors.bgElevated,
+        borderWidth: 1,
+        borderColor: active ? colors.fg : colors.border,
+      }}
+    >
+      <Text
+        style={{
+          fontFamily: Fonts.medium,
+          fontSize: 12,
+          lineHeight: 16,
+          color: active ? colors.bg : colors.fg,
+          letterSpacing: -0.1,
+          includeFontPadding: false,
+        } as never}
+        numberOfLines={1}
+      >
+        {label}
+      </Text>
+      {typeof count === 'number' ? (
+        <Text
+          style={{
+            fontFamily: Fonts.medium,
+            fontSize: 10,
+            lineHeight: 14,
+            color: active ? colors.bg : colors.fgSubtle,
+            opacity: active ? 0.7 : 1,
+            fontVariant: ['tabular-nums'],
+            includeFontPadding: false,
+          } as never}
+        >
+          {count}
+        </Text>
+      ) : null}
+    </Pressable>
+  );
+}

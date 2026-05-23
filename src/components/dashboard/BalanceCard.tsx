@@ -193,7 +193,7 @@ export function BalanceCard({
           >
             {hasData ? `${count} ${countLabel}` : 'Sin movimientos hoy'}
           </Text>
-          {delta ? (
+          {delta && hasData && delta.value !== 0 ? (
             <View
               style={{
                 flexDirection: 'row',
@@ -203,7 +203,7 @@ export function BalanceCard({
                 paddingVertical: 2,
                 borderRadius: 999,
                 backgroundColor:
-                  (delta.value >= 0 ? colors.success : colors.danger) + '22',
+                  (delta.value > 0 ? colors.success : colors.danger) + '22',
               }}
             >
               <Text
@@ -212,12 +212,12 @@ export function BalanceCard({
                     fontFamily: Fonts.semibold,
                     fontSize: 10,
                     lineHeight: 14,
-                    color: delta.value >= 0 ? colors.success : colors.danger,
+                    color: delta.value > 0 ? colors.success : colors.danger,
                     includeFontPadding: false,
                   } as never
                 }
               >
-                {delta.value >= 0 ? '↑' : '↓'} {Math.abs(delta.value).toFixed(1)}%
+                {delta.value > 0 ? '↑' : '↓'} {Math.abs(delta.value).toFixed(1)}%
               </Text>
             </View>
           ) : null}
@@ -236,8 +236,8 @@ export function BalanceCard({
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: 7,
-                  height: 46,
-                  borderRadius: 14,
+                  height: 42,
+                  borderRadius: 999,
                   backgroundColor: colors.fg,
                 }}
               >
@@ -246,8 +246,8 @@ export function BalanceCard({
                   style={
                     {
                       fontFamily: Fonts.semibold,
-                      fontSize: 14,
-                      lineHeight: 20,
+                      fontSize: 13,
+                      lineHeight: 18,
                       color: colors.bgElevated,
                       letterSpacing: -0.2,
                       includeFontPadding: false,
@@ -268,8 +268,8 @@ export function BalanceCard({
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: 7,
-                  height: 46,
-                  borderRadius: 14,
+                  height: 42,
+                  borderRadius: 999,
                   backgroundColor: 'rgba(255,255,255,0.7)',
                   borderWidth: 1,
                   borderColor: colors.border,
@@ -280,8 +280,8 @@ export function BalanceCard({
                   style={
                     {
                       fontFamily: Fonts.semibold,
-                      fontSize: 14,
-                      lineHeight: 20,
+                      fontSize: 13,
+                      lineHeight: 18,
                       color: colors.fg,
                       letterSpacing: -0.2,
                       includeFontPadding: false,
@@ -297,9 +297,9 @@ export function BalanceCard({
                 onPress={menu.onPress}
                 haptic="selection"
                 style={{
-                  width: 46,
-                  height: 46,
-                  borderRadius: 14,
+                  width: 42,
+                  height: 42,
+                  borderRadius: 21,
                   backgroundColor: 'rgba(255,255,255,0.7)',
                   borderWidth: 1,
                   borderColor: colors.border,

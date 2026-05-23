@@ -50,6 +50,7 @@ export default function LoginScreen() {
   const brand = useBrand();
   const insets = useSafeAreaInsets();
   const slug = useTenantStore((s) => s.slug);
+  const tenant = useTenantStore((s) => s.tenant);
   const login = useAuthStore((s) => s.login);
   const status = useAuthStore((s) => s.status);
 
@@ -140,7 +141,15 @@ export default function LoginScreen() {
           <View style={{ paddingHorizontal: 20, height: 44, justifyContent: 'center' }}>
             <Pressable
               haptic="selection"
-              onPress={() => router.back()}
+              onPress={() => {
+                // Si vinimos por replace (sin history) o el navegador no puede
+                // ir atrás, mandamos al tenant picker como fallback explícito.
+                if (router.canGoBack()) {
+                  router.back();
+                } else {
+                  router.replace('/(auth)/tenant');
+                }
+              }}
               style={{
                 width: 40,
                 height: 40,
@@ -169,7 +178,7 @@ export default function LoginScreen() {
                   borderColor: colors.border,
                 }}
               >
-                <LogoMark size={32} />
+                <LogoMark size={32} src={tenant?.logo_url} />
               </Pressable>
             </Animated.View>
 

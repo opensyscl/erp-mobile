@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { View } from 'react-native';
 
 import { Pressable, Text } from '~/components/ui';
@@ -15,6 +16,7 @@ export function SoftHeader({
   greeting,
   name,
   initial,
+  photo,
   avatarColor = '#6366F1',
   hasNotifications,
   notificationCount,
@@ -24,6 +26,8 @@ export function SoftHeader({
   greeting: string;
   name: string;
   initial: string;
+  /** URL del avatar. Si está, se renderiza la imagen; si no, fallback a inicial. */
+  photo?: string | null;
   avatarColor?: string;
   hasNotifications?: boolean;
   /** Si > 0, se muestra como número en el badge. Tiene prioridad sobre `hasNotifications`. */
@@ -43,30 +47,44 @@ export function SoftHeader({
       style={{ paddingTop: topInset + 6, paddingBottom: 14 }}
     >
       <View className="flex-row items-center gap-3">
-        <View
-          style={{
-            width: 42,
-            height: 42,
-            borderRadius: 21,
-            backgroundColor: avatarColor,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Text
-            style={
-              {
-                fontFamily: Fonts.semibold,
-                fontSize: 15,
-                lineHeight: 20,
-                color: '#FFFFFF',
-                includeFontPadding: false,
-              } as never
-            }
+        {photo ? (
+          <Image
+            source={{ uri: photo }}
+            style={{
+              width: 42,
+              height: 42,
+              borderRadius: 21,
+              backgroundColor: avatarColor,
+            }}
+            contentFit="cover"
+            transition={120}
+          />
+        ) : (
+          <View
+            style={{
+              width: 42,
+              height: 42,
+              borderRadius: 21,
+              backgroundColor: avatarColor,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
           >
-            {initial}
-          </Text>
-        </View>
+            <Text
+              style={
+                {
+                  fontFamily: Fonts.semibold,
+                  fontSize: 15,
+                  lineHeight: 20,
+                  color: '#FFFFFF',
+                  includeFontPadding: false,
+                } as never
+              }
+            >
+              {initial}
+            </Text>
+          </View>
+        )}
         <View>
           <Text
             style={

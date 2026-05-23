@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { apiRequest, setAuthToken } from '~/lib/api';
 import { disconnectRealtime } from '~/lib/realtime';
 import { secureStorage, StorageKeys } from '~/lib/storage';
-import type { AuthResponse, User } from '~/types/api';
+import type { AuthResponse, Branch, Tenant, User } from '~/types/api';
 import { useTenantStore } from './tenant';
 
 type Status = 'idle' | 'authenticating' | 'authenticated' | 'unauthenticated';
@@ -13,6 +13,8 @@ interface AuthState {
   token: string | null;
   hydrate: () => Promise<void>;
   login: (input: { email: string; password: string; tenantSlug?: string | null }) => Promise<void>;
+  /** Re-fetchea el user desde el backend (útil cuando cambia avatar o roles sin re-login). */
+  refreshUser: () => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -61,6 +63,24 @@ export const useAuthStore = create<AuthState>((set) => ({
     } catch (error) {
       set({ status: 'unauthenticated', token: null, user: null });
       throw error;
+    }
+  },
+
+  refreshUser: async () => {
+    try {
+      const res = await apiRequest<{ user: User; tenant: Tenant; branches: Branch[] }>({
+        method: 'GET',
+        url: '/api/mobile/auth/me',
+      });
+      await secureStorage.set(StorageKeys.AuthUser, JSON.stringify(res.user));
+      set({ user: res.user });
+      // Refrescamos también el tenant/branches por si el backend agregó campos
+      // nuevos (logo_url, modules) que el user todavía tiene cacheados viejos.
+      if (res.tenant) {
+        await useTenantStore.getState().setTenantData(res.tenant, res.branches ?? []);
+      }
+    } catch {
+      // Silencioso: si /me falla, conservamos el user cacheado.
     }
   },
 

@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -60,10 +60,17 @@ export default function AdminGeneralDashboard() {
   const insets = useSafeAreaInsets();
 
   const user = useAuthStore((s) => s.user);
+  const refreshUser = useAuthStore((s) => s.refreshUser);
   const tenant = useTenantStore((s) => s.tenant);
   const branches = useTenantStore((s) => s.branches);
   const branchId = useTenantStore((s) => s.currentBranchId);
   const branch = branches.find((b) => b.id === branchId) ?? branches[0];
+
+  // Refrescar user/tenant en cada mount del dashboard — barato y arregla casos
+  // donde el cache local quedó con avatar_url null antes de un fix del backend.
+  useEffect(() => {
+    refreshUser();
+  }, [refreshUser]);
 
   const { data: kpis, isLoading } = useQuery({
     queryKey: KPI_QUERY_KEY,
@@ -122,6 +129,9 @@ export default function AdminGeneralDashboard() {
         greeting={`${getGreeting()},`}
         name={firstName}
         initial={initial}
+        // Preferimos el logo del negocio sobre el avatar del user — más relevante
+        // en un dashboard de tenant que las iniciales generadas del admin.
+        photo={tenant?.logo_url ?? user?.avatar_url}
         avatarColor={brand.brand}
         hasNotifications={approvalsPending > 0}
         notificationCount={salesNotif}
