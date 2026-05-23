@@ -6,6 +6,7 @@ export interface CartItem {
   sku: string;
   unit_price: number;
   quantity: number;
+  image_url?: string | null;
 }
 
 interface CartState {

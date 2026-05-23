@@ -5,7 +5,7 @@ import { FloatingTabBar } from '~/components/dashboard/FloatingTabBar';
 import { useDriverLocationTracking } from '~/hooks/useDriverLocationTracking';
 import { useRealtimeRouteNotifications } from '~/hooks/useRealtimeNotifications';
 import { apiRequest } from '~/lib/api';
-import { BarChart, Home, Package, ScanLine, Settings, Truck } from '~/lib/icons';
+import { BarChart, Home, Package, Settings, ShoppingCart, Truck, Wallet } from '~/lib/icons';
 import { Channels } from '~/lib/realtime';
 import { useAuthStore } from '~/stores/auth';
 import { useTenantStore } from '~/stores/tenant';
@@ -43,14 +43,17 @@ export default function AppLayout() {
   const hasRoutes = modules.includes('routes');
   const hasInventory = modules.includes('inventory');
   const hasAnalytics = modules.includes('analytics') || hasRoutes;
+  const hasPos = modules.includes('pos') || modules.includes('sales') || hasInventory;
+  const hasCash = modules.includes('cash') || hasPos;
   const isAdminLike = user?.role === 'tenant_admin' || user?.role === 'tenant_manager';
   const isDriver = user?.role === 'tenant_driver';
   const showHomeTab = true;
   // Driver: su Inicio YA es la vista de rutas (redirect en (app)/index.tsx). Ocultamos
   // la tab "Rutas" para no duplicar. Admin sigue viéndola para navegar drivers.
   const showRoutesTab = hasRoutes && !isDriver;
+  const showPosTab = hasPos && !isDriver;
+  const showCashTab = hasCash && !isDriver;
   const showInventoryTab = hasInventory && !hasRoutes;
-  const showScanTab = hasInventory && !hasRoutes;
   const showAnalyticsTab = hasAnalytics && (isAdminLike || isDriver);
 
   return (
@@ -77,11 +80,19 @@ export default function AppLayout() {
         }}
       />
       <Tabs.Screen
-        name="analytics/index"
+        name="pos"
         options={{
-          href: showAnalyticsTab ? '/(app)/analytics' : null,
-          title: 'Reportes',
-          tabBarIcon: ({ color, size }) => <BarChart size={size - 2} color={color} strokeWidth={1.6} />,
+          href: showPosTab ? '/(app)/pos' : null,
+          title: 'POS',
+          tabBarIcon: ({ color, size }) => <ShoppingCart size={size - 2} color={color} strokeWidth={1.6} />,
+        }}
+      />
+      <Tabs.Screen
+        name="cash/index"
+        options={{
+          href: showCashTab ? '/(app)/cash' : null,
+          title: 'Caja',
+          tabBarIcon: ({ color, size }) => <Wallet size={size - 2} color={color} strokeWidth={1.6} />,
         }}
       />
       <Tabs.Screen
@@ -93,11 +104,11 @@ export default function AppLayout() {
         }}
       />
       <Tabs.Screen
-        name="scan"
+        name="analytics/index"
         options={{
-          href: showScanTab ? '/(app)/scan' : null,
-          title: 'Escanear',
-          tabBarIcon: ({ color, size }) => <ScanLine size={size - 2} color={color} strokeWidth={1.6} />,
+          href: showAnalyticsTab ? '/(app)/analytics' : null,
+          title: 'Reportes',
+          tabBarIcon: ({ color, size }) => <BarChart size={size - 2} color={color} strokeWidth={1.6} />,
         }}
       />
       <Tabs.Screen
@@ -108,11 +119,10 @@ export default function AppLayout() {
         }}
       />
       {/* Pantallas anidadas: visibles vía router.push pero NUNCA en tab bar */}
+      <Tabs.Screen name="scan" options={{ href: null }} />
       <Tabs.Screen name="admin-general" options={{ href: null }} />
       <Tabs.Screen name="products/[id]" options={{ href: null }} />
-      <Tabs.Screen name="pos" options={{ href: null }} />
       <Tabs.Screen name="approvals/index" options={{ href: null }} />
-      <Tabs.Screen name="cash/index" options={{ href: null }} />
       <Tabs.Screen name="sales/index" options={{ href: null }} />
       <Tabs.Screen name="routes/admin" options={{ href: null }} />
       <Tabs.Screen name="routes/orders/index" options={{ href: null }} />

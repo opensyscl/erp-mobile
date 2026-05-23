@@ -1,3 +1,5 @@
+export { AvatarGroup } from './AvatarGroup';
+export type { AvatarGroupItem } from './AvatarGroup';
 export { Badge } from './Badge';
 export { Button } from './Button';
 export { Card } from './Card';

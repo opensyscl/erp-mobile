@@ -1,14 +1,16 @@
+import { type BottomSheetModal as BottomSheetModalType } from '@gorhom/bottom-sheet';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
 import { Stack, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Image } from 'expo-image';
-import { FlatList, KeyboardAvoidingView, Modal, Platform, ScrollView, TextInput, View } from 'react-native';
-import Animated, { FadeIn, SlideInDown, SlideOutDown } from 'react-native-reanimated';
+import { FlatList, ScrollView, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AppBottomSheet } from '~/components/AppBottomSheet';
+
 import { toast } from '~/components/Toast';
-import { Button, Card, Input, Pressable, Skeleton, Text } from '~/components/ui';
+import { AvatarGroup, Button, Card, Input, Pressable, Skeleton, Text } from '~/components/ui';
 import { useBrand } from '~/hooks/useBrand';
 import { useColorScheme } from '~/hooks/useColorScheme';
 import { ApiError, apiRequest } from '~/lib/api';
@@ -85,7 +87,7 @@ export default function PosScreen() {
 
   const [query, setQuery] = useState('');
   const [categoryId, setCategoryId] = useState<number | null>(null);
-  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const checkoutRef = useRef<BottomSheetModalType>(null);
 
   const { data: categoriesData } = useQuery({
     queryKey: ['pos', 'categories'],
@@ -110,6 +112,7 @@ export default function PosScreen() {
         name: p.name,
         sku: p.sku,
         unit_price: p.price,
+        image_url: p.image_url,
       },
       1,
     );
@@ -214,15 +217,14 @@ export default function PosScreen() {
         />
       )}
 
-      {/* Sticky cart bar */}
+      {/* Sticky cart bar — encima del tab bar fijo (alto ~54px + safe area) */}
       {items.length > 0 ? (
-        <Animated.View
-          entering={SlideInDown.springify().damping(20).stiffness(200)}
+        <View
           style={{
             position: 'absolute',
             left: 12,
             right: 12,
-            bottom: insets.bottom + 12,
+            bottom: insets.bottom + 66,
             backgroundColor: colors.fg,
             borderRadius: 18,
             ...shadows.lg,
@@ -230,25 +232,23 @@ export default function PosScreen() {
         >
           <Pressable
             haptic="medium"
-            onPress={() => setCheckoutOpen(true)}
+            onPress={() => checkoutRef.current?.present()}
             className="flex-row items-center justify-between px-5"
             style={{ height: 60 }}
           >
             <View className="flex-row items-center gap-3">
-              <View
-                style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: 16,
-                  backgroundColor: brand.brand,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Text style={{ color: brand.brandFg, fontFamily: Fonts.semibold, fontSize: 13 }}>
-                  {totals.count}
-                </Text>
-              </View>
+              <AvatarGroup
+                items={items.map((it) => ({
+                  id: it.product_id,
+                  photo: it.image_url,
+                  name: it.name,
+                  color: brand.brand,
+                }))}
+                max={3}
+                size={30}
+                overlap={10}
+                ringColor={colors.fg}
+              />
               <View>
                 <Text style={{ color: colors.bg, fontFamily: Fonts.medium, fontSize: 11, letterSpacing: 1, textTransform: 'uppercase' }}>
                   En el carrito
@@ -270,10 +270,10 @@ export default function PosScreen() {
               Cobrar →
             </Text>
           </Pressable>
-        </Animated.View>
+        </View>
       ) : null}
 
-      <CheckoutSheet visible={checkoutOpen} onClose={() => setCheckoutOpen(false)} />
+      <CheckoutSheet sheetRef={checkoutRef} />
     </View>
   );
 }
@@ -444,7 +444,8 @@ const PAYMENT_METHODS: { id: 'cash' | 'debit' | 'credit' | 'transfer'; label: st
   { id: 'transfer', label: 'Transferencia' },
 ];
 
-function CheckoutSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+function CheckoutSheet({ sheetRef }: { sheetRef: React.RefObject<BottomSheetModalType | null> }) {
+  const onClose = () => sheetRef.current?.dismiss();
   const scheme = useColorScheme();
   const colors = palette[scheme];
   const brand = useBrand();
@@ -453,15 +454,33 @@ function CheckoutSheet({ visible, onClose }: { visible: boolean; onClose: () => 
 
   const items = useCartStore((s) => s.items);
   const totals = useCartStore((s) => s.totals)();
+  const setQty = useCartStore((s) => s.setQty);
+  const remove = useCartStore((s) => s.remove);
   const clear = useCartStore((s) => s.clear);
 
   const [method, setMethod] = useState<(typeof PAYMENT_METHODS)[number]['id']>('cash');
   const [paid, setPaid] = useState('');
   const [error, setError] = useState<string | null>(null);
 
+  // IVA breakdown: precios incluyen IVA, calculamos neto y tax.
+  const TAX_RATE = 0.19;
+  const totalGross = totals.total;
+  const netSubtotal = Math.round(totalGross / (1 + TAX_RATE));
+  const taxAmount = totalGross - netSubtotal;
+
   const paidNum = Number(paid) || 0;
-  const change = method === 'cash' ? Math.max(paidNum - totals.total, 0) : 0;
-  const cashShortage = method === 'cash' && paidNum > 0 && paidNum < totals.total;
+  const change = method === 'cash' ? Math.max(paidNum - totalGross, 0) : 0;
+  const cashShortage = method === 'cash' && paidNum > 0 && paidNum < totalGross;
+
+  // Presets de "Recibido" — exacto y los billetes CLP comunes hacia arriba del total.
+  const cashPresets = (() => {
+    const denominations = [1000, 2000, 5000, 10000, 20000, 50000];
+    const exact = Math.ceil(totalGross / 100) * 100;
+    const nextRounds = denominations
+      .map((d) => Math.ceil(totalGross / d) * d)
+      .filter((n) => n > exact);
+    return Array.from(new Set([exact, ...nextRounds])).slice(0, 5);
+  })();
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -508,7 +527,7 @@ function CheckoutSheet({ visible, onClose }: { visible: boolean; onClose: () => 
 
   const handleSubmit = () => {
     if (cashShortage) {
-      setError(`Falta cobrar ${formatCLP(totals.total - paidNum)}.`);
+      setError(`Falta cobrar ${formatCLP(totalGross - paidNum)}.`);
       return;
     }
     setError(null);
@@ -516,77 +535,168 @@ function CheckoutSheet({ visible, onClose }: { visible: boolean; onClose: () => 
   };
 
   return (
-    <Modal visible={visible} transparent animationType="none" statusBarTranslucent onRequestClose={onClose}>
-      <Animated.View
-        entering={FadeIn.duration(200)}
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(10,13,20,0.55)',
-        }}
-      >
-        <Pressable haptic="none" scale="none" style={{ flex: 1 }} onPress={onClose} />
-      </Animated.View>
+    <AppBottomSheet ref={sheetRef} snapPoints={['90%']} scroll>
+      <View style={{ paddingHorizontal: 20, gap: 18 }}>
+        {/* Title */}
+        <View>
+          <Text variant="overline" tone="subtle">Cobro</Text>
+          <Text
+            style={{
+              fontFamily: Fonts.semibold,
+              fontSize: 22,
+              lineHeight: 28,
+              letterSpacing: -0.5,
+              color: colors.fg,
+              marginTop: 2,
+              includeFontPadding: false,
+            } as never}
+          >
+            Confirmar venta
+          </Text>
+        </View>
 
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={{ flex: 1, justifyContent: 'flex-end' }}
-        pointerEvents="box-none"
-      >
-        <Animated.View
-          entering={SlideInDown.springify().damping(22).stiffness(220)}
-          exiting={SlideOutDown.duration(220)}
+        {/* Items list — sin nested ScrollView, va dentro del BottomSheetScrollView */}
+        <View style={{ gap: 8 }}>
+          {items.map((it) => (
+            <View
+              key={it.product_id}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 10,
+                paddingVertical: 8,
+                paddingHorizontal: 12,
+                backgroundColor: colors.bgSubtle,
+                borderRadius: 12,
+              }}
+            >
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text
+                  numberOfLines={1}
+                  style={{
+                    fontFamily: Fonts.medium,
+                    fontSize: 14,
+                    color: colors.fg,
+                    includeFontPadding: false,
+                  } as never}
+                >
+                  {it.name}
+                </Text>
+                <Text
+                  style={{
+                    fontFamily: Fonts.regular,
+                    fontSize: 11,
+                    color: colors.fgSubtle,
+                    marginTop: 2,
+                    includeFontPadding: false,
+                  } as never}
+                >
+                  {formatCLP(it.unit_price)} × {it.quantity} = {formatCLP(it.unit_price * it.quantity)}
+                </Text>
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <Pressable
+                  haptic="selection"
+                  onPress={() => setQty(it.product_id, it.quantity - 1)}
+                  style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: 14,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: colors.bgElevated,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                  }}
+                >
+                  <Text style={{ color: colors.fg, fontFamily: Fonts.medium, fontSize: 16 }}>−</Text>
+                </Pressable>
+                <Text
+                  style={{
+                    fontFamily: Fonts.semibold,
+                    fontSize: 14,
+                    color: colors.fg,
+                    minWidth: 20,
+                    textAlign: 'center',
+                    fontVariant: ['tabular-nums'],
+                    includeFontPadding: false,
+                  } as never}
+                >
+                  {it.quantity}
+                </Text>
+                <Pressable
+                  haptic="selection"
+                  onPress={() => setQty(it.product_id, it.quantity + 1)}
+                  style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: 14,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: brand.brand,
+                  }}
+                >
+                  <Plus size={12} color={brand.brandFg} />
+                </Pressable>
+              </View>
+              <Pressable
+                haptic="selection"
+                onPress={() => remove(it.product_id)}
+                style={{ width: 28, height: 28, alignItems: 'center', justifyContent: 'center' }}
+              >
+                <Text style={{ color: colors.fgSubtle, fontSize: 18, includeFontPadding: false } as never}>✕</Text>
+              </Pressable>
+            </View>
+          ))}
+        </View>
+
+        {/* Total breakdown */}
+        <View
           style={{
-            backgroundColor: colors.bgElevated,
-            borderTopLeftRadius: 28,
-            borderTopRightRadius: 28,
-            padding: 22,
-            paddingBottom: Platform.OS === 'ios' ? 36 : 24,
+            borderTopWidth: 1,
+            borderTopColor: colors.border,
+            paddingTop: 14,
+            gap: 6,
           }}
         >
-          <View style={{ alignItems: 'center', marginBottom: 14 }}>
-            <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: colors.borderStrong }} />
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+            <Text style={{ fontFamily: Fonts.regular, fontSize: 13, color: colors.fgMuted }}>Subtotal neto</Text>
+            <Text style={{ fontFamily: Fonts.regular, fontSize: 13, color: colors.fgMuted, fontVariant: ['tabular-nums'] }}>
+              {formatCLP(netSubtotal)}
+            </Text>
           </View>
-
-          <Text variant="overline" tone="brand">
-            Cobro
-          </Text>
-
-          {/* Total */}
-          <View
-            style={{
-              backgroundColor: colors.bgSubtle,
-              borderRadius: 16,
-              padding: 16,
-              marginTop: 12,
-            }}
-          >
-            <Text variant="caption" tone="muted">
-              {items.length} {items.length === 1 ? 'producto' : 'productos'} · {totals.count} unidades
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+            <Text style={{ fontFamily: Fonts.regular, fontSize: 13, color: colors.fgMuted }}>IVA 19%</Text>
+            <Text style={{ fontFamily: Fonts.regular, fontSize: 13, color: colors.fgMuted, fontVariant: ['tabular-nums'] }}>
+              {formatCLP(taxAmount)}
+            </Text>
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginTop: 4 }}>
+            <Text style={{ fontFamily: Fonts.medium, fontSize: 14, color: colors.fg }}>
+              Total
             </Text>
             <Text
               style={{
-                fontFamily: Fonts.medium,
-                fontSize: 36,
-                lineHeight: 42,
-                letterSpacing: -1.2,
+                fontFamily: Fonts.semibold,
+                fontSize: 30,
+                lineHeight: 36,
+                letterSpacing: -1,
                 color: colors.fg,
                 fontVariant: ['tabular-nums'],
-                marginTop: 4,
-              }}
+                includeFontPadding: false,
+              } as never}
             >
-              {formatCLP(totals.total)}
+              {formatCLP(totalGross)}
             </Text>
           </View>
+        </View>
 
-          {/* Métodos de pago */}
-          <Text variant="overline" tone="subtle" className="mt-5 mb-2">
-            Método
+        {/* Método de pago */}
+        <View>
+          <Text variant="overline" tone="subtle" style={{ marginBottom: 8 }}>
+            Método de pago
           </Text>
-          <View className="flex-row flex-wrap gap-2">
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
             {PAYMENT_METHODS.map((p) => {
               const active = method === p.id;
               return (
@@ -594,20 +704,23 @@ function CheckoutSheet({ visible, onClose }: { visible: boolean; onClose: () => 
                   key={p.id}
                   haptic="selection"
                   onPress={() => setMethod(p.id)}
-                  className="rounded-full px-3.5"
                   style={{
-                    height: 32,
+                    height: 36,
+                    paddingHorizontal: 14,
+                    borderRadius: 999,
                     justifyContent: 'center',
-                    backgroundColor: active ? colors.brand : colors.bgMuted,
+                    backgroundColor: active ? colors.fg : colors.bgSubtle,
+                    borderWidth: 1,
+                    borderColor: active ? colors.fg : colors.border,
                   }}
                 >
                   <Text
                     style={{
                       fontFamily: Fonts.medium,
-                      fontSize: 12,
-                      letterSpacing: -0.1,
-                      color: active ? brand.brandFg : colors.fgMuted,
-                    }}
+                      fontSize: 13,
+                      color: active ? colors.bg : colors.fg,
+                      includeFontPadding: false,
+                    } as never}
                   >
                     {p.label}
                   </Text>
@@ -615,77 +728,118 @@ function CheckoutSheet({ visible, onClose }: { visible: boolean; onClose: () => 
               );
             })}
           </View>
+        </View>
 
-          {/* Recibido + Vuelto (solo efectivo) */}
-          {method === 'cash' ? (
-            <View className="flex-row gap-3 mt-5">
-              <View style={{ flex: 1 }}>
-                <Text variant="overline" tone="subtle">
-                  Recibido
+        {/* Recibido + Vuelto (solo efectivo) */}
+        {method === 'cash' ? (
+          <View style={{ gap: 10 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text variant="overline" tone="subtle">Recibido</Text>
+              {cashShortage ? (
+                <Text style={{ fontFamily: Fonts.medium, fontSize: 12, color: colors.danger, includeFontPadding: false } as never}>
+                  Faltan {formatCLP(totalGross - paidNum)}
                 </Text>
+              ) : null}
+            </View>
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: 6, paddingRight: 4 }}
+            >
+              {cashPresets.map((amount, idx) => {
+                const active = paidNum === amount;
+                return (
+                  <Pressable
+                    key={amount}
+                    haptic="selection"
+                    onPress={() => setPaid(String(amount))}
+                    style={{
+                      height: 32,
+                      paddingHorizontal: 14,
+                      borderRadius: 999,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: active ? colors.fg : colors.bgSubtle,
+                      borderWidth: 1,
+                      borderColor: active ? colors.fg : colors.border,
+                    }}
+                  >
+                    <Text style={{
+                      fontFamily: Fonts.medium,
+                      fontSize: 12,
+                      color: active ? colors.bg : colors.fg,
+                      fontVariant: ['tabular-nums'],
+                      includeFontPadding: false,
+                    } as never}>
+                      {idx === 0 ? 'Exacto' : formatCLP(amount)}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+
+            <View style={{ flexDirection: 'row', gap: 12, alignItems: 'flex-end' }}>
+              <View style={{ flex: 1 }}>
                 <TextInput
                   value={paid}
                   onChangeText={(t) => setPaid(t.replace(/[^0-9]/g, ''))}
                   keyboardType="number-pad"
-                  placeholder={String(Math.round(totals.total))}
+                  placeholder={String(Math.round(totalGross))}
                   placeholderTextColor={colors.fgSubtle}
                   style={{
-                    marginTop: 6,
                     fontFamily: Fonts.medium,
                     fontSize: 22,
-                lineHeight: 30,
+                    lineHeight: 28,
                     letterSpacing: -0.6,
                     color: colors.fg,
                     fontVariant: ['tabular-nums'],
                     paddingVertical: 6,
                     borderBottomWidth: 1,
-                    borderBottomColor: colors.borderStrong,
+                    borderBottomColor: cashShortage ? colors.danger : colors.borderStrong,
                   }}
                 />
               </View>
-              <View style={{ flex: 1 }}>
-                <Text variant="overline" tone="subtle">
+              <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                <Text style={{
+                  fontFamily: Fonts.regular,
+                  fontSize: 11,
+                  color: colors.fgSubtle,
+                  letterSpacing: 1.2,
+                  textTransform: 'uppercase',
+                  includeFontPadding: false,
+                } as never}>
                   Vuelto
                 </Text>
-                <Text
-                  style={{
-                    marginTop: 6,
-                    fontFamily: Fonts.medium,
-                    fontSize: 22,
-                lineHeight: 30,
-                    letterSpacing: -0.6,
-                    color: change > 0 ? colors.success : colors.fgSubtle,
-                    fontVariant: ['tabular-nums'],
-                    paddingVertical: 6,
-                  }}
-                >
+                <Text style={{
+                  fontFamily: Fonts.semibold,
+                  fontSize: 22,
+                  lineHeight: 28,
+                  letterSpacing: -0.6,
+                  color: change > 0 ? colors.success : colors.fgSubtle,
+                  fontVariant: ['tabular-nums'],
+                  marginTop: 4,
+                  includeFontPadding: false,
+                } as never}>
                   {formatCLP(change)}
                 </Text>
               </View>
             </View>
-          ) : null}
-
-          {error ? (
-            <Text variant="caption" tone="danger" className="mt-3">
-              {error}
-            </Text>
-          ) : null}
-
-          <View className="flex-row gap-3 mt-6">
-            <View style={{ flex: 1 }}>
-              <Button variant="secondary" onPress={onClose} disabled={mutation.isPending}>
-                Cancelar
-              </Button>
-            </View>
-            <View style={{ flex: 1.4 }}>
-              <Button onPress={handleSubmit} loading={mutation.isPending}>
-                {`Confirmar ${formatCLP(totals.total)}`}
-              </Button>
-            </View>
           </View>
-        </Animated.View>
-      </KeyboardAvoidingView>
-    </Modal>
+        ) : null}
+
+        {error ? (
+          <Text variant="caption" tone="danger">{error}</Text>
+        ) : null}
+
+        {/* Action — full-width primario, sin Cancelar (drag down para cerrar) */}
+        <View style={{ marginTop: 4 }}>
+          <Button onPress={handleSubmit} loading={mutation.isPending} disabled={cashShortage}>
+            {mutation.isPending ? 'Procesando…' : `Cobrar ${formatCLP(totalGross)}`}
+          </Button>
+        </View>
+      </View>
+    </AppBottomSheet>
   );
 }
 
