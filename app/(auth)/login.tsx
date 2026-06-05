@@ -67,17 +67,25 @@ export default function LoginScreen() {
     demoSheet.current?.dismiss();
   };
 
-  // Prellenado en dev — chips por plan (botillería). NO shipea a prod.
+  // Prellenado en dev — chips para alternar rápido entre cuentas demo según rol y plan.
+  // NO shipea a prod (gated por __DEV__).
+  //   - admin / repartidor / despacho → ferreteria-routes (tenant con módulo Routes habilitado)
+  //   - starter / growth / enterprise → botillerías (planes del POS clásico)
   const DEV_ACCOUNTS: {
-    id: 'starter' | 'growth' | 'enterprise';
+    id: 'admin' | 'driver' | 'dispatch' | 'starter' | 'growth' | 'enterprise';
     label: string;
     email: string;
     password: string;
     tenant: string;
   }[] = [
-    { id: 'starter',    label: 'Starter',    email: 'botilleria.starter@demo.cl',    password: '12345678', tenant: 'botilleria-starter' },
-    { id: 'growth',     label: 'Growth',     email: 'botilleria.growth@demo.cl',     password: '12345678', tenant: 'botilleria-growth' },
-    { id: 'enterprise', label: 'Enterprise', email: 'botilleria.enterprise@demo.cl', password: '12345678', tenant: 'botilleria-enterprise' },
+    // Routes (driver/admin/despacho)
+    { id: 'admin',      label: 'Admin Routes', email: 'ferreteria.routes@demo.cl',    password: '12345678', tenant: 'ferreteria-routes' },
+    { id: 'driver',     label: 'Repartidor',   email: 'repartidor.routes@demo.cl',    password: '12345678', tenant: 'ferreteria-routes' },
+    { id: 'dispatch',   label: 'Despacho',     email: 'despacho.routes@demo.cl',      password: '12345678', tenant: 'ferreteria-routes' },
+    // Botillería (planes POS)
+    { id: 'starter',    label: 'Starter',      email: 'botilleria.starter@demo.cl',    password: '12345678', tenant: 'botilleria-starter' },
+    { id: 'growth',     label: 'Growth',       email: 'botilleria.growth@demo.cl',     password: '12345678', tenant: 'botilleria-growth' },
+    { id: 'enterprise', label: 'Enterprise',   email: 'botilleria.enterprise@demo.cl', password: '12345678', tenant: 'botilleria-enterprise' },
   ];
   const [email, setEmail] = useState(__DEV__ ? DEV_ACCOUNTS[0]!.email : '');
   const [password, setPassword] = useState(__DEV__ ? DEV_ACCOUNTS[0]!.password : '');

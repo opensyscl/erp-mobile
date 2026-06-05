@@ -22,7 +22,22 @@ export const useTenantStore = create<TenantState>((set, get) => ({
   currentBranchId: null,
 
   setSlug: async (slug) => {
-    set({ slug });
+    // Si el slug cambia respecto al anterior, limpiamos el tenant/branches
+    // cacheados para evitar mezclar datos del tenant viejo (modules, branding,
+    // sucursales) con el nuevo hasta que el login fresh los actualice.
+    // Bug Sthamly 05/06: al tapear chip de Repartidor (ferreteria-routes) con
+    // tenant anterior cacheado (ej. botilleria-enterprise sin módulo routes),
+    // index.tsx evaluaba tenantHasRoutes=false y mostraba dashboard mezclado.
+    const previousSlug = get().slug;
+    if (previousSlug && previousSlug !== slug) {
+      set({ slug, tenant: null, branches: [], currentBranchId: null });
+      await Promise.all([
+        secureStorage.remove(StorageKeys.TenantData),
+        secureStorage.remove(StorageKeys.BranchId),
+      ]);
+    } else {
+      set({ slug });
+    }
     setApiTenant(slug);
   },
 
