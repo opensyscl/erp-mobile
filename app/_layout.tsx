@@ -86,7 +86,12 @@ export default function RootLayout() {
               <Stack
                 screenOptions={{
                   headerShown: false,
-                  animation: 'fade',
+                  // Push transition tipo Rappi/iOS: la nueva pantalla entra
+                  // deslizando desde la derecha. En Android también activamos
+                  // gestureEnabled+swipe edge-to-right para volver con gesto.
+                  animation: 'slide_from_right',
+                  gestureEnabled: true,
+                  gestureDirection: 'horizontal',
                   contentStyle: { backgroundColor: 'transparent' },
                 }}
               >

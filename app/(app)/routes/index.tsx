@@ -34,7 +34,7 @@ import { useColorScheme } from '~/hooks/useColorScheme';
 import { useRealtimeInvalidate } from '~/hooks/useRealtime';
 import { useSafeBack } from '~/hooks/useSafeBack';
 import { ApiError, apiRequest } from '~/lib/api';
-import { ArrowLeft, ArrowRight, BarChart, Bell, Package, PackageReceive, Plus, Receipt, Refresh, Truck, User as UserIcon, UserGroup, Wallet } from '~/lib/icons';
+import { ArrowLeft, ArrowRight, BarChart, Bell, ChevronRight, Package, PackageReceive, Plus, Receipt, Refresh, Truck, User as UserIcon, UserGroup, Wallet } from '~/lib/icons';
 import { Channels, RealtimeEvents } from '~/lib/realtime';
 import { useAuthStore } from '~/stores/auth';
 import { useUnseenCount } from '~/stores/notifications';
@@ -372,106 +372,121 @@ export default function RoutesScreen() {
           </Animated.View>
         </View>
 
-        {/* Hero Card flotante — KPI principal estilo enterprise · tappable → detalle */}
-        {!load ? (
-          <Animated.View entering={FadeInUp.delay(140).duration(220)} className="mx-5" style={{ marginTop: -68 }}>
+        {/* Hero Card "Mi ruta de hoy" — 4 estados: empty / ready / in_progress / done.
+            Cada uno tiene su propio copy, jerarquía visual y CTA.
+            La card es tappable cuando hay load → navega al detalle del load. */}
+        {(() => {
+          const state: 'empty' | 'ready' | 'in_progress' | 'done' = !load
+            ? 'empty'
+            : load.progress.delivered === 0
+              ? 'ready'
+              : load.progress.delivered >= load.progress.total
+                ? 'done'
+                : 'in_progress';
+
+          // Próxima parada pendiente — primero por status pending, fallback in_route.
+          const nextOrder =
+            load?.orders.find((o) => o.status === 'pending') ??
+            load?.orders.find((o) => o.status === 'in_route') ??
+            null;
+
+          // Chip de estado en el top de la card
+          const chip = (() => {
+            switch (state) {
+              case 'empty':
+                return { dot: colors.fgSubtle, label: 'Sin ruta', tone: colors.fgMuted };
+              case 'ready':
+                return { dot: brand.brand, label: 'Listo para salir', tone: brand.brand };
+              case 'in_progress':
+                return { dot: colors.success, label: 'En ruta', tone: colors.success };
+              case 'done':
+                return { dot: colors.success, label: 'Ruta completada', tone: colors.success };
+            }
+          })();
+
+          const ctaLabel =
+            state === 'empty'
+              ? 'Refrescar'
+              : state === 'ready'
+                ? 'Iniciar ruta'
+                : state === 'in_progress'
+                  ? 'Continuar ruta'
+                  : 'Ver resumen';
+
+          const onCardPress = () => {
+            if (state === 'empty') {
+              refetch();
+              return;
+            }
+            if (load) router.push(`/(app)/routes/load/${load.id}` as never);
+          };
+
+          const CardInner = (
             <Card padding="lg" className="overflow-hidden">
-              <View className="flex-row items-start">
-                <View className="flex-1 pr-2">
-                  <Text variant="overline" tone="subtle">
-                    Mi ruta de hoy
-                  </Text>
-                  <View className="flex-row items-baseline gap-2 mt-2">
-                    <Text
-                      style={{
-                        fontFamily: Fonts.semibold,
-                        fontSize: 32,
-                        lineHeight: 42,
-                        letterSpacing: -0.7,
-                        color: colors.fgMuted,
-                        fontVariant: ['tabular-nums'],
-                        includeFontPadding: false,
-                      } as never}
-                    >
-                      0
-                    </Text>
-                    <Text
-                      style={{
-                        fontFamily: Fonts.medium,
-                        fontSize: 18,
-                        color: colors.fgMuted,
-                        fontVariant: ['tabular-nums'],
-                      }}
-                    >
-                      / 0 entregas
-                    </Text>
-                  </View>
-                  <Text variant="caption" tone="muted" className="mt-1">
-                    {data?.message ?? 'Esperando asignación de tu manager.'}
+              {/* Chip de estado */}
+              <View className="flex-row items-center justify-between">
+                <View className="flex-row items-center gap-2">
+                  <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: chip.dot }} />
+                  <Text
+                    style={{
+                      color: chip.tone,
+                      fontFamily: Fonts.medium,
+                      fontSize: 11,
+                      letterSpacing: 0.6,
+                      textTransform: 'uppercase',
+                      includeFontPadding: false,
+                    } as never}
+                  >
+                    {chip.label}
                   </Text>
                 </View>
-                <View
-                  style={{
-                    width: 56,
-                    height: 56,
-                    borderRadius: 16,
-                    backgroundColor: colors.bgMuted,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <Truck size={26} color={colors.fgSubtle} strokeWidth={1.6} />
-                </View>
+                {state !== 'empty' ? (
+                  <Text
+                    style={{
+                      fontFamily: Fonts.medium,
+                      fontSize: 11,
+                      color: colors.fgSubtle,
+                      letterSpacing: 0.2,
+                      includeFontPadding: false,
+                    } as never}
+                  >
+                    Ver detalle →
+                  </Text>
+                ) : null}
               </View>
-              <View
-                style={{
-                  marginTop: 14,
-                  height: 6,
-                  borderRadius: 999,
-                  backgroundColor: colors.bgMuted,
-                }}
-              />
-            </Card>
-          </Animated.View>
-        ) : (
-          <Animated.View entering={FadeInUp.delay(140).duration(220)} className="mx-5" style={{ marginTop: -68 }}>
-            <Pressable
-              haptic="selection"
-              scale="subtle"
-              onPress={() => router.push(`/(app)/routes/load/${load.id}` as never)}
-            >
-            <Card  padding="lg" className="overflow-hidden">
-              <View className="flex-row items-start">
-                <View className="flex-1 pr-2">
-                  <View className="flex-row items-center justify-between">
-                    <Text variant="overline" tone="brand">
-                      Mi ruta de hoy
-                    </Text>
-                    <Text
-                      style={{
-                        fontFamily: Fonts.medium,
-                        fontSize: 11,
-                        color: brand.brand,
-                        letterSpacing: 0.2,
-                        includeFontPadding: false,
-                      } as never}
-                    >
-                      Ver detalle →
-                    </Text>
-                  </View>
-                  <View className="flex-row items-baseline gap-2 mt-2">
+
+              {/* Big number — distinto según estado */}
+              {state === 'empty' ? (
+                <View className="mt-3">
+                  <Text
+                    style={{
+                      fontFamily: Fonts.semibold,
+                      fontSize: 22,
+                      letterSpacing: -0.5,
+                      color: colors.fg,
+                    }}
+                  >
+                    Sin ruta asignada
+                  </Text>
+                  <Text variant="caption" tone="muted" className="mt-1">
+                    {data?.message ?? 'Tu manager aún no asignó la ruta del día.'}
+                  </Text>
+                </View>
+              ) : (
+                <View className="mt-3">
+                  <View className="flex-row items-baseline gap-2">
                     <Text
                       style={{
                         fontFamily: Fonts.semibold,
-                        fontSize: 32,
+                        fontSize: 36,
                         lineHeight: 42,
-                        letterSpacing: -0.7,
+                        letterSpacing: -0.9,
                         color: colors.fg,
                         fontVariant: ['tabular-nums'],
                         includeFontPadding: false,
                       } as never}
                     >
-                      {load.progress.delivered}
+                      {load!.progress.delivered}
                     </Text>
                     <Text
                       style={{
@@ -481,33 +496,135 @@ export default function RoutesScreen() {
                         fontVariant: ['tabular-nums'],
                       }}
                     >
-                      / {load.progress.total} entregas
+                      / {load!.progress.total} entregas
                     </Text>
                   </View>
                   <Text variant="caption" tone="muted" className="mt-1">
-                    {load.progress.pending} pendientes · {load.progress.pct}% completado
+                    {state === 'done'
+                      ? `Cobraste ${formatCLP(load!.amounts.collected)} de ${formatCLP(load!.amounts.total)}`
+                      : `${load!.progress.pending} pendientes · ${Math.round(load!.progress.pct)}% completado`}
                   </Text>
                 </View>
+              )}
+
+              {/* Progress bar — solo cuando hay ruta */}
+              {state !== 'empty' ? (
+                <ProgressBar pct={load!.progress.pct} brand={brand.brand} bg={colors.bgMuted} />
+              ) : null}
+
+              {/* Próxima parada — bloque inline cuando hay nextOrder */}
+              {nextOrder && state !== 'done' ? (
                 <View
                   style={{
-                    width: 56,
-                    height: 56,
-                    borderRadius: 16,
-                    backgroundColor: brand.brandSubtle,
-                    alignItems: 'center',
-                    justifyContent: 'center',
+                    marginTop: 14,
+                    padding: 12,
+                    borderRadius: 12,
+                    backgroundColor: colors.bgMuted,
                   }}
                 >
-                  <Truck size={26} color={brand.brand} strokeWidth={1.6} />
+                  <Text
+                    style={{
+                      color: colors.fgSubtle,
+                      fontFamily: Fonts.medium,
+                      fontSize: 9,
+                      letterSpacing: 0.7,
+                      textTransform: 'uppercase',
+                      includeFontPadding: false,
+                    } as never}
+                  >
+                    Próxima parada
+                  </Text>
+                  <View className="flex-row items-center justify-between mt-1">
+                    <View className="flex-1 pr-2">
+                      <Text
+                        style={{
+                          color: colors.fg,
+                          fontFamily: Fonts.semibold,
+                          fontSize: 14,
+                          letterSpacing: -0.2,
+                        }}
+                        numberOfLines={1}
+                      >
+                        {nextOrder.client?.name ?? 'Cliente sin nombre'}
+                      </Text>
+                      {nextOrder.client?.address ? (
+                        <Text
+                          style={{
+                            color: colors.fgMuted,
+                            fontFamily: Fonts.regular,
+                            fontSize: 12,
+                            marginTop: 1,
+                          }}
+                          numberOfLines={1}
+                        >
+                          {nextOrder.client.address}
+                        </Text>
+                      ) : null}
+                    </View>
+                    <Text
+                      style={{
+                        color: colors.fg,
+                        fontFamily: Fonts.semibold,
+                        fontSize: 14,
+                        fontVariant: ['tabular-nums'],
+                      }}
+                    >
+                      {formatCLP(nextOrder.total)}
+                    </Text>
+                  </View>
                 </View>
-              </View>
+              ) : null}
 
-              {/* Progress bar */}
-              <ProgressBar pct={load.progress.pct} brand={brand.brand} bg={colors.bgMuted} />
+              {/* CTA inferior — siempre presente, etiqueta varía por estado */}
+              <Pressable
+                haptic="medium"
+                onPress={onCardPress}
+                style={{
+                  marginTop: 14,
+                  height: 48,
+                  borderRadius: 12,
+                  backgroundColor: state === 'empty' ? colors.bgMuted : brand.brand,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexDirection: 'row',
+                  gap: 6,
+                }}
+              >
+                <Text
+                  style={{
+                    color: state === 'empty' ? colors.fg : '#FFFFFF',
+                    fontFamily: Fonts.semibold,
+                    fontSize: 14,
+                    letterSpacing: -0.2,
+                  }}
+                >
+                  {ctaLabel}
+                </Text>
+                {state === 'empty' ? (
+                  <Refresh size={14} color={colors.fg} />
+                ) : (
+                  <ChevronRight size={14} color="#FFFFFF" />
+                )}
+              </Pressable>
             </Card>
-            </Pressable>
-          </Animated.View>
-        )}
+          );
+
+          return (
+            <Animated.View
+              entering={FadeInUp.delay(140).duration(220)}
+              className="mx-5"
+              style={{ marginTop: -68 }}
+            >
+              {state === 'empty' ? (
+                CardInner
+              ) : (
+                <Pressable haptic="selection" scale="subtle" onPress={onCardPress}>
+                  {CardInner}
+                </Pressable>
+              )}
+            </Animated.View>
+          );
+        })()}
 
         {/* 3 KPI cards — Entregado · Pendiente · Por cobrar */}
         <Animated.View entering={FadeInUp.delay(220).duration(220)} className="flex-row gap-2.5 mx-5 mt-3">

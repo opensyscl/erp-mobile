@@ -47,6 +47,7 @@
         "android.permission.ACCESS_FINE_LOCATION"
       ]
     },
+    "platforms": ["ios", "android", "web"],
     "web": {
       "bundler": "metro",
       "output": "static",

@@ -1,41 +1,74 @@
-import { StyleSheet } from 'react-native';
-import Svg, { Defs, G, Pattern, Rect } from 'react-native-svg';
+import { Platform, StyleSheet, View } from 'react-native';
 
 /**
- * Patrón geométrico tileable para fondos suaves (hero del login, splash, etc).
- * Adaptado del SVG que pasó Sthamly:
- *   - bg base #fafafa (lo aplica el parent)
- *   - tile 48×48 con líneas horizontales 3×1 cada 6 px en columnas y cada 12 px
- *     en filas (4 filas × 8 columnas)
- *   - cruz central simplificada en (23,23) — el original tenía detalle pixel
- *     a pixel que en mobile no se percibe
- *   - cruz en la esquina (47,47) que se completa al repetirse formando "+"
- *     entre tiles
+ * Hero del login — mesh gradient cálido con 3 blobs de color.
  *
- * Color hardcodeado #1C1F21 con opacity 0.15 — del SVG de referencia.
+ * Versión SVG/RadialGradient iteró antes pero en RN Web el cyan + violeta
+ * se mezclaban y dominaba el azul (Sthamly: 'el gradient solo azul wtf').
+ * Cambiamos a Views circulares grandes con opacity + filter:blur en web
+ * (RN puro ignora filter pero los blobs son tan grandes que igual se ven
+ * difusos por ser semitransparentes y desbordar el contenedor).
+ *
+ * Paleta deliberadamente cálida (coral, magenta, dorado) — sin cyan ni
+ * azul para evitar que el conjunto se vea frío/monocromático.
  */
 export function HeroPattern() {
     return (
-        <Svg style={StyleSheet.absoluteFillObject} width="100%" height="100%">
-            <Defs>
-                <Pattern id="hero-dotgrid" patternUnits="userSpaceOnUse" width={48} height={48}>
-                    <G opacity={0.15} fill="#1C1F21">
-                        {/* Filas de líneas horizontales (4×8) */}
-                        {[11, 23, 35, 47].map((y) =>
-                            [1, 7, 13, 19, 25, 31, 37, 43].map((x) => (
-                                <Rect key={`row-${x}-${y}`} x={x} y={y} width={3} height={1} />
-                            )),
-                        )}
-                        {/* Cruz central en (23.5, 23.5) — simplificada a 2 rects */}
-                        <Rect x={23} y={20} width={1} height={4} />
-                        <Rect x={20} y={23} width={4} height={1} />
-                        {/* Cruz en esquina (47,47): al repetir el tile se completa */}
-                        <Rect x={47} y={44} width={1} height={4} />
-                        <Rect x={44} y={47} width={4} height={1} />
-                    </G>
-                </Pattern>
-            </Defs>
-            <Rect width="100%" height="100%" fill="url(#hero-dotgrid)" />
-        </Svg>
+        <View style={[StyleSheet.absoluteFillObject, { overflow: 'hidden' }]} pointerEvents="none">
+            {/* Coral arriba-izq */}
+            <View
+                style={[
+                    styles.blob,
+                    {
+                        backgroundColor: '#FF7A59',
+                        width: 320,
+                        height: 320,
+                        top: -90,
+                        left: -90,
+                        opacity: 0.55,
+                    },
+                ]}
+            />
+            {/* Magenta abajo-der */}
+            <View
+                style={[
+                    styles.blob,
+                    {
+                        backgroundColor: '#EC4899',
+                        width: 300,
+                        height: 300,
+                        bottom: -90,
+                        right: -80,
+                        opacity: 0.45,
+                    },
+                ]}
+            />
+            {/* Dorado arriba-der */}
+            <View
+                style={[
+                    styles.blob,
+                    {
+                        backgroundColor: '#FCD34D',
+                        width: 260,
+                        height: 260,
+                        top: -60,
+                        right: -100,
+                        opacity: 0.5,
+                    },
+                ]}
+            />
+        </View>
     );
 }
+
+// El blur real solo aplica en web (RN Web lo traduce a CSS filter).
+// En iOS/Android lo ignoramos: los blobs grandes con opacity ya se ven
+// difusos por el solapamiento. Si en el futuro hace falta blur real en
+// native, usar expo-blur BlurView aquí.
+const styles = StyleSheet.create({
+    blob: {
+        position: 'absolute',
+        borderRadius: 9999,
+        ...(Platform.OS === 'web' ? ({ filter: 'blur(50px)' } as object) : {}),
+    },
+});
