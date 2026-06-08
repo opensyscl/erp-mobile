@@ -67,35 +67,13 @@ export default function LoginScreen() {
     demoSheet.current?.dismiss();
   };
 
-  // Prellenado en dev — chips para alternar rápido entre cuentas demo según rol y plan.
-  // NO shipea a prod (gated por __DEV__).
-  //   - admin / repartidor / despacho → ferreteria-routes (tenant con módulo Routes habilitado)
-  //   - starter / growth / enterprise → botillerías (planes del POS clásico)
-  const DEV_ACCOUNTS: {
-    id: 'admin' | 'driver' | 'dispatch' | 'starter' | 'growth' | 'enterprise';
-    label: string;
-    email: string;
-    password: string;
-    tenant: string;
-  }[] = [
-    // Routes (driver/admin/despacho)
-    { id: 'admin',      label: 'Admin Routes', email: 'ferreteria.routes@demo.cl',    password: '12345678', tenant: 'ferreteria-routes' },
-    { id: 'driver',     label: 'Repartidor',   email: 'repartidor.routes@demo.cl',    password: '12345678', tenant: 'ferreteria-routes' },
-    { id: 'dispatch',   label: 'Despacho',     email: 'despacho.routes@demo.cl',      password: '12345678', tenant: 'ferreteria-routes' },
-    // Botillería (planes POS)
-    { id: 'starter',    label: 'Starter',      email: 'botilleria.starter@demo.cl',    password: '12345678', tenant: 'botilleria-starter' },
-    { id: 'growth',     label: 'Growth',       email: 'botilleria.growth@demo.cl',     password: '12345678', tenant: 'botilleria-growth' },
-    { id: 'enterprise', label: 'Enterprise',   email: 'botilleria.enterprise@demo.cl', password: '12345678', tenant: 'botilleria-enterprise' },
-  ];
-  const [email, setEmail] = useState(__DEV__ ? DEV_ACCOUNTS[0]!.email : '');
-  const [password, setPassword] = useState(__DEV__ ? DEV_ACCOUNTS[0]!.password : '');
+  // Prellenado mínimo en dev: dejamos email/password ya escritos con la cuenta
+  // admin de ferreteria-routes para no perder tiempo tipeando al iterar. Para
+  // alternar cuentas se usa el BottomSheet DemoAccountsSheet (link al pie).
+  const DEV_DEFAULT = { email: 'ferreteria.routes@demo.cl', password: '12345678' };
+  const [email, setEmail] = useState(__DEV__ ? DEV_DEFAULT.email : '');
+  const [password, setPassword] = useState(__DEV__ ? DEV_DEFAULT.password : '');
   const [showPassword, setShowPassword] = useState(false);
-
-  const fillAccount = async (acct: (typeof DEV_ACCOUNTS)[number]) => {
-    await setSlug(acct.tenant);
-    setEmail(acct.email);
-    setPassword(acct.password);
-  };
 
   const submitting = status === 'authenticating';
 
@@ -227,44 +205,12 @@ export default function LoginScreen() {
           </View>
 
           {/* Form */}
-          <View style={{ paddingHorizontal: 24, gap: 12 }}>
-            {__DEV__ ? (
-              <View style={{ flexDirection: 'row', gap: 8, marginBottom: 4 }}>
-                {DEV_ACCOUNTS.map((acct) => {
-                  const active = email === acct.email;
-                  return (
-                    <Pressable
-                      key={acct.id}
-                      haptic="selection"
-                      onPress={() => fillAccount(acct)}
-                      style={{
-                        flex: 1,
-                        height: 34,
-                        borderRadius: 999,
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        backgroundColor: active ? colors.fg : 'transparent',
-                        borderWidth: 1,
-                        borderColor: active ? colors.fg : colors.border,
-                      }}
-                    >
-                      <Text
-                        style={{
-                          color: active ? colors.bg : colors.fgMuted,
-                          fontFamily: Fonts.medium,
-                          fontSize: 12,
-                          letterSpacing: 0.1,
-                          includeFontPadding: false,
-                        } as never}
-                      >
-                        {acct.label}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            ) : null}
-
+          <View style={{ paddingHorizontal: 24, gap: 14 }}>
+            {/* Los chips dev (Admin/Repartidor/Despacho/Starter/Growth/Enterprise)
+                que vivían acá se movieron al BottomSheet DemoAccountsSheet —
+                el link "Ver cuentas demo" de abajo lo abre. La página queda
+                limpia: logo + título + 2 inputs + CTA. Las cuentas seguían
+                ocupando media pantalla sin necesidad. */}
             <PillInput
               placeholder="Correo electrónico"
               value={email}
