@@ -21,6 +21,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { DemoAccountsSheet } from '~/components/DemoAccountsSheet';
 import { DevEnvSheet } from '~/components/DevEnvSheet';
+import { HeroPattern } from '~/components/HeroPattern';
 import { LogoMark } from '~/components/Logo';
 import { Pressable, Screen, Text } from '~/components/ui';
 import { useBrand } from '~/hooks/useBrand';
@@ -113,9 +114,12 @@ export default function LoginScreen() {
   const primaryBg = colors.fg;
   const primaryFg = colors.bg;
 
-  // Colores del hero: tomamos el brand del tenant con alpha bajo para que
-  // funcione con cualquier paleta (azul, naranja, etc) sin clashear.
-  const heroBg = withAlpha(brand.brand, 0.12);
+  // Hero con color sólido neutro #fafafa (del mockup del SVG que mandó
+  // Sthamly) + patrón tileable encima. Independiente del brand del tenant
+  // — más sobrio que el alpha previo y aguanta cualquier paleta.
+  const heroBg = '#fafafa';
+  // Logo del ERP por default (cuando el tenant no tiene logo propio).
+  const fallbackLogo = 'https://erp.opensys.cl/logo/logo.png';
 
   return (
     <Screen padded={false} edges={{ top: false, bottom: false }}>
@@ -128,15 +132,17 @@ export default function LoginScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ flexGrow: 1 }}
         >
-          {/* Hero — fondo de color suave del brand del tenant + back + logo grande */}
+          {/* Hero — fondo sólido + patrón geométrico + back + logo grande */}
           <View
             style={{
               paddingTop: insets.top + 8,
               paddingBottom: 56,
               backgroundColor: heroBg,
               alignItems: 'center',
+              overflow: 'hidden',
             }}
           >
+            <HeroPattern />
             {/* Back */}
             <View style={{ alignSelf: 'stretch', paddingHorizontal: 20, height: 44, justifyContent: 'center' }}>
               <Pressable
@@ -178,7 +184,7 @@ export default function LoginScreen() {
                   elevation: 6,
                 }}
               >
-                <LogoMark size={56} src={tenant?.logo_url} />
+                <LogoMark size={56} src={tenant?.logo_url ?? fallbackLogo} />
               </Pressable>
             </Animated.View>
 
