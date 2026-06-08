@@ -29,11 +29,11 @@ import { useFourTapGesture } from '~/hooks/useFourTapGesture';
 import { ApiError } from '~/lib/api';
 import { resolveApiUrl } from '~/lib/env';
 import { toast } from '~/components/Toast';
-import { ArrowLeft, Eye, EyeOff } from '~/lib/icons';
+import { ArrowLeft, Eye, EyeOff, Lock, User } from '~/lib/icons';
 import { useAuthStore } from '~/stores/auth';
 import { useTenantStore } from '~/stores/tenant';
 import { Fonts } from '~/theme/fonts';
-import { palette } from '~/theme/tokens';
+import { palette, withAlpha } from '~/theme/tokens';
 
 /**
  * Login pantalla — variante "minimal":
@@ -108,167 +108,196 @@ export default function LoginScreen() {
     }
   };
 
-  // Botón primario: alto contraste contra el bg (negro en light, blanco en dark)
-  const primaryBg = scheme === 'dark' ? colors.fg : colors.fg;
-  const primaryFg = scheme === 'dark' ? colors.bg : colors.bg;
+  // Botón primario: alto contraste contra el bg (siempre negro→blanco texto
+  // porque el theme está lockeado a light por ahora).
+  const primaryBg = colors.fg;
+  const primaryFg = colors.bg;
+
+  // Colores del hero: tomamos el brand del tenant con alpha bajo para que
+  // funcione con cualquier paleta (azul, naranja, etc) sin clashear.
+  const heroBg = withAlpha(brand.brand, 0.12);
 
   return (
     <Screen padded={false} edges={{ top: false, bottom: false }}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={{ flex: 1, backgroundColor: colors.bg }}
+        style={{ flex: 1, backgroundColor: heroBg }}
       >
         <ScrollView
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ flexGrow: 1, paddingTop: insets.top + 8 }}
+          contentContainerStyle={{ flexGrow: 1 }}
         >
-          {/* Top bar — solo back */}
-          <View style={{ paddingHorizontal: 20, height: 44, justifyContent: 'center' }}>
-            <Pressable
-              haptic="selection"
-              onPress={() => {
-                // Si vinimos por replace (sin history) o el navegador no puede
-                // ir atrás, mandamos al tenant picker como fallback explícito.
-                if (router.canGoBack()) {
-                  router.back();
-                } else {
-                  router.replace('/(auth)/tenant');
-                }
-              }}
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: 20,
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <ArrowLeft size={20} color={colors.fg} />
-            </Pressable>
-          </View>
+          {/* Hero — fondo de color suave del brand del tenant + back + logo grande */}
+          <View
+            style={{
+              paddingTop: insets.top + 8,
+              paddingBottom: 56,
+              backgroundColor: heroBg,
+              alignItems: 'center',
+            }}
+          >
+            {/* Back */}
+            <View style={{ alignSelf: 'stretch', paddingHorizontal: 20, height: 44, justifyContent: 'center' }}>
+              <Pressable
+                haptic="selection"
+                onPress={() => {
+                  if (router.canGoBack()) {
+                    router.back();
+                  } else {
+                    router.replace('/(auth)/tenant');
+                  }
+                }}
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <ArrowLeft size={20} color={colors.fg} />
+              </Pressable>
+            </View>
 
-          {/* Hero centrado */}
-          <View style={{ alignItems: 'center', paddingTop: 28, paddingBottom: 36 }}>
-            <Animated.View entering={FadeIn.duration(380)}>
+            {/* Logo grande centrado (con 4-tap secreto al DevEnvSheet) */}
+            <Animated.View entering={FadeIn.duration(380)} style={{ marginTop: 20 }}>
               <Pressable
                 onPress={logoTap.onPress}
                 style={{
-                  width: 56,
-                  height: 56,
-                  borderRadius: 18,
+                  width: 96,
+                  height: 96,
+                  borderRadius: 28,
                   alignItems: 'center',
                   justifyContent: 'center',
-                  backgroundColor: colors.bgSubtle,
-                  borderWidth: 1,
-                  borderColor: colors.border,
+                  backgroundColor: colors.bg,
+                  shadowColor: '#0a0d14',
+                  shadowOffset: { width: 0, height: 8 },
+                  shadowOpacity: 0.08,
+                  shadowRadius: 18,
+                  elevation: 6,
                 }}
               >
-                <LogoMark size={32} src={tenant?.logo_url} />
+                <LogoMark size={56} src={tenant?.logo_url} />
               </Pressable>
             </Animated.View>
 
-            <Animated.View
-              entering={FadeInUp.delay(80).duration(360).springify()}
-              style={{ alignItems: 'center', marginTop: 26 }}
-            >
-              <Text
-                style={{
-                  color: colors.fg,
-                  fontFamily: Fonts.semibold,
-                  fontSize: 30,
-                  lineHeight: 38,
-                  letterSpacing: -0.8,
-                }}
-              >
-                Bienvenido
-              </Text>
-              {slug ? (
-                <Pressable
-                  haptic="selection"
-                  onPress={() => router.replace('/(auth)/tenant')}
-                  style={{ marginTop: 6 }}
-                >
+            {slug ? (
+              <Animated.View entering={FadeInUp.delay(80).duration(360)} style={{ marginTop: 14 }}>
+                <Pressable haptic="selection" onPress={() => router.replace('/(auth)/tenant')}>
                   <Text
                     style={{
                       color: colors.fgMuted,
                       fontFamily: Fonts.regular,
-                      fontSize: 14,
+                      fontSize: 13,
                       letterSpacing: -0.1,
                     }}
                   >
                     a <Text style={{ color: colors.fg, fontFamily: Fonts.medium }}>{slug}</Text>
                   </Text>
                 </Pressable>
-              ) : null}
-            </Animated.View>
+              </Animated.View>
+            ) : null}
           </View>
 
-          {/* Form */}
-          <View style={{ paddingHorizontal: 24, gap: 14 }}>
-            {/* Los chips dev (Admin/Repartidor/Despacho/Starter/Growth/Enterprise)
-                que vivían acá se movieron al BottomSheet DemoAccountsSheet —
-                el link "Ver cuentas demo" de abajo lo abre. La página queda
-                limpia: logo + título + 2 inputs + CTA. Las cuentas seguían
-                ocupando media pantalla sin necesidad. */}
-            <PillInput
-              placeholder="Correo electrónico"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoComplete="email"
-              autoCorrect={false}
-              returnKeyType="next"
-              onSubmitEditing={() => passwordRef.current?.focus()}
-            />
+          {/* Card flotante — el form vive acá. El hero queda recortado por el border-radius. */}
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: colors.bg,
+              borderTopLeftRadius: 32,
+              borderTopRightRadius: 32,
+              marginTop: -28,
+              paddingTop: 32,
+              paddingHorizontal: 24,
+              paddingBottom: insets.bottom + 24,
+              gap: 18,
+            }}
+          >
+            <Text
+              style={{
+                color: colors.fg,
+                fontFamily: Fonts.semibold,
+                fontSize: 26,
+                letterSpacing: -0.6,
+                textAlign: 'center',
+              }}
+            >
+              Iniciar sesión
+            </Text>
 
-            <PillInput
-              ref={passwordRef}
-              placeholder="Contraseña"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry={!showPassword}
-              autoCapitalize="none"
-              autoComplete="password"
-              returnKeyType="go"
-              onSubmitEditing={handleSubmit}
-              rightSlot={
-                <Pressable
-                  haptic="selection"
-                  onPress={() => setShowPassword((v) => !v)}
-                  style={{
-                    width: 40,
-                    height: 40,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  {showPassword ? (
-                    <EyeOff size={18} color={colors.fgSubtle} />
-                  ) : (
-                    <Eye size={18} color={colors.fgSubtle} />
-                  )}
-                </Pressable>
-              }
-            />
+            <View style={{ gap: 12 }}>
+              <PillInput
+                placeholder="Correo electrónico"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoComplete="email"
+                autoCorrect={false}
+                returnKeyType="next"
+                onSubmitEditing={() => passwordRef.current?.focus()}
+                leftSlot={
+                  <IconChip
+                    color={palette.light.warning}
+                    bg={withAlpha(palette.light.warning, 0.18)}
+                    icon={<User size={14} color={palette.light.warning} />}
+                  />
+                }
+              />
 
-            <View style={{ marginTop: 8 }}>
-              <PillButton
-                onPress={handleSubmit}
-                loading={submitting}
-                bg={primaryBg}
-                fg={primaryFg}
-                label="Continuar"
+              <PillInput
+                ref={passwordRef}
+                placeholder="Contraseña"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+                autoCapitalize="none"
+                autoComplete="password"
+                returnKeyType="go"
+                onSubmitEditing={handleSubmit}
+                leftSlot={
+                  <IconChip
+                    color={brand.brand}
+                    bg={withAlpha(brand.brand, 0.15)}
+                    icon={<Lock size={14} color={brand.brand} />}
+                  />
+                }
+                rightSlot={
+                  <Pressable
+                    haptic="selection"
+                    onPress={() => setShowPassword((v) => !v)}
+                    style={{
+                      width: 40,
+                      height: 40,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    {showPassword ? (
+                      <EyeOff size={18} color={colors.fgSubtle} />
+                    ) : (
+                      <Eye size={18} color={colors.fgSubtle} />
+                    )}
+                  </Pressable>
+                }
               />
             </View>
 
-            {/* Acciones secundarias */}
-            <View style={{ marginTop: 22, alignItems: 'center', gap: 14 }}>
-              <Pressable haptic="selection">
+            {/* Row "¿Olvidaste?" + Continuar — como el mockup */}
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginTop: 4,
+                gap: 12,
+              }}
+            >
+              <Pressable haptic="selection" style={{ flexShrink: 1 }}>
                 <Text
                   style={{
-                    color: colors.fgMuted,
+                    color: brand.brand,
                     fontFamily: Fonts.medium,
                     fontSize: 13,
                   }}
@@ -277,7 +306,19 @@ export default function LoginScreen() {
                 </Text>
               </Pressable>
 
-              {__DEV__ ? (
+              <PillButton
+                onPress={handleSubmit}
+                loading={submitting}
+                bg={primaryBg}
+                fg={primaryFg}
+                label="Continuar"
+                compact
+              />
+            </View>
+
+            {/* Demo cuentas (solo dev) — sustituye a los iconos sociales del mockup */}
+            {__DEV__ ? (
+              <View style={{ alignItems: 'center', marginTop: 16 }}>
                 <Pressable
                   haptic="selection"
                   onPress={() => demoSheet.current?.present()}
@@ -299,40 +340,38 @@ export default function LoginScreen() {
                       letterSpacing: -0.1,
                     }}
                   >
-                    Ver todas las cuentas demo
+                    Ver cuentas demo
                   </Text>
                 </Pressable>
-              ) : null}
-            </View>
-          </View>
+              </View>
+            ) : null}
 
-          {/* Footer compliance */}
-          <View
-            style={{
-              alignItems: 'center',
-              paddingHorizontal: 32,
-              paddingBottom: insets.bottom + 18,
-              paddingTop: 36,
-              marginTop: 'auto',
-              gap: 6,
-            }}
-          >
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <View
-                style={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: 3,
-                  backgroundColor: colors.success,
-                }}
-              />
-              <Text variant="caption" tone="subtle">
-                Conexión segura · TLS encriptado
+            {/* Footer mini — TLS + copyright al pie del card */}
+            <View
+              style={{
+                alignItems: 'center',
+                marginTop: 'auto',
+                paddingTop: 24,
+                gap: 4,
+              }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <View
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: 3,
+                    backgroundColor: colors.success,
+                  }}
+                />
+                <Text variant="caption" tone="subtle">
+                  Conexión segura · TLS
+                </Text>
+              </View>
+              <Text variant="caption" tone="subtle" style={{ opacity: 0.6 }}>
+                © OpenSys ERP
               </Text>
             </View>
-            <Text variant="caption" tone="subtle" style={{ opacity: 0.6, textAlign: 'center' }}>
-              © OpenSys ERP
-            </Text>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -340,6 +379,27 @@ export default function LoginScreen() {
       <DevEnvSheet ref={devEnvSheet} />
       <DemoAccountsSheet ref={demoSheet} onPick={handleDemoPick} />
     </Screen>
+  );
+}
+
+/* ─────────────────────── IconChip ─────────────────────── */
+// Cuadradito redondeado de color suave con un ícono adentro. Usado como
+// leftSlot de los PillInputs (estilo del mockup: chip naranja para usuario,
+// azul/lila para candado). Acepta cualquier ícono.
+function IconChip({ icon, color: _color, bg }: { icon: ReactNode; color: string; bg: string }) {
+  return (
+    <View
+      style={{
+        width: 28,
+        height: 28,
+        borderRadius: 10,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: bg,
+      }}
+    >
+      {icon}
+    </View>
   );
 }
 
@@ -356,6 +416,7 @@ interface PillInputProps {
   autoComplete?: 'email' | 'password' | 'off';
   returnKeyType?: 'done' | 'next' | 'go';
   onSubmitEditing?: () => void;
+  leftSlot?: ReactNode;
   rightSlot?: ReactNode;
 }
 
@@ -371,6 +432,7 @@ const PillInput = forwardRef<RNTextInput, PillInputProps>(function PillInput(
     autoComplete,
     returnKeyType = 'next',
     onSubmitEditing,
+    leftSlot,
     rightSlot,
   },
   ref,
@@ -385,15 +447,17 @@ const PillInput = forwardRef<RNTextInput, PillInputProps>(function PillInput(
       style={{
         flexDirection: 'row',
         alignItems: 'center',
+        gap: 10,
         height: 56,
-        borderRadius: 999,
+        borderRadius: 18,
         backgroundColor: colors.bgSubtle,
-        paddingHorizontal: 20,
+        paddingLeft: leftSlot ? 14 : 20,
         paddingRight: rightSlot ? 8 : 20,
         borderWidth: 1,
         borderColor: focused ? colors.fg : colors.border,
       }}
     >
+      {leftSlot}
       <TextInput
         ref={ref as Ref<RNTextInput>}
         value={value}
@@ -433,9 +497,12 @@ interface PillButtonProps {
   bg: string;
   fg: string;
   label: string;
+  /** Si está activo, el botón se ajusta al contenido (no full-width) — usado
+   *  para el row "¿Olvidaste? · Continuar" del nuevo diseño. */
+  compact?: boolean;
 }
 
-function PillButton({ onPress, loading, bg, fg, label }: PillButtonProps) {
+function PillButton({ onPress, loading, bg, fg, label, compact }: PillButtonProps) {
   const scale = useSharedValue(1);
   const animStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -457,7 +524,8 @@ function PillButton({ onPress, loading, bg, fg, label }: PillButtonProps) {
       <Animated.View
         style={[
           {
-            height: 56,
+            height: compact ? 48 : 56,
+            paddingHorizontal: compact ? 26 : 0,
             borderRadius: 999,
             backgroundColor: bg,
             alignItems: 'center',
