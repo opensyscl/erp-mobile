@@ -1,20 +1,13 @@
 #!/usr/bin/env node
-// Creates a stub for `univind`, which heroui-native imports internally
-// but was removed from npm. Runs automatically after `npm install`.
+// Stub for `univind` — removed from npm, imported internally by heroui-native.
+// Installed in TWO places so Metro finds it regardless of resolution context:
+//   1. node_modules/univind/           (top-level, for app-level imports)
+//   2. node_modules/heroui-native/node_modules/univind/  (scoped, for heroui-native imports)
 const fs = require('fs');
 const path = require('path');
 
-const dir = path.join(__dirname, '..', 'node_modules', 'univind');
-fs.mkdirSync(dir, { recursive: true });
-
-fs.writeFileSync(
-  path.join(dir, 'package.json'),
-  JSON.stringify({ name: 'univind', version: '0.0.1-stub', main: 'index.js' }, null, 2)
-);
-
-fs.writeFileSync(
-  path.join(dir, 'index.js'),
-  `"use strict";
+const STUB_PKG = JSON.stringify({ name: 'univind', version: '0.0.1-stub', main: 'index.js' });
+const STUB_JS = `"use strict";
 const { useMemo } = require('react');
 const { useColorScheme } = require('react-native');
 
@@ -40,7 +33,17 @@ exports.useUniwind = useUniwind;
 exports.useResolveClassNames = useResolveClassNames;
 exports.useCSSVariable = useCSSVariable;
 exports.withUniwind = withUniwind;
-`
-);
+`;
 
-console.log('✓ univind stub patched');
+const targets = [
+  path.join(__dirname, '..', 'node_modules', 'univind'),
+  path.join(__dirname, '..', 'node_modules', 'heroui-native', 'node_modules', 'univind'),
+];
+
+for (const dir of targets) {
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, 'package.json'), STUB_PKG);
+  fs.writeFileSync(path.join(dir, 'index.js'), STUB_JS);
+}
+
+console.log('✓ univind stub patched en', targets.length, 'ubicaciones');
