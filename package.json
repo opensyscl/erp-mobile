@@ -11,7 +11,8 @@
     "lint": "eslint .",
     "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\"",
     "typecheck": "tsc --noEmit",
-    "prebuild": "expo prebuild --clean"
+    "prebuild": "expo prebuild --clean",
+    "postinstall": "node scripts/patch-univind.js"
   },
   "dependencies": {
     "@expo-google-fonts/dm-sans": "^0.4.2",
