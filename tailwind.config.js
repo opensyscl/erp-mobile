@@ -3,7 +3,7 @@ module.exports = {
   content: [
     './app/**/*.{ts,tsx}',
     './src/**/*.{ts,tsx}',
-    './node_modules/heroui-native/src/**/*.{ts,tsx}',
+    './node_modules/heroui-native/lib/**/*.{js,ts,jsx,tsx}',
   ],
   presets: [require('nativewind/preset')],
   darkMode: 'class',
@@ -80,5 +80,5 @@ module.exports = {
       },
     },
   },
-  plugins: [],
+  plugins: [require('heroui-native/tailwind-plugin')],
 };

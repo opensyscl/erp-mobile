@@ -78,7 +78,7 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }} className={scheme === 'dark' ? 'dark' : ''}>
       <SafeAreaProvider>
-        <HeroUINativeProvider config={{ toast: false }}>
+        <HeroUINativeProvider config={{ colorScheme: scheme }}>
         <QueryClientProvider client={queryClient}>
           <BottomSheetModalProvider>
             <View className="flex-1 bg-bg" style={{ flex: 1 }}>
