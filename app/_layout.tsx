@@ -10,6 +10,7 @@ import { View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
+import { HeroUINativeProvider } from 'heroui-native';
 
 import { Splash } from '~/components/Splash';
 import { ToastViewport } from '~/components/Toast';
@@ -77,6 +78,7 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }} className={scheme === 'dark' ? 'dark' : ''}>
       <SafeAreaProvider>
+        <HeroUINativeProvider config={{ toast: false }}>
         <QueryClientProvider client={queryClient}>
           <BottomSheetModalProvider>
             <View className="flex-1 bg-bg" style={{ flex: 1 }}>
@@ -102,6 +104,7 @@ export default function RootLayout() {
             </View>
           </BottomSheetModalProvider>
         </QueryClientProvider>
+        </HeroUINativeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
