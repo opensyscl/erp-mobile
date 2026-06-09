@@ -1,5 +1,24 @@
-import { keepPreviousData, QueryClient } from '@tanstack/react-query';
+import NetInfo from '@react-native-community/netinfo';
+import { focusManager, keepPreviousData, onlineManager, QueryClient } from '@tanstack/react-query';
+import { AppState } from 'react-native';
+
 import { ApiError } from './api';
+
+// TanStack Query en RN no detecta red ni foreground solo — hay que cablearlo:
+//   - onlineManager + NetInfo → refetchOnReconnect funciona al recuperar red.
+//   - focusManager + AppState → las queries saben cuándo la app está activa.
+// El resync grueso tras perder el socket lo maneja useRealtimeHub vía
+// onReconnected() (los eventos WS perdidos no se recuperan).
+// El flag vive en globalThis porque fast refresh re-evalúa este módulo y
+// AppState.addEventListener acumularía un listener por recarga.
+const g = globalThis as typeof globalThis & { __rqManagersWired?: boolean };
+if (!g.__rqManagersWired) {
+  g.__rqManagersWired = true;
+  onlineManager.setEventListener((setOnline) =>
+    NetInfo.addEventListener((state) => setOnline(state.isConnected !== false)),
+  );
+  AppState.addEventListener('change', (status) => focusManager.setFocused(status === 'active'));
+}
 
 export const queryClient = new QueryClient({
   defaultOptions: {

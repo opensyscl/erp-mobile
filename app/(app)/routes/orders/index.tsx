@@ -8,12 +8,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Card, Pressable, Skeleton, Text } from '~/components/ui';
 import { useBrand } from '~/hooks/useBrand';
 import { useColorScheme } from '~/hooks/useColorScheme';
-import { useRealtimeInvalidate } from '~/hooks/useRealtime';
 import { useSafeBack } from '~/hooks/useSafeBack';
 import { apiRequest } from '~/lib/api';
 import { ArrowLeft, Package, Plus } from '~/lib/icons';
-import { Channels, RealtimeEvents } from '~/lib/realtime';
-import { useTenantStore } from '~/stores/tenant';
+import { queryKeys } from '~/lib/queryKeys';
 import { Fonts } from '~/theme/fonts';
 import { palette } from '~/theme/tokens';
 
@@ -77,12 +75,11 @@ export default function RoutesOrdersScreen() {
   const scheme = useColorScheme();
   const colors = palette[scheme];
   const brand = useBrand();
-  const tenant = useTenantStore((s) => s.tenant);
   const safeBack = useSafeBack('/(app)/routes/admin');
 
   const [tab, setTab] = useState<(typeof TABS)[number]['id']>('pending');
 
-  const queryKey = ['routes', 'orders', tab];
+  const queryKey = queryKeys.routes.ordersByTab(tab);
   const { data, isLoading, refetch, isRefetching } = useQuery({
     queryKey,
     queryFn: () =>
@@ -94,7 +91,7 @@ export default function RoutesOrdersScreen() {
 
   // Counts para badges en los tabs
   const { data: pendingCount } = useQuery({
-    queryKey: ['routes', 'orders', 'count', 'pending'],
+    queryKey: queryKeys.routes.ordersCount('pending'),
     queryFn: () =>
       apiRequest<{ data: OrderRow[] }>({
         method: 'GET',
@@ -102,7 +99,7 @@ export default function RoutesOrdersScreen() {
       }).then((r) => r.data.length),
   });
   const { data: deliveredCount } = useQuery({
-    queryKey: ['routes', 'orders', 'count', 'delivered'],
+    queryKey: queryKeys.routes.ordersCount('delivered'),
     queryFn: () =>
       apiRequest<{ data: OrderRow[] }>({
         method: 'GET',
@@ -113,10 +110,6 @@ export default function RoutesOrdersScreen() {
     pending: pendingCount,
     delivered: deliveredCount,
   };
-
-  const ch = tenant ? Channels.tenantRoutes(tenant.id) : null;
-  useRealtimeInvalidate(ch, RealtimeEvents.RouteOrderCreated, [['routes', 'orders']]);
-  useRealtimeInvalidate(ch, RealtimeEvents.RouteOrderStatusChanged, [['routes', 'orders']]);
 
   const orders = data ?? [];
 

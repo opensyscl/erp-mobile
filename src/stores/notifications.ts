@@ -10,7 +10,8 @@ export type NotifKind =
   | 'route.order.payment'
   | 'sale.created'
   | 'stock.changed'
-  | 'approval.changed';
+  | 'approval.changed'
+  | 'system.alert';
 
 export interface InAppNotification {
   id: string;

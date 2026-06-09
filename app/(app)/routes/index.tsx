@@ -31,11 +31,10 @@ import { toast } from '~/components/Toast';
 import { Button, Card, Pressable, Skeleton, Text } from '~/components/ui';
 import { useBrand } from '~/hooks/useBrand';
 import { useColorScheme } from '~/hooks/useColorScheme';
-import { useRealtimeInvalidate } from '~/hooks/useRealtime';
 import { useSafeBack } from '~/hooks/useSafeBack';
 import { ApiError, apiRequest } from '~/lib/api';
 import { ArrowLeft, ArrowRight, BarChart, Bell, ChevronRight, Package, PackageReceive, Plus, Receipt, Refresh, Truck, User as UserIcon, UserGroup, Wallet } from '~/lib/icons';
-import { Channels, RealtimeEvents } from '~/lib/realtime';
+import { queryKeys } from '~/lib/queryKeys';
 import { useAuthStore } from '~/stores/auth';
 import { useUnseenCount } from '~/stores/notifications';
 import { useTenantStore } from '~/stores/tenant';
@@ -117,7 +116,7 @@ export default function RoutesScreen() {
   // Tab para la sección "Mis pedidos recientes" (scroll horizontal)
   const [myOrdersTab, setMyOrdersTab] = useState<'pending' | 'delivered' | 'cancelled'>('pending');
 
-  const todayKey = ['routes', 'today', driverIdParam ?? 'self'];
+  const todayKey = queryKeys.routes.today(driverIdParam ?? 'self');
   const { data, isLoading, refetch, isRefetching } = useQuery({
     queryKey: todayKey,
     queryFn: () =>
@@ -130,7 +129,7 @@ export default function RoutesScreen() {
   });
 
   // Mis pedidos recientes — últimos 10 del driver
-  const myOrdersKey = ['routes', 'my-orders', driverIdParam ?? 'self'];
+  const myOrdersKey = queryKeys.routes.myOrders(driverIdParam ?? 'self');
   const { data: myOrdersData } = useQuery({
     queryKey: myOrdersKey,
     queryFn: () =>
@@ -144,7 +143,7 @@ export default function RoutesScreen() {
   const myOrders = myOrdersData ?? [];
 
   // Mis cargas — últimas 7 (cada una agrupa varios pedidos)
-  const myLoadsKey = ['routes', 'my-loads', driverIdParam ?? 'self'];
+  const myLoadsKey = queryKeys.routes.myLoads(driverIdParam ?? 'self');
   const { data: myLoadsData } = useQuery({
     queryKey: myLoadsKey,
     queryFn: () =>
@@ -157,14 +156,6 @@ export default function RoutesScreen() {
   });
   const myLoads = myLoadsData ?? [];
 
-  // Realtime: el conductor debe ver cambios cuando admin confirma carga,
-  // crea órdenes nuevas o cierra la jornada.
-  const routesChannel = tenant ? Channels.tenantRoutes(tenant.id) : null;
-  useRealtimeInvalidate(routesChannel, RealtimeEvents.RouteLoadConfirmed, [todayKey, myOrdersKey]);
-  useRealtimeInvalidate(routesChannel, RealtimeEvents.RouteLoadClosed, [todayKey, myOrdersKey]);
-  useRealtimeInvalidate(routesChannel, RealtimeEvents.RouteOrderCreated, [todayKey, myOrdersKey]);
-  useRealtimeInvalidate(routesChannel, RealtimeEvents.RouteOrderStatusChanged, [todayKey, myOrdersKey]);
-
   // El feed in-app de eventos vive en (app)/_layout.tsx para que persista entre
   // pantallas. Acá solo leemos el contador.
   const unseenCount = useUnseenCount();
@@ -173,7 +164,7 @@ export default function RoutesScreen() {
   const notifSheet = useRef<BottomSheetModalType>(null);
   const handleReload = () => {
     void refetch();
-    void queryClient.invalidateQueries({ queryKey: ['routes'] });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.routes.all });
     toast.success('Actualizado', 'Datos refrescados.');
   };
 
@@ -208,7 +199,7 @@ export default function RoutesScreen() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['routes'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.routes.all });
       toast.success('Ruta cerrada', 'Tu manager fue notificado.');
     },
     onError: (err) => {
@@ -1075,7 +1066,7 @@ export default function RoutesScreen() {
           onClose={() => setActiveOrder(null)}
           onResolved={() => {
             setActiveOrder(null);
-            queryClient.invalidateQueries({ queryKey: ['routes'] });
+            queryClient.invalidateQueries({ queryKey: queryKeys.routes.all });
           }}
         />
       ) : null}

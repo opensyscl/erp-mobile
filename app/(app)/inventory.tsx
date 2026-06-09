@@ -7,11 +7,9 @@ import Animated, { FadeIn } from 'react-native-reanimated';
 import { Button, Card, Input, Pressable, Screen, Skeleton, Text } from '~/components/ui';
 import { useBrand } from '~/hooks/useBrand';
 import { useColorScheme } from '~/hooks/useColorScheme';
-import { useRealtimeInvalidate } from '~/hooks/useRealtime';
 import { apiRequest } from '~/lib/api';
 import { Filter, Package, Plus, Search } from '~/lib/icons';
-import { Channels, RealtimeEvents } from '~/lib/realtime';
-import { useTenantStore } from '~/stores/tenant';
+import { queryKeys } from '~/lib/queryKeys';
 import { palette } from '~/theme/tokens';
 
 interface Product {
@@ -54,19 +52,13 @@ export default function InventoryScreen() {
   const scheme = useColorScheme();
   const colors = palette[scheme];
   const brand = useBrand();
-  const tenant = useTenantStore((s) => s.tenant);
   const [activeFilter, setActiveFilter] = useState<FilterId>('all');
   const [search, setSearch] = useState('');
 
   const { data, isLoading, isError, refetch, isRefetching } = useQuery({
-    queryKey: ['products', { filter: activeFilter, search }],
+    queryKey: queryKeys.products.list(activeFilter, search),
     queryFn: () => fetchProducts({ search, status: activeFilter }),
   });
-
-  // Realtime: si en otra pantalla (web ERP, otro mobile, escáner) cambia stock,
-  // invalida la query y la lista se actualiza al toque.
-  const channel = tenant ? Channels.tenantInventory(tenant.id) : null;
-  useRealtimeInvalidate(channel, RealtimeEvents.ProductStockChanged, [['products']]);
 
   const items = data?.data ?? [];
   const counts = data?.counts ?? { all: 0, low: 0, out: 0 };

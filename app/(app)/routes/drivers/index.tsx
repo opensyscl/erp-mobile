@@ -7,12 +7,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Card, Pressable, Skeleton, Text } from '~/components/ui';
 import { useBrand } from '~/hooks/useBrand';
 import { useColorScheme } from '~/hooks/useColorScheme';
-import { useRealtimeInvalidate } from '~/hooks/useRealtime';
 import { useSafeBack } from '~/hooks/useSafeBack';
 import { apiRequest } from '~/lib/api';
 import { ArrowLeft, ArrowRight, User as UserIcon } from '~/lib/icons';
-import { Channels, RealtimeEvents } from '~/lib/realtime';
-import { useTenantStore } from '~/stores/tenant';
+import { queryKeys } from '~/lib/queryKeys';
 import { Fonts } from '~/theme/fonts';
 import { palette } from '~/theme/tokens';
 
@@ -47,23 +45,16 @@ export default function RoutesDriversScreen() {
   const scheme = useColorScheme();
   const colors = palette[scheme];
   const brand = useBrand();
-  const tenant = useTenantStore((s) => s.tenant);
   const safeBack = useSafeBack('/(app)/routes/admin');
 
-  const queryKey = ['routes', 'drivers'];
   const { data, isLoading, refetch, isRefetching } = useQuery({
-    queryKey,
+    queryKey: queryKeys.routes.drivers,
     queryFn: () =>
       apiRequest<{ data: DriverStat[] }>({
         method: 'GET',
         url: '/api/mobile/routes/drivers',
       }).then((r) => r.data),
   });
-
-  const ch = tenant ? Channels.tenantRoutes(tenant.id) : null;
-  useRealtimeInvalidate(ch, RealtimeEvents.RouteOrderStatusChanged, [queryKey]);
-  useRealtimeInvalidate(ch, RealtimeEvents.RouteLoadClosed, [queryKey]);
-  useRealtimeInvalidate(ch, RealtimeEvents.RouteLoadConfirmed, [queryKey]);
 
   const drivers = data ?? [];
 

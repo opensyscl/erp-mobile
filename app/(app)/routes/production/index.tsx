@@ -7,12 +7,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Card, Pressable, Skeleton, Text } from '~/components/ui';
 import { useBrand } from '~/hooks/useBrand';
 import { useColorScheme } from '~/hooks/useColorScheme';
-import { useRealtimeInvalidate } from '~/hooks/useRealtime';
 import { useSafeBack } from '~/hooks/useSafeBack';
 import { apiRequest } from '~/lib/api';
+import { queryKeys } from '~/lib/queryKeys';
 import { ArrowLeft, Package, Truck } from '~/lib/icons';
-import { Channels, RealtimeEvents } from '~/lib/realtime';
-import { useTenantStore } from '~/stores/tenant';
 import { Fonts } from '~/theme/fonts';
 import { palette } from '~/theme/tokens';
 
@@ -36,10 +34,9 @@ export default function RoutesProductionScreen() {
   const scheme = useColorScheme();
   const colors = palette[scheme];
   const brand = useBrand();
-  const tenant = useTenantStore((s) => s.tenant);
   const safeBack = useSafeBack('/(app)/routes/admin');
 
-  const queryKey = ['routes', 'production'];
+  const queryKey = queryKeys.routes.production;
   const { data, isLoading, refetch, isRefetching } = useQuery({
     queryKey,
     queryFn: () =>
@@ -48,11 +45,6 @@ export default function RoutesProductionScreen() {
         url: '/api/mobile/routes/production',
       }).then((r) => r.data),
   });
-
-  const ch = tenant ? Channels.tenantRoutes(tenant.id) : null;
-  useRealtimeInvalidate(ch, RealtimeEvents.RouteOrderCreated, [queryKey]);
-  useRealtimeInvalidate(ch, RealtimeEvents.RouteLoadConfirmed, [queryKey]);
-  useRealtimeInvalidate(ch, RealtimeEvents.RouteLoadClosed, [queryKey]);
 
   const loads = data ?? [];
   const pendingPrep = loads.filter((l) => !l.is_confirmed);

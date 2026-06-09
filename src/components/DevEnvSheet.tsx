@@ -5,7 +5,7 @@ import { View } from 'react-native';
 import { AppBottomSheet } from '~/components/AppBottomSheet';
 import { Pressable, Text } from '~/components/ui';
 import { useColorScheme } from '~/hooks/useColorScheme';
-import { disconnectRealtime } from '~/lib/realtime';
+import { disconnectRealtime } from '~/realtime';
 import { ENV_PRESETS, useDevEnvStore, type DevEnvId } from '~/stores/devEnv';
 import { Fonts } from '~/theme/fonts';
 import { palette } from '~/theme/tokens';

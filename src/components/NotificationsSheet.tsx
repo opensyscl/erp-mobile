@@ -19,6 +19,7 @@ const ICONS: Record<NotifKind, 'package' | 'truck' | 'bell'> = {
   'route.order.cancelled': 'package',
   'route.order.payment': 'package',
   'sale.created': 'package',
+  'system.alert': 'bell',
   'stock.changed': 'package',
   'approval.changed': 'bell',
 };

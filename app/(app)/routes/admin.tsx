@@ -8,10 +8,9 @@ import { YearBarsChart } from '~/components/charts/YearBarsChart';
 import { Card, Pressable, Skeleton, Text } from '~/components/ui';
 import { useBrand } from '~/hooks/useBrand';
 import { useColorScheme } from '~/hooks/useColorScheme';
-import { useRealtimeInvalidate } from '~/hooks/useRealtime';
 import { apiRequest } from '~/lib/api';
 import { ArrowRight, BarChart, Package, PackageReceive, Plus, Truck, User as UserIcon, UserGroup, Wallet } from '~/lib/icons';
-import { Channels, RealtimeEvents } from '~/lib/realtime';
+import { queryKeys } from '~/lib/queryKeys';
 import { useAuthStore } from '~/stores/auth';
 import { useTenantStore } from '~/stores/tenant';
 import { Fonts } from '~/theme/fonts';
@@ -80,23 +79,14 @@ export default function RoutesAdminDashboard() {
 
   const firstName = (me?.name ?? 'Equipo').split(' ')[0] ?? 'Admin';
 
-  const queryKey = ['routes', 'admin-dashboard'];
   const { data, isLoading, refetch, isRefetching } = useQuery({
-    queryKey,
+    queryKey: queryKeys.routes.adminDashboard,
     queryFn: () =>
       apiRequest<{ data: DashboardData }>({
         method: 'GET',
         url: '/api/mobile/routes/admin-dashboard',
       }).then((r) => r.data),
   });
-
-  // Realtime: invalidar el dashboard cuando algo cambia en rutas
-  const routesChannel = tenant ? Channels.tenantRoutes(tenant.id) : null;
-  useRealtimeInvalidate(routesChannel, RealtimeEvents.RouteOrderStatusChanged, [queryKey]);
-  useRealtimeInvalidate(routesChannel, RealtimeEvents.RouteOrderCreated, [queryKey]);
-  useRealtimeInvalidate(routesChannel, RealtimeEvents.RouteLoadCreated, [queryKey]);
-  useRealtimeInvalidate(routesChannel, RealtimeEvents.RouteLoadClosed, [queryKey]);
-  useRealtimeInvalidate(routesChannel, RealtimeEvents.RouteLoadConfirmed, [queryKey]);
 
   const STATUS_TONE: Record<DashboardData['recent_orders'][number]['status'], 'warning' | 'success' | 'danger'> = {
     pending: 'warning',

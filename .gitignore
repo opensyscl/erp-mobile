@@ -40,3 +40,10 @@ android/
 
 # Logs
 *.log
+
+# Backups locales de env (nunca commitear)
+.env.backup-*
+.env.*.bak*
+.env.local.bak*
+.env.staging-backup*
+expo-qr.png

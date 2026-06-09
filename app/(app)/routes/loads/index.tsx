@@ -8,12 +8,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Card, Pressable, Skeleton, Text } from '~/components/ui';
 import { useBrand } from '~/hooks/useBrand';
 import { useColorScheme } from '~/hooks/useColorScheme';
-import { useRealtimeInvalidate } from '~/hooks/useRealtime';
 import { useSafeBack } from '~/hooks/useSafeBack';
 import { apiRequest } from '~/lib/api';
 import { ArrowLeft, ArrowRight, Truck } from '~/lib/icons';
-import { Channels, RealtimeEvents } from '~/lib/realtime';
-import { useTenantStore } from '~/stores/tenant';
+import { queryKeys } from '~/lib/queryKeys';
 import { Fonts } from '~/theme/fonts';
 import { palette } from '~/theme/tokens';
 
@@ -50,26 +48,18 @@ export default function RoutesLoadsScreen() {
   const scheme = useColorScheme();
   const colors = palette[scheme];
   const brand = useBrand();
-  const tenant = useTenantStore((s) => s.tenant);
   const safeBack = useSafeBack('/(app)/routes/admin');
 
   const [filter, setFilter] = useState<(typeof FILTERS)[number]['id']>('open');
 
-  const queryKey = ['routes', 'fleet'];
   const { data, isLoading, refetch, isRefetching } = useQuery({
-    queryKey,
+    queryKey: queryKeys.routes.fleet,
     queryFn: () =>
       apiRequest<{ data: FleetLoad[] }>({
         method: 'GET',
         url: '/api/mobile/routes/fleet',
       }).then((r) => r.data),
   });
-
-  const ch = tenant ? Channels.tenantRoutes(tenant.id) : null;
-  useRealtimeInvalidate(ch, RealtimeEvents.RouteLoadCreated, [queryKey]);
-  useRealtimeInvalidate(ch, RealtimeEvents.RouteLoadClosed, [queryKey]);
-  useRealtimeInvalidate(ch, RealtimeEvents.RouteLoadConfirmed, [queryKey]);
-  useRealtimeInvalidate(ch, RealtimeEvents.RouteOrderStatusChanged, [queryKey]);
 
   const loads = (data ?? []).filter((l) => filter === 'all' || l.status === filter);
 

@@ -9,12 +9,10 @@ import { toast } from '~/components/Toast';
 import { Badge, Button, Card, Pressable, Skeleton, Text } from '~/components/ui';
 import { useBrand } from '~/hooks/useBrand';
 import { useColorScheme } from '~/hooks/useColorScheme';
-import { useRealtimeInvalidate } from '~/hooks/useRealtime';
 import { ApiError, apiRequest } from '~/lib/api';
 import { ArrowLeft, Plus } from '~/lib/icons';
-import { Channels, RealtimeEvents } from '~/lib/realtime';
+import { queryKeys } from '~/lib/queryKeys';
 import { useAuthStore } from '~/stores/auth';
-import { useTenantStore } from '~/stores/tenant';
 import { Fonts } from '~/theme/fonts';
 import { palette } from '~/theme/tokens';
 
@@ -81,20 +79,15 @@ export default function ApprovalsScreen() {
   const [statusFilter, setStatusFilter] = useState<(typeof STATUS_FILTERS)[number]['id']>('pending');
   const [createOpen, setCreateOpen] = useState(false);
   const [activeApproval, setActiveApproval] = useState<Approval | null>(null);
-  const tenant = useTenantStore((s) => s.tenant);
 
   const { data, isLoading, refetch, isRefetching } = useQuery({
-    queryKey: ['approvals', statusFilter],
+    queryKey: queryKeys.approvals.list(statusFilter),
     queryFn: () =>
       apiRequest<ApprovalsResponse>({
         method: 'GET',
         url: `/api/mobile/approvals?status=${statusFilter}`,
       }),
   });
-
-  // Realtime: cualquier cambio (creada/aprobada/rechazada) refresca la lista
-  const tenantChannel = tenant ? Channels.tenant(tenant.id) : null;
-  useRealtimeInvalidate(tenantChannel, RealtimeEvents.ApprovalsChanged, [['approvals']]);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -306,7 +299,7 @@ function CreateSheet({ visible, onClose }: { visible: boolean; onClose: () => vo
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['approvals'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.approvals.all });
       reset();
       onClose();
       toast.success('Solicitud enviada', 'Los aprobadores recibirán una notificación.');
@@ -490,7 +483,7 @@ function DetailSheet({
       });
     },
     onSuccess: (res, action) => {
-      queryClient.invalidateQueries({ queryKey: ['approvals'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.approvals.all });
       onResolved();
       toast.success(
         action === 'approve' ? 'Aprobada' : 'Rechazada',

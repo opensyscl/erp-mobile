@@ -8,8 +8,9 @@
 // Probamos en orden hasta encontrar algo callable.
 import * as PusherModule from 'pusher-js/react-native';
 
-import { resolveRealtime } from './env';
-import { secureStorage, StorageKeys } from './storage';
+import type { RealtimeEventMap, RealtimeEventName } from './events';
+import { resolveRealtime } from '~/lib/env';
+import { secureStorage, StorageKeys } from '~/lib/storage';
 
 function resolvePusherCtor(): any {
   const m: any = PusherModule;
@@ -42,14 +43,32 @@ interface PusherClient {
  *
  * Estrategia:
  *   - 1 conexión por sesión, lazy (solo se crea cuando alguien se subscribe)
- *   - canales privados (`private-...`) auth via /broadcasting/auth con Bearer token
+ *   - canales privados (`private-...`) auth via /api/mobile/broadcasting/auth con Bearer token
  *   - reconexión automática manejada por pusher-js
  *   - el cliente NO empuja estado, solo notifica "esto cambió" → consumidor invalida queries
+ *   - tras una reconexión, los eventos emitidos durante la desconexión se PERDIERON:
+ *     registrá un callback con onReconnected() para resincronizar (invalidar queries).
  */
 
 let pusher: PusherClient | null = null;
 const channelCache = new Map<string, PusherChannel>();
 const refCount = new Map<string, number>();
+const reconnectedListeners = new Set<() => void>();
+
+function debugLog(...args: unknown[]): void {
+  if (__DEV__) console.log(...args);
+}
+
+/**
+ * Registra un callback que corre cada vez que el socket se RECONECTA
+ * (no en la primera conexión). Devuelve la función para desregistrarlo.
+ */
+export function onReconnected(cb: () => void): () => void {
+  reconnectedListeners.add(cb);
+  return () => {
+    reconnectedListeners.delete(cb);
+  };
+}
 
 function ensureClient(): PusherClient | null {
   if (pusher) return pusher;
@@ -59,7 +78,7 @@ function ensureClient(): PusherClient | null {
     return null;
   }
 
-  console.log(`[realtime] Conectando a ${cfg.scheme}://${cfg.host}:${cfg.port}`);
+  debugLog(`[realtime] Conectando a ${cfg.scheme}://${cfg.host}:${cfg.port}`);
 
   pusher = new PusherCtor(cfg.key, {
     wsHost: cfg.host,
@@ -73,7 +92,7 @@ function ensureClient(): PusherClient | null {
         try {
           const token = await secureStorage.get(StorageKeys.AuthToken);
           const tenant = await secureStorage.get(StorageKeys.TenantSlug);
-          const { resolveApiUrl } = await import('./env');
+          const { resolveApiUrl } = await import('~/lib/env');
           // Usamos el endpoint API mobile (NO /broadcasting/auth) porque
           // ese tiene middleware 'web' que redirige 302 al login con Bearer
           // tokens. /api/mobile/broadcasting/auth replica la lógica con
@@ -105,11 +124,20 @@ function ensureClient(): PusherClient | null {
     }),
   });
 
-  // Logs de estado de conexión — útil para debug del bell de notificaciones
+  // Estado de conexión: logs de debug + detección de reconexión para resync.
   const conn = (pusher as any)?.connection;
   if (conn?.bind) {
+    let wasConnected = false;
     conn.bind('state_change', (states: { previous: string; current: string }) => {
-      console.log(`[realtime] WS state: ${states.previous} → ${states.current}`);
+      debugLog(`[realtime] WS state: ${states.previous} → ${states.current}`);
+      if (states.current === 'connected') {
+        if (wasConnected) {
+          // Reconexión real: lo emitido mientras estuvimos caídos se perdió.
+          debugLog('[realtime] Reconectado — disparando resync');
+          reconnectedListeners.forEach((cb) => cb());
+        }
+        wasConnected = true;
+      }
     });
     conn.bind('error', (err: any) => {
       console.warn('[realtime] WS error', err);
@@ -126,11 +154,14 @@ export interface SubscribeHandle {
 /**
  * Subscribirse a un evento de un canal. Soporta canales públicos y privados
  * (`private-...`). Devuelve un handle para limpiar.
+ *
+ * El payload se infiere del nombre del evento vía RealtimeEventMap; para
+ * eventos fuera del catálogo el payload es `unknown`.
  */
-export function subscribe<TPayload = unknown>(
+export function subscribe<E extends string>(
   channelName: string,
-  eventName: string,
-  handler: (payload: TPayload) => void,
+  eventName: E,
+  handler: (payload: E extends RealtimeEventName ? RealtimeEventMap[E] : unknown) => void,
 ): SubscribeHandle {
   const client = ensureClient();
   if (!client) {
@@ -139,12 +170,12 @@ export function subscribe<TPayload = unknown>(
 
   let channel = channelCache.get(channelName);
   if (!channel) {
-    console.log(`[realtime] Suscribiendo a ${channelName}`);
+    debugLog(`[realtime] Suscribiendo a ${channelName}`);
     channel = client.subscribe(channelName);
     channelCache.set(channelName, channel);
     // Listeners de éxito/error de subscripción para canales privados
     (channel as any).bind?.('pusher:subscription_succeeded', () => {
-      console.log(`[realtime] ✓ Subscrito a ${channelName}`);
+      debugLog(`[realtime] ✓ Subscrito a ${channelName}`);
     });
     (channel as any).bind?.('pusher:subscription_error', (err: any) => {
       console.warn(`[realtime] ✗ Falló subscripción a ${channelName}`, err);
@@ -154,13 +185,17 @@ export function subscribe<TPayload = unknown>(
   refCount.set(channelName, (refCount.get(channelName) ?? 0) + 1);
 
   const wrappedHandler = (data: any) => {
-    console.log(`[realtime] Evento "${eventName}" en ${channelName}`, data);
-    handler(data as TPayload);
+    debugLog(`[realtime] Evento "${eventName}" en ${channelName}`, data);
+    handler(data);
   };
   ch.bind(eventName, wrappedHandler);
 
   return {
     unsubscribe: () => {
+      // Handle de una sesión anterior: si el cliente global ya no es el que
+      // capturó este closure (logout / cambio de entorno entre medio), los
+      // mapas pertenecen a la sesión nueva — no hay nada que limpiar acá.
+      if (pusher !== client) return;
       ch.unbind(eventName, wrappedHandler);
       const next = (refCount.get(channelName) ?? 1) - 1;
       if (next <= 0) {
@@ -174,51 +209,16 @@ export function subscribe<TPayload = unknown>(
   };
 }
 
-/** Cierra la conexión WS (ej. al hacer logout). */
+/** Cierra la conexión WS (ej. al hacer logout o cambiar de entorno dev). */
 export function disconnectRealtime(): void {
   if (!pusher) return;
+  // Soltar los listeners de conexión antes de descartar la instancia — si no,
+  // un state_change tardío del socket viejo puede disparar un falso resync.
+  const conn = (pusher as any)?.connection;
+  conn?.unbind?.('state_change');
+  conn?.unbind?.('error');
   pusher.disconnect();
   pusher = null;
   channelCache.clear();
   refCount.clear();
 }
-
-/**
- * Catálogo de canales — espejo cliente de `routes/channels.php` del ERP.
- * El prefijo `private-` lo agrega Pusher protocol automáticamente para
- * canales privados; el backend lo strip antes de matchear contra los
- * Broadcast::channel('tenant.{tenantId}', ...) callbacks.
- */
-export const Channels = {
-  tenant: (tenantId: number) => `private-tenant.${tenantId}`,
-  tenantPos: (tenantId: number) => `private-tenant.${tenantId}.pos`,
-  tenantSales: (tenantId: number) => `private-tenant.${tenantId}.sales`,
-  tenantBranchPos: (tenantId: number, branchId: number) =>
-    `private-tenant.${tenantId}.branch.${branchId}.pos`,
-  tenantInventory: (tenantId: number) => `private-tenant.${tenantId}.inventory`,
-  tenantRoutes: (tenantId: number) => `private-tenant.${tenantId}.routes`,
-  tenantOnline: (tenantId: number) => `presence-tenant.${tenantId}.online`,
-  user: (userId: number) => `private-App.Models.User.${userId}`,
-} as const;
-
-/**
- * Eventos broadcast — el `class` que devuelve `broadcastAs()` en Laravel.
- * Si un Event no implementa `broadcastAs`, Laravel usa el FQCN, p.ej.
- * `App\\Events\\Mobile\\ProductStockChanged`. Recomendado siempre definir
- * `broadcastAs()` para tener nombres estables y libres del namespace PHP.
- */
-export const RealtimeEvents = {
-  ProductStockChanged: 'product.stock.changed',
-  SaleCreated: 'sale.created',
-  SaleUpdated: 'sale.updated',
-  CashDrawerChanged: 'cash.drawer.changed',
-  NotificationReceived: 'notification.received',
-  // Routes module
-  RouteLoadCreated: 'routes.load.created',
-  RouteLoadConfirmed: 'routes.load.confirmed',
-  RouteLoadClosed: 'routes.load.closed',
-  RouteOrderCreated: 'routes.order.created',
-  RouteOrderStatusChanged: 'routes.order.status-changed',
-  // Approvals
-  ApprovalsChanged: 'approvals.changed',
-} as const;

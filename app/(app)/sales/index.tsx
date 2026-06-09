@@ -8,11 +8,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Card, Pressable, Skeleton, Text } from '~/components/ui';
 import { useBrand } from '~/hooks/useBrand';
 import { useColorScheme } from '~/hooks/useColorScheme';
-import { useRealtimeInvalidate } from '~/hooks/useRealtime';
 import { apiRequest } from '~/lib/api';
 import { ArrowDownRight, ArrowLeft, ArrowUpRight } from '~/lib/icons';
-import { Channels, RealtimeEvents } from '~/lib/realtime';
-import { useTenantStore } from '~/stores/tenant';
+import { queryKeys } from '~/lib/queryKeys';
 import { Fonts } from '~/theme/fonts';
 import { palette } from '~/theme/tokens';
 
@@ -85,24 +83,17 @@ export default function SalesScreen() {
   const scheme = useColorScheme();
   const colors = palette[scheme];
   const brand = useBrand();
-  const tenant = useTenantStore((s) => s.tenant);
 
   const [period, setPeriod] = useState<'today' | 'week' | 'month'>('today');
-  const QUERY_KEY = ['sales', 'summary', period] as const;
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: QUERY_KEY,
+    queryKey: queryKeys.sales.summary(period),
     queryFn: () =>
       apiRequest<{ data: SummaryData }>({
         method: 'GET',
         url: `/api/mobile/sales/summary?period=${period}`,
       }).then((r) => r.data),
   });
-
-  // Realtime
-  const ch = tenant ? Channels.tenantSales(tenant.id) : null;
-  useRealtimeInvalidate(ch, RealtimeEvents.SaleCreated, [QUERY_KEY]);
-  useRealtimeInvalidate(ch, RealtimeEvents.SaleUpdated, [QUERY_KEY]);
 
   const isPositive = (data?.delta_pct ?? 0) >= 0;
   const trendMax = data ? Math.max(...data.trend.map((b) => b.total), 1) : 1;

@@ -3,11 +3,10 @@ import { Tabs } from 'expo-router';
 
 import { FloatingTabBar } from '~/components/dashboard/FloatingTabBar';
 import { useDriverLocationTracking } from '~/hooks/useDriverLocationTracking';
-import { useRealtimeInvalidate } from '~/hooks/useRealtime';
-import { useRealtimeRouteNotifications } from '~/hooks/useRealtimeNotifications';
 import { apiRequest } from '~/lib/api';
 import { BarChart, Home, Package, Settings, ShoppingCart, Truck, Wallet } from '~/lib/icons';
-import { Channels, RealtimeEvents } from '~/lib/realtime';
+import { queryKeys } from '~/lib/queryKeys';
+import { useRealtimeHub } from '~/realtime';
 import { useAuthStore } from '~/stores/auth';
 import { useTenantStore } from '~/stores/tenant';
 
@@ -15,34 +14,26 @@ export default function AppLayout() {
   const tenant = useTenantStore((s) => s.tenant);
   const user = useAuthStore((s) => s.user);
 
-  // Suscripción global a eventos de Routes — vive mientras el usuario
-  // esté autenticado, así el bell se actualiza desde cualquier pantalla.
-  const routesChannelName = tenant ? Channels.tenantRoutes(tenant.id) : null;
-  useRealtimeRouteNotifications(routesChannelName);
+  // Hub realtime único: invalidación central de queries + feed del bell +
+  // resync tras reconexión. Vive mientras el usuario esté autenticado.
+  useRealtimeHub();
 
   // GPS tracking del driver — solo cuando es driver y tiene una ruta activa.
   // El backend deduce el load_id si no lo pasamos, pero lo precargamos para
   // que el primer ping ya quede asociado correctamente.
   const isDriverRole = user?.role === 'tenant_driver';
-  const todayLoadKey = ['routes', 'today', 'self'] as const;
   const { data: todayLoad } = useQuery({
-    queryKey: todayLoadKey,
+    queryKey: queryKeys.routes.today('self'),
     queryFn: () =>
       apiRequest<{ data: { id: number } | null }>({
         method: 'GET',
         url: '/api/mobile/routes/today',
       }),
     enabled: isDriverRole,
-    // SOLO realtime — sin polling. Reverb dispara la invalidación cuando
-    // hay routes.load.created / confirmed / closed (suscripción abajo).
+    // SOLO realtime — sin polling. El hub invalida ['routes'] cuando llegan
+    // routes.load.created / confirmed / closed por Reverb.
     refetchInterval: false,
   });
-  // Invalida la query del load del día cuando llegan eventos del canal
-  // tenant.{id}.routes — así el badge y la card del driver actualizan
-  // sin polling.
-  useRealtimeInvalidate(routesChannelName, RealtimeEvents.RouteLoadCreated, [todayLoadKey]);
-  useRealtimeInvalidate(routesChannelName, RealtimeEvents.RouteLoadConfirmed, [todayLoadKey]);
-  useRealtimeInvalidate(routesChannelName, RealtimeEvents.RouteLoadClosed, [todayLoadKey]);
   useDriverLocationTracking({
     enabled: isDriverRole && !!todayLoad?.data?.id,
     loadId: todayLoad?.data?.id ?? null,

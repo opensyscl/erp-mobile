@@ -11,12 +11,10 @@ import { toast } from '~/components/Toast';
 import { Button, Card, Pressable, Skeleton, Text } from '~/components/ui';
 import { useBrand } from '~/hooks/useBrand';
 import { useColorScheme } from '~/hooks/useColorScheme';
-import { useRealtimeInvalidate } from '~/hooks/useRealtime';
 import { useSafeBack } from '~/hooks/useSafeBack';
 import { ApiError, apiRequest } from '~/lib/api';
 import { ArrowLeft, Package, Truck, User as UserIcon } from '~/lib/icons';
-import { Channels, RealtimeEvents } from '~/lib/realtime';
-import { useTenantStore } from '~/stores/tenant';
+import { queryKeys } from '~/lib/queryKeys';
 import { Fonts } from '~/theme/fonts';
 import { palette } from '~/theme/tokens';
 import type { RouteOrder } from '~/types/routes';
@@ -50,10 +48,9 @@ export default function OrderDetailScreen() {
   const colors = palette[scheme];
   const brand = useBrand();
   const queryClient = useQueryClient();
-  const tenant = useTenantStore((s) => s.tenant);
   const safeBack = useSafeBack('/(app)/routes/orders');
 
-  const queryKey = ['routes', 'order', params.id];
+  const queryKey = queryKeys.routes.order(params.id);
   const { data, isLoading, refetch, isRefetching } = useQuery({
     queryKey,
     queryFn: () =>
@@ -63,9 +60,6 @@ export default function OrderDetailScreen() {
       }).then((r) => r.data),
     enabled: !!params.id,
   });
-
-  const ch = tenant ? Channels.tenantRoutes(tenant.id) : null;
-  useRealtimeInvalidate(ch, RealtimeEvents.RouteOrderStatusChanged, [queryKey]);
 
   const order = data ?? null;
   const isResolved = !!order && (order.status === 'delivered' || order.status === 'cancelled');
@@ -93,7 +87,7 @@ export default function OrderDetailScreen() {
     },
     onSuccess: () => {
       toast.success('Ruta iniciada', 'Marcada como en ruta');
-      queryClient.invalidateQueries({ queryKey: ['routes'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.routes.all });
     },
     onError: (e) => {
       toast.error('Error', e instanceof ApiError ? e.message : 'No se pudo iniciar');
@@ -117,7 +111,7 @@ export default function OrderDetailScreen() {
     onSuccess: () => {
       const paidNum = Number(paid) || 0;
       toast.success('Entregada', paidNum > 0 ? `Cobrado ${formatCLP(paidNum)}` : 'Sin cobro');
-      queryClient.invalidateQueries({ queryKey: ['routes'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.routes.all });
       setPaid('');
       setNotes('');
       setMode('idle');
@@ -139,7 +133,7 @@ export default function OrderDetailScreen() {
     },
     onSuccess: () => {
       toast.warning('Marcada como no entregada');
-      queryClient.invalidateQueries({ queryKey: ['routes'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.routes.all });
       setMode('idle');
       setNotes('');
     },

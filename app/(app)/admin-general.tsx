@@ -17,7 +17,6 @@ import { Pressable, Text } from '~/components/ui';
 import { useNotificationsStore, useUnseenCount } from '~/stores/notifications';
 import { useBrand } from '~/hooks/useBrand';
 import { useColorScheme } from '~/hooks/useColorScheme';
-import { useRealtime, useRealtimeInvalidate } from '~/hooks/useRealtime';
 import { apiRequest } from '~/lib/api';
 import {
   ArrowUpRight,
@@ -28,13 +27,11 @@ import {
   ShoppingCart,
   Wallet,
 } from '~/lib/icons';
-import { Channels, RealtimeEvents } from '~/lib/realtime';
+import { queryKeys } from '~/lib/queryKeys';
 import { useAuthStore } from '~/stores/auth';
 import { useTenantStore } from '~/stores/tenant';
 import { palette } from '~/theme/tokens';
 import type { DailyKPIs } from '~/types/api';
-
-const KPI_QUERY_KEY = ['kpis', 'today'] as const;
 
 async function fetchDailyKPIs(): Promise<DailyKPIs> {
   return apiRequest<DailyKPIs>({ method: 'GET', url: '/api/mobile/dashboard/today' });
@@ -76,12 +73,12 @@ export default function AdminGeneralDashboard() {
   }, [refreshUser]);
 
   const { data: kpis, isLoading } = useQuery({
-    queryKey: KPI_QUERY_KEY,
+    queryKey: queryKeys.kpis.today,
     queryFn: fetchDailyKPIs,
   });
 
   const { data: approvalsData } = useQuery({
-    queryKey: ['approvals', 'pending', 'count'],
+    queryKey: queryKeys.approvals.pendingCount,
     queryFn: async () =>
       apiRequest<{ counts: { pending: number; mine_pending: number } }>({
         method: 'GET',
@@ -90,22 +87,10 @@ export default function AdminGeneralDashboard() {
   });
   const approvalsPending = approvalsData?.counts.pending ?? 0;
 
-  const salesChannel = tenant ? Channels.tenantSales(tenant.id) : null;
-  const inventoryChannel = tenant ? Channels.tenantInventory(tenant.id) : null;
-  useRealtimeInvalidate(salesChannel, RealtimeEvents.SaleCreated, [KPI_QUERY_KEY]);
-  useRealtimeInvalidate(salesChannel, RealtimeEvents.SaleUpdated, [KPI_QUERY_KEY]);
-  useRealtimeInvalidate(inventoryChannel, RealtimeEvents.ProductStockChanged, [['products']]);
-
-  // Contador de notificaciones unificado: viene del store realtime global
-  // (useRealtimeRouteNotifications en _layout.tsx ya captura route.load.created,
-  // route.order.created, etc). Acá sumamos también sale.created para que las
-  // ventas también incrementen el badge.
-  const pushNotif = useNotificationsStore((s) => s.push);
+  // Contador de notificaciones unificado: el hub realtime (useRealtimeHub en
+  // _layout.tsx) pushea al store los eventos de rutas y sale.created.
   const markAllSeen = useNotificationsStore((s) => s.markAllSeen);
   const unseenCount = useUnseenCount();
-  useRealtime(salesChannel, RealtimeEvents.SaleCreated, () => {
-    pushNotif({ kind: 'sale.created', title: 'Venta nueva' });
-  });
 
   const notifSheet = useRef<BottomSheetModalType>(null);
 

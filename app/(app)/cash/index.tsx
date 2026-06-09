@@ -6,11 +6,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Card, Pressable, Skeleton, Text } from '~/components/ui';
 import { useColorScheme } from '~/hooks/useColorScheme';
-import { useRealtimeInvalidate } from '~/hooks/useRealtime';
 import { apiRequest } from '~/lib/api';
 import { ArrowLeft, Wallet } from '~/lib/icons';
-import { Channels, RealtimeEvents } from '~/lib/realtime';
-import { useTenantStore } from '~/stores/tenant';
+import { queryKeys } from '~/lib/queryKeys';
 import { Fonts } from '~/theme/fonts';
 import { palette } from '~/theme/tokens';
 
@@ -55,23 +53,15 @@ export default function CashScreen() {
   const insets = useSafeAreaInsets();
   const scheme = useColorScheme();
   const colors = palette[scheme];
-  const tenant = useTenantStore((s) => s.tenant);
-
-  const QUERY_KEY = ['cash', 'today'] as const;
 
   const { data, isLoading, refetch, isRefetching } = useQuery({
-    queryKey: QUERY_KEY,
+    queryKey: queryKeys.cash.today,
     queryFn: () =>
       apiRequest<{ data: CashTodayData }>({
         method: 'GET',
         url: '/api/mobile/sales/today',
       }).then((r) => r.data),
   });
-
-  // Realtime: cualquier venta nueva refresca el cuadre
-  const ch = tenant ? Channels.tenantSales(tenant.id) : null;
-  useRealtimeInvalidate(ch, RealtimeEvents.SaleCreated, [QUERY_KEY]);
-  useRealtimeInvalidate(ch, RealtimeEvents.SaleUpdated, [QUERY_KEY]);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { apiRequest, setAuthToken } from '~/lib/api';
-import { disconnectRealtime } from '~/lib/realtime';
+import { disconnectRealtime } from '~/realtime';
 import { secureStorage, StorageKeys } from '~/lib/storage';
 import type { AuthResponse, Branch, Tenant, User } from '~/types/api';
 import { useTenantStore } from './tenant';
