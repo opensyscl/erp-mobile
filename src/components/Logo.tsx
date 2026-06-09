@@ -3,9 +3,7 @@ import { View } from 'react-native';
 import Svg, { Circle, Rect } from 'react-native-svg';
 
 import { useBrand } from '~/hooks/useBrand';
-import { useColorScheme } from '~/hooks/useColorScheme';
 import { Fonts } from '~/theme/fonts';
-import { palette } from '~/theme/tokens';
 import { Text } from './ui/Text';
 
 /**

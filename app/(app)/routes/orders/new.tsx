@@ -1,6 +1,6 @@
 import { BottomSheetScrollView, BottomSheetTextInput, type BottomSheetModal as BottomSheetModalType } from '@gorhom/bottom-sheet';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Stack, useRouter } from 'expo-router';
+import { Stack } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
@@ -56,7 +56,6 @@ function formatCLP(n: number): string {
 }
 
 export default function NewRouteOrderScreen() {
-  const router = useRouter();
   const insets = useSafeAreaInsets();
   const scheme = useColorScheme();
   const colors = palette[scheme];

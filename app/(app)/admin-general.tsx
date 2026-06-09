@@ -2,7 +2,7 @@ import { type BottomSheetModal as BottomSheetModalType } from '@gorhom/bottom-sh
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { ScrollView, View } from 'react-native';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';

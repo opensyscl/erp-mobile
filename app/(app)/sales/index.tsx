@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Stack, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, View } from 'react-native';
-import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Card, Pressable, Skeleton, Text } from '~/components/ui';

@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Stack, useRouter } from 'expo-router';
 import { RefreshControl, ScrollView, View } from 'react-native';
-import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Card, Pressable, Skeleton, Text } from '~/components/ui';
@@ -10,7 +10,7 @@ import { useColorScheme } from '~/hooks/useColorScheme';
 import { useSafeBack } from '~/hooks/useSafeBack';
 import { apiRequest } from '~/lib/api';
 import { queryKeys } from '~/lib/queryKeys';
-import { ArrowLeft, Receipt, Wallet } from '~/lib/icons';
+import { ArrowLeft, Wallet } from '~/lib/icons';
 import { Fonts } from '~/theme/fonts';
 import { brandShadow, palette } from '~/theme/tokens';
 
@@ -277,7 +277,7 @@ export default function RoutesBillingScreen() {
           <View className="gap-2">
             {isLoading
               ? [0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-20 rounded-xl" />)
-              : unpaid.map((o, i) => (
+              : unpaid.map((o, _i) => (
                   <Animated.View
                     key={o.id}
 

@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 // El bundle CJS de pusher-js para RN expone la clase como `module.exports.Pusher`
 // (named export), NO como default. Tras la transformación CJS→ESM de Metro
 // nos quedan estos casos posibles según el bundler/version:

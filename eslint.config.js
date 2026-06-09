@@ -8,6 +8,14 @@ module.exports = [
   {
     rules: {
       'react-hooks/exhaustive-deps': 'warn',
+    },
+  },
+  {
+    // El plugin @typescript-eslint solo está registrado para archivos TS
+    // (eslint-config-expo/flat) — scopear la regla evita que explote al
+    // lintear .js como este mismo config.
+    files: ['**/*.ts', '**/*.tsx'],
+    rules: {
       '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
     },
   },

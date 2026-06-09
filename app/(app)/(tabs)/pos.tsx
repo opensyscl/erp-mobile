@@ -10,7 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppBottomSheet } from '~/components/AppBottomSheet';
 
 import { toast } from '~/components/Toast';
-import { AvatarGroup, Button, Card, Input, Pressable, Skeleton, Text } from '~/components/ui';
+import { AvatarGroup, Button, Input, Pressable, Skeleton, Text } from '~/components/ui';
 import { useBrand } from '~/hooks/useBrand';
 import { useColorScheme } from '~/hooks/useColorScheme';
 import { ApiError, apiRequest } from '~/lib/api';

@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Stack, useRouter } from 'expo-router';
 import { Dimensions, RefreshControl, ScrollView, View } from 'react-native';
-import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { YearBarsChart } from '~/components/charts/YearBarsChart';

@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Stack, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { RefreshControl, ScrollView, TextInput, View } from 'react-native';
-import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Card, Pressable, Skeleton, Text } from '~/components/ui';
@@ -160,7 +160,7 @@ export default function RoutesClientsScreen() {
         <View className="mt-5 gap-2">
           {isLoading
             ? [0, 1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-16 rounded-xl" />)
-            : clients.map((c, i) => (
+            : clients.map((c, _i) => (
                 <Animated.View key={c.id}>
                   <Pressable
                     haptic="selection"

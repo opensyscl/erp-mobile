@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { FlatList, View } from 'react-native';
-import Animated, { FadeIn } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 
 import { Button, Card, Input, Pressable, Screen, Skeleton, Text } from '~/components/ui';
 import { useBrand } from '~/hooks/useBrand';
@@ -134,7 +134,7 @@ export default function InventoryScreen() {
               Mostrando {items.length} de {data?.meta.total ?? 0}
             </Text>
           }
-          renderItem={({ item, index }) => (
+          renderItem={({ item }) => (
             <Animated.View>
               <ProductRow product={item} />
             </Animated.View>

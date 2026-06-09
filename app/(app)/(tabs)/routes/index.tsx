@@ -14,7 +14,6 @@ import {
   View,
 } from 'react-native';
 import Animated, {
-  Easing,
   FadeIn,
   FadeInDown,
   FadeInUp,
@@ -30,9 +29,8 @@ import { toast } from '~/components/Toast';
 import { Button, Card, Pressable, Skeleton, Text } from '~/components/ui';
 import { useBrand } from '~/hooks/useBrand';
 import { useColorScheme } from '~/hooks/useColorScheme';
-import { useSafeBack } from '~/hooks/useSafeBack';
 import { ApiError, apiRequest } from '~/lib/api';
-import { ArrowLeft, ArrowRight, BarChart, Bell, ChevronRight, Navigation, Package, PackageReceive, Phone, Plus, Receipt, Refresh, Truck, User as UserIcon, UserGroup, Wallet } from '~/lib/icons';
+import { ArrowRight, Bell, ChevronRight, Navigation, Package, PackageReceive, Phone, Plus, Refresh, Truck, User as UserIcon, Wallet } from '~/lib/icons';
 import { queryKeys } from '~/lib/queryKeys';
 import { useAuthStore } from '~/stores/auth';
 import { useUnseenCount } from '~/stores/notifications';
@@ -103,12 +101,8 @@ export default function RoutesScreen() {
   const queryClient = useQueryClient();
   const me = useAuthStore((s) => s.user);
   const tenant = useTenantStore((s) => s.tenant);
-  const isDriver = me?.role === 'tenant_driver';
   const params = useLocalSearchParams<{ driver_id?: string }>();
   const driverIdParam = params.driver_id ?? null;
-  // Driver llega aquí por redirect desde /(app)/ — no hay stack, así que router.back()
-  // dispara "GO_BACK was not handled". Caemos al admin dashboard si admin, o al home.
-  const safeBack = useSafeBack(isDriver ? '/(app)/settings' : '/(app)/routes/admin');
 
   const [activeOrder, setActiveOrder] = useState<RouteOrder | null>(null);
   const [orderTab, setOrderTab] = useState<'pending' | 'delivered'>('pending');
@@ -1794,134 +1788,6 @@ function DriverGridAction({
           {label}
         </Text>
       </Pressable>
-    </View>
-  );
-}
-
-/* ─────────────── Driver Quick Action ─────────────── */
-
-function DriverQuickAction({
-  label,
-  icon,
-  bg,
-  fg,
-  onPress,
-}: {
-  label: string;
-  icon: React.ReactNode;
-  bg?: string;
-  fg?: string;
-  onPress: () => void;
-}) {
-  const scheme = useColorScheme();
-  const colors = palette[scheme];
-  const baseBg = bg ?? colors.bgElevated;
-  const baseFg = fg ?? colors.fg;
-  return (
-    <Pressable
-      haptic="selection"
-      scale="subtle"
-      onPress={onPress}
-      style={{
-        width: 92,
-        height: 92,
-        borderRadius: 16,
-        backgroundColor: baseBg,
-        borderWidth: bg ? 0 : 1,
-        borderColor: colors.border,
-        padding: 11,
-        justifyContent: 'space-between',
-      }}
-    >
-      <View
-        style={{
-          width: 32,
-          height: 32,
-          borderRadius: 9,
-          backgroundColor: bg ? withAlpha(palette.light.fgInverse, 0.18) : colors.bgMuted,
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        {icon}
-      </View>
-      <Text
-        style={{
-          fontFamily: Fonts.medium,
-          fontSize: 11,
-          lineHeight: 15,
-          color: baseFg,
-          letterSpacing: -0.1,
-          includeFontPadding: false,
-        } as never}
-        numberOfLines={1}
-      >
-        {label}
-      </Text>
-    </Pressable>
-  );
-}
-
-/* ─────────────── Driver KPI Card (estilo admin) ─────────────── */
-
-function DriverKpiCard({
-  label,
-  value,
-  accent,
-  icon,
-  isMoney,
-}: {
-  label: string;
-  value: string;
-  accent: string;
-  icon: React.ReactNode;
-  isMoney?: boolean;
-}) {
-  const scheme = useColorScheme();
-  const colors = palette[scheme];
-  return (
-    <View
-      style={{
-        flex: 1,
-        padding: 14,
-        borderRadius: 16,
-        backgroundColor: colors.bgElevated,
-        borderWidth: 1,
-        borderColor: colors.border,
-      }}
-    >
-      <View className="flex-row items-center gap-2">
-        <View
-          style={{
-            width: 28,
-            height: 28,
-            borderRadius: 8,
-            backgroundColor: withAlpha(accent, 0.12),
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          {icon}
-        </View>
-        <Text variant="caption" tone="subtle" style={{ fontSize: 10, letterSpacing: 0.4 }}>
-          {label.toUpperCase()}
-        </Text>
-      </View>
-      <Text
-        style={{
-          fontFamily: Fonts.semibold,
-          fontSize: isMoney ? 18 : 26,
-          lineHeight: isMoney ? 26 : 36,
-          letterSpacing: isMoney ? -0.3 : -0.7,
-          color: colors.fg,
-          fontVariant: ['tabular-nums'],
-          marginTop: 8,
-          includeFontPadding: false,
-        } as never}
-        numberOfLines={1}
-      >
-        {value}
-      </Text>
     </View>
   );
 }

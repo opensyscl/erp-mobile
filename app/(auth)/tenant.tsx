@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { forwardRef, useRef, useState, type ReactNode, type Ref } from 'react';
+import { forwardRef, useRef, useState, type Ref } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,

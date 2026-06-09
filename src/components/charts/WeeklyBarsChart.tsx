@@ -63,7 +63,6 @@ export function WeeklyBarsChart({
         {/* Y axis tick lines + labels */}
         {Array.from({ length: yTicks + 1 }).map((_, i) => {
           const y = PAD_TOP + (chartH * i) / yTicks;
-          const val = niceMax * (1 - i / yTicks);
           return (
             <Line
               key={i}

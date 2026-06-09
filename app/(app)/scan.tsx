@@ -35,8 +35,6 @@ const SCREEN_W = Dimensions.get('window').width;
 const FRAME_SIZE = Math.min(SCREEN_W - 80, 280);
 
 export default function ScanScreen() {
-  const scheme = useColorScheme();
-  const colors = palette[scheme];
   const brand = useBrand();
   const router = useRouter();
   const [permission, requestPermission] = useCameraPermissions();
@@ -141,8 +139,6 @@ export default function ScanScreen() {
 }
 
 function ScanOverlay() {
-  const scheme = useColorScheme();
-  const colors = palette[scheme];
   const brand = useBrand();
 
   // Línea animada que recorre el frame
@@ -271,7 +267,6 @@ function ResultSheet({
 }) {
   const scheme = useColorScheme();
   const colors = palette[scheme];
-  const brand = useBrand();
 
   const apiErr = error instanceof ApiError ? error : null;
   const notFound = apiErr?.status === 404;

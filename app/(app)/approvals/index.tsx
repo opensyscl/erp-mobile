@@ -6,7 +6,7 @@ import Animated, { FadeIn, SlideInDown, SlideOutDown } from 'react-native-reanim
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { toast } from '~/components/Toast';
-import { Badge, Button, Card, Pressable, Skeleton, Text } from '~/components/ui';
+import { Badge, Button, Pressable, Skeleton, Text } from '~/components/ui';
 import { useBrand } from '~/hooks/useBrand';
 import { useColorScheme } from '~/hooks/useColorScheme';
 import { ApiError, apiRequest } from '~/lib/api';
@@ -183,7 +183,7 @@ export default function ApprovalsScreen() {
               </Text>
             </View>
           }
-          renderItem={({ item, index }) => (
+          renderItem={({ item }) => (
             <Animated.View>
               <ApprovalRow approval={item} onPress={() => setActiveApproval(item)} />
             </Animated.View>
@@ -208,7 +208,6 @@ export default function ApprovalsScreen() {
 function ApprovalRow({ approval, onPress }: { approval: Approval; onPress: () => void }) {
   const scheme = useColorScheme();
   const colors = palette[scheme];
-  const brand = useBrand();
 
   const statusBadge =
     approval.status === 'pending' ? (
@@ -464,14 +463,11 @@ function DetailSheet({
 }) {
   const scheme = useColorScheme();
   const colors = palette[scheme];
-  const brand = useBrand();
   const queryClient = useQueryClient();
   const [notes, setNotes] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const me = useAuthStore((s) => s.user);
 
   const isPending = approval.status === 'pending';
-  const canApprove = !!me?.permissions.some((p) => p === 'expenses.create' || p === 'expenses.view') || true;
   // Para MVP: cualquiera con la app puede ver la pantalla, pero el backend valida que sea manager/admin
 
   const resolveMut = useMutation({

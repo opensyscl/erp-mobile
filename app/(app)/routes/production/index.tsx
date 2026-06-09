@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Stack, useRouter } from 'expo-router';
 import { RefreshControl, ScrollView, View } from 'react-native';
-import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Card, Pressable, Skeleton, Text } from '~/components/ui';
@@ -121,8 +121,8 @@ export default function RoutesProductionScreen() {
               Por preparar
             </Text>
             <View className="gap-2.5">
-              {pendingPrep.map((l, i) => (
-                <ProductionCard key={l.id} load={l} pending index={i} />
+              {pendingPrep.map((l) => (
+                <ProductionCard key={l.id} load={l} pending />
               ))}
             </View>
           </View>
@@ -135,12 +135,11 @@ export default function RoutesProductionScreen() {
               Confirmadas y en ruta
             </Text>
             <View className="gap-2.5">
-              {confirmed.map((l, i) => (
+              {confirmed.map((l) => (
                 <ProductionCard
                   key={l.id}
                   load={l}
                   pending={false}
-                  index={i}
                   onPress={() =>
                     l.driver
                       ? router.push(`/(app)/routes?driver_id=${l.driver.id}` as never)
@@ -192,12 +191,10 @@ export default function RoutesProductionScreen() {
 function ProductionCard({
   load,
   pending,
-  index,
   onPress,
 }: {
   load: ProductionLoad;
   pending: boolean;
-  index: number;
   onPress?: () => void;
 }) {
   const scheme = useColorScheme();
