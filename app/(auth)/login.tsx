@@ -55,11 +55,23 @@ export default function LoginScreen() {
   const logoTap = useFourTapGesture(() => devEnvSheet.current?.present());
 
   const setSlug = useTenantStore((s) => s.setSlug);
+  // Tocás un user del sheet → rellena inputs + cierra el sheet + auto-login.
+  // Espejo del comportamiento del web (fillDemo con autoSubmit).
   const handleDemoPick = async (slug: string, em: string, pw: string) => {
     await setSlug(slug);
     setEmail(em);
     setPassword(pw);
     demoSheet.current?.dismiss();
+    try {
+      await login({ email: em.trim(), password: pw, tenantSlug: slug });
+      toast.success('Bienvenido', `Sesión iniciada como ${em}`);
+    } catch (e) {
+      if (e instanceof ApiError && (e.status === 422 || e.status === 401)) {
+        toast.error('Credenciales incorrectas', `Revisá email/contraseña (tenant "${slug}")`);
+      } else if (e instanceof Error) {
+        toast.error('Error', e.message);
+      }
+    }
   };
 
   // Prellenado mínimo en dev: driver con data sembrada del día — al entrar

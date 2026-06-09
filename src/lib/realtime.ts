@@ -74,7 +74,11 @@ function ensureClient(): PusherClient | null {
           const token = await secureStorage.get(StorageKeys.AuthToken);
           const tenant = await secureStorage.get(StorageKeys.TenantSlug);
           const { resolveApiUrl } = await import('./env');
-          const url = `${resolveApiUrl()}/broadcasting/auth`;
+          // Usamos el endpoint API mobile (NO /broadcasting/auth) porque
+          // ese tiene middleware 'web' que redirige 302 al login con Bearer
+          // tokens. /api/mobile/broadcasting/auth replica la lógica con
+          // sólo auth:sanctum + IdentifyTenantApi.
+          const url = `${resolveApiUrl()}/api/mobile/broadcasting/auth`;
           const res = await fetch(url, {
             method: 'POST',
             headers: {

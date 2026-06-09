@@ -1,7 +1,8 @@
+import { type BottomSheetModal as BottomSheetModalType } from '@gorhom/bottom-sheet';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -11,7 +12,9 @@ import { BalanceCard } from '~/components/dashboard/BalanceCard';
 import { QuickActionCircle } from '~/components/dashboard/QuickActionCircle';
 import { SalesByDayCard } from '~/components/dashboard/SalesByDayCard';
 import { SoftHeader } from '~/components/dashboard/SoftHeader';
+import { NotificationsSheet } from '~/components/NotificationsSheet';
 import { Pressable, Text } from '~/components/ui';
+import { useNotificationsStore, useUnseenCount } from '~/stores/notifications';
 import { useBrand } from '~/hooks/useBrand';
 import { useColorScheme } from '~/hooks/useColorScheme';
 import { useRealtime, useRealtimeInvalidate } from '~/hooks/useRealtime';
@@ -93,12 +96,18 @@ export default function AdminGeneralDashboard() {
   useRealtimeInvalidate(salesChannel, RealtimeEvents.SaleUpdated, [KPI_QUERY_KEY]);
   useRealtimeInvalidate(inventoryChannel, RealtimeEvents.ProductStockChanged, [['products']]);
 
-  // Contador de notificaciones de venta nueva — se incrementa con cada
-  // SaleCreated en realtime y se reset al tocar la campanita.
-  const [salesNotif, setSalesNotif] = useState(0);
+  // Contador de notificaciones unificado: viene del store realtime global
+  // (useRealtimeRouteNotifications en _layout.tsx ya captura route.load.created,
+  // route.order.created, etc). Acá sumamos también sale.created para que las
+  // ventas también incrementen el badge.
+  const pushNotif = useNotificationsStore((s) => s.push);
+  const markAllSeen = useNotificationsStore((s) => s.markAllSeen);
+  const unseenCount = useUnseenCount();
   useRealtime(salesChannel, RealtimeEvents.SaleCreated, () => {
-    setSalesNotif((n) => n + 1);
+    pushNotif({ kind: 'sale.created', title: 'Venta nueva' });
   });
+
+  const notifSheet = useRef<BottomSheetModalType>(null);
 
   const firstName = (user?.name ?? 'Equipo').split(' ')[0] ?? 'Equipo';
   const initial = firstName[0]?.toUpperCase() ?? 'O';
@@ -133,11 +142,11 @@ export default function AdminGeneralDashboard() {
         // en un dashboard de tenant que las iniciales generadas del admin.
         photo={tenant?.logo_url ?? user?.avatar_url}
         avatarColor={brand.brand}
-        hasNotifications={approvalsPending > 0}
-        notificationCount={salesNotif}
+        hasNotifications={unseenCount > 0 || approvalsPending > 0}
+        notificationCount={unseenCount}
         onBellPress={() => {
-          setSalesNotif(0);
-          router.push('/(app)/approvals' as never);
+          markAllSeen();
+          notifSheet.current?.present();
         }}
         topInset={insets.top}
       />
@@ -276,6 +285,8 @@ export default function AdminGeneralDashboard() {
           </View>
         </Animated.View>
       </ScrollView>
+
+      <NotificationsSheet ref={notifSheet} />
     </View>
   );
 }

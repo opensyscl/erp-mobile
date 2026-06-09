@@ -3,10 +3,11 @@ import { Tabs } from 'expo-router';
 
 import { FloatingTabBar } from '~/components/dashboard/FloatingTabBar';
 import { useDriverLocationTracking } from '~/hooks/useDriverLocationTracking';
+import { useRealtimeInvalidate } from '~/hooks/useRealtime';
 import { useRealtimeRouteNotifications } from '~/hooks/useRealtimeNotifications';
 import { apiRequest } from '~/lib/api';
 import { BarChart, Home, Package, Settings, ShoppingCart, Truck, Wallet } from '~/lib/icons';
-import { Channels } from '~/lib/realtime';
+import { Channels, RealtimeEvents } from '~/lib/realtime';
 import { useAuthStore } from '~/stores/auth';
 import { useTenantStore } from '~/stores/tenant';
 
@@ -23,16 +24,25 @@ export default function AppLayout() {
   // El backend deduce el load_id si no lo pasamos, pero lo precargamos para
   // que el primer ping ya quede asociado correctamente.
   const isDriverRole = user?.role === 'tenant_driver';
+  const todayLoadKey = ['routes', 'today', 'self'] as const;
   const { data: todayLoad } = useQuery({
-    queryKey: ['routes', 'today', 'self'],
+    queryKey: todayLoadKey,
     queryFn: () =>
       apiRequest<{ data: { id: number } | null }>({
         method: 'GET',
         url: '/api/mobile/routes/today',
       }),
     enabled: isDriverRole,
-    refetchInterval: 60_000,
+    // SOLO realtime — sin polling. Reverb dispara la invalidación cuando
+    // hay routes.load.created / confirmed / closed (suscripción abajo).
+    refetchInterval: false,
   });
+  // Invalida la query del load del día cuando llegan eventos del canal
+  // tenant.{id}.routes — así el badge y la card del driver actualizan
+  // sin polling.
+  useRealtimeInvalidate(routesChannelName, RealtimeEvents.RouteLoadCreated, [todayLoadKey]);
+  useRealtimeInvalidate(routesChannelName, RealtimeEvents.RouteLoadConfirmed, [todayLoadKey]);
+  useRealtimeInvalidate(routesChannelName, RealtimeEvents.RouteLoadClosed, [todayLoadKey]);
   useDriverLocationTracking({
     enabled: isDriverRole && !!todayLoad?.data?.id,
     loadId: todayLoad?.data?.id ?? null,
