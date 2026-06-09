@@ -1,6 +1,8 @@
 import { HugeiconsIcon, type HugeiconsProps, type IconSvgElement } from '@hugeicons/react-native';
 import {
   ArrowDownRight01Icon,
+  Call02Icon,
+  Navigation01Icon,
   ArrowLeft02Icon,
   ArrowRight01Icon,
   ArrowUpRight01Icon,
@@ -81,6 +83,8 @@ export const PackageReceive = makeIcon(PackageReceiveIcon);
 export const ScanLine = makeIcon(BarcodeScanIcon);
 export const Settings = makeIcon(Settings02Icon);
 export const Truck = makeIcon(DeliveryTruck01Icon);
+export const Phone = makeIcon(Call02Icon);
+export const Navigation = makeIcon(Navigation01Icon);
 
 // Quick actions
 export const ShoppingCart = makeIcon(ShoppingCart01Icon);

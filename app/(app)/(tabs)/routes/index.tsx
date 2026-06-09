@@ -5,6 +5,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
+  Linking,
   Modal,
   Platform,
   RefreshControl,
@@ -19,9 +20,6 @@ import Animated, {
   FadeInUp,
   SlideInDown,
   SlideOutDown,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -33,13 +31,13 @@ import { useBrand } from '~/hooks/useBrand';
 import { useColorScheme } from '~/hooks/useColorScheme';
 import { useSafeBack } from '~/hooks/useSafeBack';
 import { ApiError, apiRequest } from '~/lib/api';
-import { ArrowLeft, ArrowRight, BarChart, Bell, ChevronRight, Package, PackageReceive, Plus, Receipt, Refresh, Truck, User as UserIcon, UserGroup, Wallet } from '~/lib/icons';
+import { ArrowLeft, ArrowRight, BarChart, Bell, ChevronRight, Navigation, Package, PackageReceive, Phone, Plus, Receipt, Refresh, Truck, User as UserIcon, UserGroup, Wallet } from '~/lib/icons';
 import { queryKeys } from '~/lib/queryKeys';
 import { useAuthStore } from '~/stores/auth';
 import { useUnseenCount } from '~/stores/notifications';
 import { useTenantStore } from '~/stores/tenant';
 import { Fonts } from '~/theme/fonts';
-import { palette, withAlpha } from '~/theme/tokens';
+import { brandShadow, palette, shadows, withAlpha } from '~/theme/tokens';
 import type {
   RouteLoad,
   RouteOrder,
@@ -211,6 +209,47 @@ export default function RoutesScreen() {
   const allResolved =
     orders.length > 0 && orders.every((o) => o.status !== 'pending');
 
+  // ——— Estado de la jornada (hero oscuro + card de próxima parada) ———
+  const dark = palette.dark;
+  const state: 'empty' | 'ready' | 'in_progress' | 'done' = !load
+    ? 'empty'
+    : load.progress.delivered === 0
+      ? 'ready'
+      : load.progress.delivered >= load.progress.total
+        ? 'done'
+        : 'in_progress';
+
+  // Próxima parada pendiente — primero por status pending, fallback in_route.
+  const nextOrder =
+    load?.orders.find((o) => o.status === 'pending') ??
+    load?.orders.find((o) => o.status === 'in_route') ??
+    null;
+
+  const heroChip = (() => {
+    switch (state) {
+      case 'empty':
+        return { dot: dark.fgSubtle, label: 'Sin ruta hoy' };
+      case 'ready':
+        return { dot: brand.brand, label: 'Lista para salir' };
+      case 'in_progress':
+        return { dot: dark.success, label: 'En ruta' };
+      case 'done':
+        return { dot: dark.success, label: 'Ruta completada' };
+    }
+  })();
+
+  const onOpenLoad = () => {
+    if (load) router.push(`/(app)/routes/load/${load.id}` as never);
+  };
+  const callClient = (phone: string) => {
+    void Linking.openURL(`tel:${phone.replace(/[^+\d]/g, '')}`);
+  };
+  const navigateTo = (address: string) => {
+    void Linking.openURL(
+      `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}`,
+    );
+  };
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <Stack.Screen options={{ headerShown: false }} />
@@ -228,17 +267,18 @@ export default function RoutesScreen() {
         }
         style={{ marginTop: 0 }}
       >
-        {/* Header brand compacto — estilo enterprise home */}
+        {/* Hero oscuro — jornada del driver: plata cobrada + progreso (patrón earnings
+            de apps de delivery: el número del día manda, el resto acompaña) */}
         <View
           style={{
-            backgroundColor: brand.brand,
+            backgroundColor: dark.bg,
             paddingTop: insets.top + 12,
             paddingHorizontal: 20,
-            paddingBottom: 92,
+            paddingBottom: 96,
             overflow: 'hidden',
           }}
         >
-          <HeaderPattern color={brand.brandFg} intensity={1.0} />
+          <HeaderPattern color={dark.fg} intensity={0.5} />
           <Animated.View entering={FadeInDown.duration(220)}>
             <View className="flex-row items-center justify-between">
               <View className="flex-row items-center gap-2.5">
@@ -247,14 +287,14 @@ export default function RoutesScreen() {
                     width: 26,
                     height: 26,
                     borderRadius: 8,
-                    backgroundColor: withAlpha(palette.light.fgInverse, 0.22),
+                    backgroundColor: withAlpha(dark.fg, 0.14),
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}
                 >
                   <Text
                     style={{
-                      color: brand.brandFg,
+                      color: dark.fg,
                       fontFamily: Fonts.semibold,
                       fontSize: 12,
                       includeFontPadding: false,
@@ -265,7 +305,7 @@ export default function RoutesScreen() {
                 </View>
                 <Text
                   style={{
-                    color: brand.brandFg,
+                    color: dark.fgMuted,
                     fontFamily: Fonts.medium,
                     fontSize: 14,
                     letterSpacing: -0.3,
@@ -279,17 +319,17 @@ export default function RoutesScreen() {
                   haptic="selection"
                   onPress={handleReload}
                   className="h-9 w-9 rounded-full items-center justify-center"
-                  style={{ backgroundColor: withAlpha(palette.light.fgInverse, 0.18) }}
+                  style={{ backgroundColor: withAlpha(dark.fg, 0.12) }}
                 >
-                  <Refresh size={16} color={brand.brandFg} strokeWidth={1.8} />
+                  <Refresh size={16} color={dark.fg} strokeWidth={1.8} />
                 </Pressable>
                 <Pressable
                   haptic="selection"
                   onPress={() => notifSheet.current?.present()}
                   className="h-9 w-9 rounded-full items-center justify-center"
-                  style={{ backgroundColor: withAlpha(palette.light.fgInverse, 0.18) }}
+                  style={{ backgroundColor: withAlpha(dark.fg, 0.12) }}
                 >
-                  <Bell size={16} color={brand.brandFg} strokeWidth={1.8} />
+                  <Bell size={16} color={dark.fg} strokeWidth={1.8} />
                   {unseenCount > 0 ? (
                     <View
                       style={{
@@ -304,7 +344,7 @@ export default function RoutesScreen() {
                         alignItems: 'center',
                         justifyContent: 'center',
                         borderWidth: 1.5,
-                        borderColor: brand.brand,
+                        borderColor: dark.bg,
                       }}
                     >
                       <Text
@@ -326,296 +366,374 @@ export default function RoutesScreen() {
 
             <Text
               style={{
-                color: brand.brandFg,
-                fontFamily: Fonts.medium,
-                fontSize: 26,
-                lineHeight: 36,
-                letterSpacing: -0.4,
-                marginTop: 22,
-              }}
-            >
-              {greeting()},
-            </Text>
-            <Text
-              style={{
-                color: brand.brandFg,
-                fontFamily: Fonts.semibold,
-                fontSize: 26,
-                lineHeight: 36,
-                letterSpacing: -0.4,
-              }}
-            >
-              {(me?.name ?? 'Equipo').split(' ')[0]}.
-            </Text>
-            <Text
-              style={{
-                color: brand.brandFg,
-                opacity: 0.62,
+                color: dark.fgMuted,
                 fontFamily: Fonts.regular,
-                fontSize: 13,
-                lineHeight: 20,
-                marginTop: 8,
-                maxWidth: 320,
+                fontSize: 14,
+                letterSpacing: -0.2,
+                marginTop: 24,
               }}
             >
-              {load ? `Tu ruta del día · ${load.progress.total} paradas asignadas.` : 'Sin ruta activa hoy.'}
+              {greeting()}, {(me?.name ?? 'Equipo').split(' ')[0]} · cobrado hoy
             </Text>
+            <Text
+              style={{
+                color: dark.fg,
+                fontFamily: Fonts.semibold,
+                fontSize: 40,
+                lineHeight: 48,
+                letterSpacing: -1.2,
+                marginTop: 2,
+                fontVariant: ['tabular-nums'],
+                includeFontPadding: false,
+              } as never}
+            >
+              {formatCLP(load?.amounts.collected ?? 0)}
+            </Text>
+            {load ? (
+              <Text
+                style={{
+                  color: dark.fgSubtle,
+                  fontFamily: Fonts.regular,
+                  fontSize: 13,
+                  marginTop: 4,
+                }}
+              >
+                de {formatCLP(load.amounts.total)} en ruta · {formatCLP(load.amounts.pending)} por cobrar
+              </Text>
+            ) : null}
+
+            <View className="flex-row items-center justify-between" style={{ marginTop: 18 }}>
+              <View
+                className="flex-row items-center gap-2"
+                style={{
+                  paddingHorizontal: 10,
+                  paddingVertical: 5,
+                  borderRadius: 999,
+                  backgroundColor: withAlpha(dark.fg, 0.1),
+                }}
+              >
+                <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: heroChip.dot }} />
+                <Text
+                  style={{
+                    color: dark.fg,
+                    fontFamily: Fonts.medium,
+                    fontSize: 12,
+                    letterSpacing: -0.1,
+                    includeFontPadding: false,
+                  } as never}
+                >
+                  {heroChip.label}
+                </Text>
+              </View>
+              {load ? (
+                <Text
+                  style={{
+                    color: dark.fgMuted,
+                    fontFamily: Fonts.medium,
+                    fontSize: 13,
+                    fontVariant: ['tabular-nums'],
+                  } as never}
+                >
+                  {load.progress.delivered} de {load.progress.total} entregas
+                </Text>
+              ) : null}
+            </View>
+            {load ? (
+              <View
+                style={{
+                  height: 5,
+                  borderRadius: 999,
+                  backgroundColor: withAlpha(dark.fg, 0.12),
+                  marginTop: 12,
+                  overflow: 'hidden',
+                }}
+              >
+                <View
+                  style={{
+                    width: `${Math.min(100, Math.max(0, load.progress.pct))}%`,
+                    height: '100%',
+                    borderRadius: 999,
+                    backgroundColor: state === 'done' ? dark.success : brand.brand,
+                  }}
+                />
+              </View>
+            ) : null}
           </Animated.View>
         </View>
 
-        {/* Hero Card "Mi ruta de hoy" — 4 estados: empty / ready / in_progress / done.
-            Cada uno tiene su propio copy, jerarquía visual y CTA.
-            La card es tappable cuando hay load → navega al detalle del load. */}
-        {(() => {
-          const state: 'empty' | 'ready' | 'in_progress' | 'done' = !load
-            ? 'empty'
-            : load.progress.delivered === 0
-              ? 'ready'
-              : load.progress.delivered >= load.progress.total
-                ? 'done'
-                : 'in_progress';
-
-          // Próxima parada pendiente — primero por status pending, fallback in_route.
-          const nextOrder =
-            load?.orders.find((o) => o.status === 'pending') ??
-            load?.orders.find((o) => o.status === 'in_route') ??
-            null;
-
-          // Chip de estado en el top de la card
-          const chip = (() => {
-            switch (state) {
-              case 'empty':
-                return { dot: colors.fgSubtle, label: 'Sin ruta', tone: colors.fgMuted };
-              case 'ready':
-                return { dot: brand.brand, label: 'Listo para salir', tone: brand.brand };
-              case 'in_progress':
-                return { dot: colors.success, label: 'En ruta', tone: colors.success };
-              case 'done':
-                return { dot: colors.success, label: 'Ruta completada', tone: colors.success };
-            }
-          })();
-
-          const ctaLabel =
-            state === 'empty'
-              ? 'Refrescar'
-              : state === 'ready'
-                ? 'Iniciar ruta'
-                : state === 'in_progress'
-                  ? 'Continuar ruta'
-                  : 'Ver resumen';
-
-          const onCardPress = () => {
-            if (state === 'empty') {
-              refetch();
-              return;
-            }
-            if (load) router.push(`/(app)/routes/load/${load.id}` as never);
-          };
-
-          const CardInner = (
-            <Card padding="lg" className="overflow-hidden">
-              {/* Chip de estado */}
-              <View className="flex-row items-center justify-between">
-                <View className="flex-row items-center gap-2">
-                  <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: chip.dot }} />
-                  <Text
-                    style={{
-                      color: chip.tone,
-                      fontFamily: Fonts.medium,
-                      fontSize: 11,
-                      letterSpacing: 0.6,
-                      textTransform: 'uppercase',
-                      includeFontPadding: false,
-                    } as never}
-                  >
-                    {chip.label}
-                  </Text>
-                </View>
-                {state !== 'empty' ? (
-                  <Text
-                    style={{
-                      fontFamily: Fonts.medium,
-                      fontSize: 11,
-                      color: colors.fgSubtle,
-                      letterSpacing: 0.2,
-                      includeFontPadding: false,
-                    } as never}
-                  >
-                    Ver detalle →
-                  </Text>
-                ) : null}
-              </View>
-
-              {/* Big number — distinto según estado */}
-              {state === 'empty' ? (
-                <View className="mt-3">
-                  <Text
-                    style={{
-                      fontFamily: Fonts.semibold,
-                      fontSize: 22,
-                      letterSpacing: -0.5,
-                      color: colors.fg,
-                    }}
-                  >
-                    Sin ruta asignada
-                  </Text>
-                  <Text variant="caption" tone="muted" className="mt-1">
-                    {data?.message ?? 'Tu manager aún no asignó la ruta del día.'}
-                  </Text>
-                </View>
-              ) : (
-                <View className="mt-3">
-                  <View className="flex-row items-baseline gap-2">
-                    <Text
-                      style={{
-                        fontFamily: Fonts.semibold,
-                        fontSize: 36,
-                        lineHeight: 42,
-                        letterSpacing: -0.9,
-                        color: colors.fg,
-                        fontVariant: ['tabular-nums'],
-                        includeFontPadding: false,
-                      } as never}
-                    >
-                      {load!.progress.delivered}
-                    </Text>
-                    <Text
-                      style={{
-                        fontFamily: Fonts.medium,
-                        fontSize: 18,
-                        color: colors.fgMuted,
-                        fontVariant: ['tabular-nums'],
-                      }}
-                    >
-                      / {load!.progress.total} entregas
-                    </Text>
-                  </View>
-                  <Text variant="caption" tone="muted" className="mt-1">
-                    {state === 'done'
-                      ? `Cobraste ${formatCLP(load!.amounts.collected)} de ${formatCLP(load!.amounts.total)}`
-                      : `${load!.progress.pending} pendientes · ${Math.round(load!.progress.pct)}% completado`}
-                  </Text>
-                </View>
-              )}
-
-              {/* Progress bar — solo cuando hay ruta */}
-              {state !== 'empty' ? (
-                <ProgressBar pct={load!.progress.pct} brand={brand.brand} bg={colors.bgMuted} />
-              ) : null}
-
-              {/* Próxima parada — bloque inline cuando hay nextOrder */}
-              {nextOrder && state !== 'done' ? (
-                <View
+        {/* Card protagonista — próxima parada, estilo job-card de apps de delivery.
+            4 estados: empty / ready / in_progress / done (calculados antes del render). */}
+        <Animated.View
+          entering={FadeInUp.delay(140).duration(220)}
+          className="mx-5"
+          style={{ marginTop: -72 }}
+        >
+          <View
+            style={{
+              backgroundColor: colors.bgElevated,
+              borderRadius: 24,
+              borderWidth: 1,
+              borderColor: colors.border,
+              padding: 18,
+              ...shadows.lg,
+            }}
+          >
+            {state === 'empty' ? (
+              <>
+                <Text
                   style={{
-                    marginTop: 14,
-                    padding: 12,
-                    borderRadius: 12,
+                    fontFamily: Fonts.semibold,
+                    fontSize: 18,
+                    letterSpacing: -0.4,
+                    color: colors.fg,
+                  }}
+                >
+                  Sin ruta asignada
+                </Text>
+                <Text variant="caption" tone="muted" className="mt-1">
+                  {data?.message ?? 'Tu manager aún no asignó la ruta del día.'}
+                </Text>
+                <Pressable
+                  haptic="medium"
+                  onPress={() => refetch()}
+                  style={{
+                    marginTop: 16,
+                    height: 48,
+                    borderRadius: 999,
                     backgroundColor: colors.bgMuted,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexDirection: 'row',
+                    gap: 6,
+                  }}
+                >
+                  <Text style={{ color: colors.fg, fontFamily: Fonts.semibold, fontSize: 14 }}>
+                    Refrescar
+                  </Text>
+                  <Refresh size={14} color={colors.fg} />
+                </Pressable>
+              </>
+            ) : state === 'done' || !nextOrder ? (
+              <>
+                <Text
+                  style={{
+                    color: colors.fgSubtle,
+                    fontFamily: Fonts.medium,
+                    fontSize: 10,
+                    letterSpacing: 0.8,
+                    textTransform: 'uppercase',
+                    includeFontPadding: false,
+                  } as never}
+                >
+                  {state === 'done' ? 'Ruta completada' : 'Paradas resueltas'}
+                </Text>
+                <Text
+                  style={{
+                    fontFamily: Fonts.semibold,
+                    fontSize: 19,
+                    letterSpacing: -0.4,
+                    color: colors.fg,
+                    marginTop: 6,
+                  }}
+                >
+                  Cobraste {formatCLP(load!.amounts.collected)}
+                </Text>
+                <Text variant="caption" tone="muted" className="mt-1">
+                  de {formatCLP(load!.amounts.total)} · {load!.progress.delivered} de{' '}
+                  {load!.progress.total} entregas
+                </Text>
+                <Pressable
+                  haptic="medium"
+                  onPress={onOpenLoad}
+                  style={{
+                    marginTop: 16,
+                    height: 48,
+                    borderRadius: 999,
+                    backgroundColor: brand.brand,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexDirection: 'row',
+                    gap: 6,
+                    ...brandShadow(brand.brand, 'sm'),
                   }}
                 >
                   <Text
                     style={{
+                      color: palette.light.fgInverse,
+                      fontFamily: Fonts.semibold,
+                      fontSize: 14.5,
+                      letterSpacing: -0.2,
+                    }}
+                  >
+                    Ver resumen
+                  </Text>
+                  <ChevronRight size={15} color={palette.light.fgInverse} />
+                </Pressable>
+              </>
+            ) : (
+              <>
+                <View className="flex-row items-center justify-between">
+                  <Text
+                    style={{
                       color: colors.fgSubtle,
                       fontFamily: Fonts.medium,
-                      fontSize: 9,
-                      letterSpacing: 0.7,
+                      fontSize: 10,
+                      letterSpacing: 0.8,
                       textTransform: 'uppercase',
                       includeFontPadding: false,
                     } as never}
                   >
                     Próxima parada
                   </Text>
-                  <View className="flex-row items-center justify-between mt-1">
-                    <View className="flex-1 pr-2">
-                      <Text
-                        style={{
-                          color: colors.fg,
-                          fontFamily: Fonts.semibold,
-                          fontSize: 14,
-                          letterSpacing: -0.2,
-                        }}
-                        numberOfLines={1}
-                      >
-                        {nextOrder.client?.name ?? 'Cliente sin nombre'}
-                      </Text>
-                      {nextOrder.client?.address ? (
-                        <Text
-                          style={{
-                            color: colors.fgMuted,
-                            fontFamily: Fonts.regular,
-                            fontSize: 12,
-                            marginTop: 1,
-                          }}
-                          numberOfLines={1}
-                        >
-                          {nextOrder.client.address}
-                        </Text>
-                      ) : null}
-                    </View>
+                  <View
+                    style={{
+                      paddingHorizontal: 10,
+                      paddingVertical: 3,
+                      borderRadius: 999,
+                      backgroundColor: colors.bgMuted,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: colors.fgMuted,
+                        fontFamily: Fonts.medium,
+                        fontSize: 11,
+                        fontVariant: ['tabular-nums'],
+                        includeFontPadding: false,
+                      } as never}
+                    >
+                      {load!.progress.delivered + 1} de {load!.progress.total}
+                    </Text>
+                  </View>
+                </View>
+
+                <View className="flex-row items-start justify-between mt-2.5">
+                  <View className="flex-1 pr-3">
                     <Text
                       style={{
                         color: colors.fg,
                         fontFamily: Fonts.semibold,
-                        fontSize: 14,
-                        fontVariant: ['tabular-nums'],
+                        fontSize: 19,
+                        letterSpacing: -0.4,
                       }}
+                      numberOfLines={1}
+                    >
+                      {nextOrder.client?.name ?? 'Cliente sin nombre'}
+                    </Text>
+                    {nextOrder.client?.address ? (
+                      <Text
+                        style={{
+                          color: colors.fgMuted,
+                          fontFamily: Fonts.regular,
+                          fontSize: 13,
+                          marginTop: 3,
+                          lineHeight: 18,
+                        }}
+                        numberOfLines={2}
+                      >
+                        {nextOrder.client.address}
+                      </Text>
+                    ) : null}
+                  </View>
+                  <View style={{ alignItems: 'flex-end' }}>
+                    <Text
+                      style={{
+                        color: colors.fg,
+                        fontFamily: Fonts.semibold,
+                        fontSize: 16,
+                        fontVariant: ['tabular-nums'],
+                      } as never}
                     >
                       {formatCLP(nextOrder.total)}
                     </Text>
+                    <Text
+                      style={{
+                        color: colors.fgSubtle,
+                        fontFamily: Fonts.regular,
+                        fontSize: 11,
+                        marginTop: 1,
+                      }}
+                    >
+                      {nextOrder.payment_status === 'paid' ? 'pagado' : 'a cobrar'}
+                    </Text>
                   </View>
                 </View>
-              ) : null}
 
-              {/* CTA inferior — siempre presente, etiqueta varía por estado */}
-              <Pressable
-                haptic="medium"
-                onPress={onCardPress}
-                style={{
-                  marginTop: 14,
-                  height: 48,
-                  borderRadius: 12,
-                  backgroundColor: state === 'empty' ? colors.bgMuted : brand.brand,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexDirection: 'row',
-                  gap: 6,
-                }}
-              >
-                <Text
-                  style={{
-                    color: state === 'empty' ? colors.fg : palette.light.fgInverse,
-                    fontFamily: Fonts.semibold,
-                    fontSize: 14,
-                    letterSpacing: -0.2,
-                  }}
+                <View className="flex-row items-center gap-2.5 mt-4">
+                  {nextOrder.client?.phone ? (
+                    <Pressable
+                      haptic="selection"
+                      onPress={() => callClient(nextOrder.client!.phone!)}
+                      style={{
+                        width: 48,
+                        height: 48,
+                        borderRadius: 24,
+                        backgroundColor: colors.bgMuted,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Phone size={19} color={colors.fg} />
+                    </Pressable>
+                  ) : null}
+                  {nextOrder.client?.address ? (
+                    <Pressable
+                      haptic="selection"
+                      onPress={() => navigateTo(nextOrder.client!.address!)}
+                      style={{
+                        width: 48,
+                        height: 48,
+                        borderRadius: 24,
+                        backgroundColor: colors.bgMuted,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Navigation size={19} color={colors.fg} />
+                    </Pressable>
+                  ) : null}
+                  <Pressable
+                    haptic="medium"
+                    onPress={() => (state === 'ready' ? onOpenLoad() : setActiveOrder(nextOrder))}
+                    style={{
+                      flex: 1,
+                      height: 48,
+                      borderRadius: 999,
+                      backgroundColor: brand.brand,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexDirection: 'row',
+                      gap: 6,
+                      ...brandShadow(brand.brand, 'sm'),
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: palette.light.fgInverse,
+                        fontFamily: Fonts.semibold,
+                        fontSize: 14.5,
+                        letterSpacing: -0.2,
+                      }}
+                    >
+                      {state === 'ready' ? 'Iniciar ruta' : 'Entregar pedido'}
+                    </Text>
+                    <ChevronRight size={15} color={palette.light.fgInverse} />
+                  </Pressable>
+                </View>
+
+                <Pressable
+                  haptic="selection"
+                  onPress={onOpenLoad}
+                  style={{ marginTop: 12, alignItems: 'center' }}
                 >
-                  {ctaLabel}
-                </Text>
-                {state === 'empty' ? (
-                  <Refresh size={14} color={colors.fg} />
-                ) : (
-                  <ChevronRight size={14} color={palette.light.fgInverse} />
-                )}
-              </Pressable>
-            </Card>
-          );
-
-          return (
-            <Animated.View
-              entering={FadeInUp.delay(140).duration(220)}
-              className="mx-5"
-              style={{ marginTop: -68 }}
-            >
-              {state === 'empty' ? (
-                CardInner
-              ) : (
-                <Pressable haptic="selection" scale="subtle" onPress={onCardPress}>
-                  {CardInner}
+                  <Text style={{ color: colors.fgMuted, fontFamily: Fonts.medium, fontSize: 12.5 }}>
+                    Ver ruta completa →
+                  </Text>
                 </Pressable>
-              )}
-            </Animated.View>
-          );
-        })()}
+              </>
+            )}
+          </View>
+        </Animated.View>
 
         {/* 3 KPI cards — Entregado · Pendiente · Por cobrar */}
         <Animated.View entering={FadeInUp.delay(220).duration(220)} className="flex-row gap-2.5 mx-5 mt-3">
@@ -666,7 +784,7 @@ export default function RoutesScreen() {
                     width: 44,
                     height: 44,
                     borderRadius: 22,
-                    backgroundColor: brand.brand + '20',
+                    backgroundColor: withAlpha(brand.brand, 0.13),
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}
@@ -1782,88 +1900,6 @@ function DriverKpiCard({
           includeFontPadding: false,
         } as never}
         numberOfLines={1}
-      >
-        {value}
-      </Text>
-    </View>
-  );
-}
-
-/* ─────────────── Progress bar ─────────────── */
-
-function ProgressBar({ pct, brand, bg }: { pct: number; brand: string; bg: string }) {
-  const w = useSharedValue(0);
-  const fill = useAnimatedStyle(() => ({
-    width: `${w.value}%`,
-  }));
-  // Animate to current pct on mount/update
-  useState(() => {
-    w.value = withTiming(pct, { duration: 800, easing: Easing.out(Easing.cubic) });
-    return null;
-  });
-  // Si pct cambia (entregar otra), también animar
-  if (w.value !== pct) {
-    w.value = withTiming(pct, { duration: 600, easing: Easing.out(Easing.cubic) });
-  }
-
-  return (
-    <View
-      style={{
-        height: 8,
-        borderRadius: 4,
-        backgroundColor: bg,
-        overflow: 'hidden',
-        marginTop: 12,
-      }}
-    >
-      <Animated.View
-        style={[
-          {
-            height: 8,
-            borderRadius: 4,
-            backgroundColor: brand,
-          },
-          fill,
-        ]}
-      />
-    </View>
-  );
-}
-
-function ProgressStat({
-  label,
-  value,
-  color,
-  last,
-}: {
-  label: string;
-  value: string;
-  color: string;
-  last?: boolean;
-}) {
-  const scheme = useColorScheme();
-  const colors = palette[scheme];
-  return (
-    <View
-      style={{
-        flex: 1,
-        paddingHorizontal: 4,
-        borderRightWidth: last ? 0 : 1,
-        borderRightColor: colors.border,
-      }}
-    >
-      <Text variant="overline" tone="subtle">
-        {label}
-      </Text>
-      <Text
-        style={{
-          fontFamily: Fonts.semibold,
-          fontSize: 16,
-          color,
-          letterSpacing: -0.3,
-          fontVariant: ['tabular-nums'],
-          marginTop: 4,
-        }}
       >
         {value}
       </Text>
