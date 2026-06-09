@@ -1,6 +1,10 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  content: ['./app/**/*.{ts,tsx}', './src/**/*.{ts,tsx}'],
+  content: [
+    './app/**/*.{ts,tsx}',
+    './src/**/*.{ts,tsx}',
+    './node_modules/heroui-native/src/**/*.{ts,tsx}',
+  ],
   presets: [require('nativewind/preset')],
   darkMode: 'class',
   theme: {
