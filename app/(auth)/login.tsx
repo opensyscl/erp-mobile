@@ -32,16 +32,22 @@ import { ArrowLeft, Eye, EyeOff } from '~/lib/icons';
 import { useAuthStore } from '~/stores/auth';
 import { useTenantStore } from '~/stores/tenant';
 import { Fonts } from '~/theme/fonts';
-import { palette } from '~/theme/tokens';
+import { brandShadow, palette, shadows } from '~/theme/tokens';
 
 /**
- * Login pantalla — variante "minimal":
- *   - Fondo plano, sin hero ni patrón
- *   - Logo pequeño centrado, tipografía grande
- *   - Inputs tipo píldora con borde sutil
- *   - Botón primario pill (alto contraste con el bg de la pantalla)
- *   - Acciones secundarias como links de texto al pie
+ * Login — card flotante sobre el bg cálido del sistema.
+ *   - Tokens del design system (palette.light), nada de paleta local:
+ *     brand para CTA/focus/links, success para el dot TLS, card
+ *     bgElevated + border igual que el resto de la app.
+ *   - Form dentro de una card rounded-3xl con shadows.md.
+ *   - Inputs con floating label (el bg de la label corta el borde — matchea
+ *     el bg de la CARD, no el de la página).
+ *   - CTA pill con brandShadow, igual lenguaje que la tab bar pill.
  */
+
+// La app corre bloqueada en light mode — tokens resueltos una vez acá.
+const T = palette.light;
+
 export default function LoginScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -116,34 +122,18 @@ export default function LoginScreen() {
     }
   };
 
-  // Paleta del login — mismo layout que seccion.html (floating labels +
-  // botón azul) pero en versión clara. Independiente del theme global
-  // para no acoplarlo a los tokens dark/light de la app entera.
-  const DARK = {
-    bg: '#FFFFFF',
-    field: '#FFFFFF',
-    fieldBorder: '#E5E5E5',
-    fieldBorderFocus: '#0A0A0A',
-    text: '#0A0A0A',
-    textMuted: 'rgba(10, 10, 10, 0.75)',
-    textSubtle: 'rgba(10, 10, 10, 0.45)',
-    primary: '#2D68FF',
-    secondary: '#F5F5F5',
-    accent: '#D97706',
-  };
-
   return (
     <Screen padded={false} edges={{ top: false, bottom: false }}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={{ flex: 1, backgroundColor: DARK.bg }}
+        style={{ flex: 1, backgroundColor: T.bg }}
       >
         <ScrollView
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ flexGrow: 1 }}
         >
-          {/* Top bar — back */}
+          {/* Top bar — back en chip bordeado, como las sub-pantallas */}
           <View
             style={{
               paddingTop: insets.top + 8,
@@ -167,31 +157,35 @@ export default function LoginScreen() {
                 borderRadius: 20,
                 alignItems: 'center',
                 justifyContent: 'center',
+                backgroundColor: T.bgElevated,
+                borderWidth: 1,
+                borderColor: T.border,
+                ...shadows.xs,
               }}
             >
-              <ArrowLeft size={20} color={DARK.text} />
+              <ArrowLeft size={20} color={T.fg} />
             </Pressable>
           </View>
 
-          {/* Logo + título — sin card ni sombras, todo plano sobre el dark */}
-          <View style={{ alignItems: 'center', paddingTop: 36, paddingBottom: 40 }}>
+          {/* Logo + título + chip de tenant */}
+          <View style={{ alignItems: 'center', paddingTop: 28, paddingBottom: 28 }}>
             <Animated.View entering={FadeIn.duration(380)}>
               <Pressable onPress={logoTap.onPress}>
                 {tenant?.logo_url ? (
                   <LogoMark size={64} src={tenant.logo_url} />
                 ) : (
-                  <OpenSysLogo size={64} color={DARK.text} />
+                  <OpenSysLogo size={64} color={T.fg} />
                 )}
               </Pressable>
             </Animated.View>
 
             <Animated.View
               entering={FadeInUp.delay(80).duration(360)}
-              style={{ alignItems: 'center', marginTop: 22 }}
+              style={{ alignItems: 'center', marginTop: 20 }}
             >
               <Text
                 style={{
-                  color: DARK.text,
+                  color: T.fg,
                   fontFamily: Fonts.semibold,
                   fontSize: 28,
                   letterSpacing: -0.6,
@@ -203,127 +197,154 @@ export default function LoginScreen() {
                 <Pressable
                   haptic="selection"
                   onPress={() => router.replace('/(auth)/tenant')}
-                  style={{ marginTop: 6 }}
+                  style={{
+                    marginTop: 10,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 6,
+                    paddingHorizontal: 12,
+                    paddingVertical: 5,
+                    borderRadius: 999,
+                    backgroundColor: T.brandSubtle,
+                  }}
                 >
                   <Text
                     style={{
-                      color: DARK.textSubtle,
-                      fontFamily: Fonts.regular,
+                      color: T.brand,
+                      fontFamily: Fonts.medium,
                       fontSize: 13,
                       letterSpacing: -0.1,
                     }}
                   >
-                    a <Text style={{ color: DARK.text, fontFamily: Fonts.medium }}>{slug}</Text>
+                    {slug}
+                  </Text>
+                  <Text style={{ color: T.brand, fontFamily: Fonts.regular, fontSize: 11, opacity: 0.7 }}>
+                    cambiar
                   </Text>
                 </Pressable>
               ) : null}
             </Animated.View>
           </View>
 
-          {/* Form — floating labels outlined, estilo seccion.html */}
-          <View style={{ paddingHorizontal: 24, gap: 18 }}>
-            <FloatingLabelInput
-              label="Email"
-              value={email}
-              onChangeText={setEmail}
-              placeholder="tu@ejemplo.com"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoComplete="email"
-              autoCorrect={false}
-              returnKeyType="next"
-              onSubmitEditing={() => passwordRef.current?.focus()}
-              dark={DARK}
-            />
-
-            <FloatingLabelInput
-              ref={passwordRef}
-              label="Contraseña"
-              value={password}
-              onChangeText={setPassword}
-              placeholder="••••••••"
-              secureTextEntry={!showPassword}
-              autoCapitalize="none"
-              autoComplete="password"
-              returnKeyType="go"
-              onSubmitEditing={handleSubmit}
-              dark={DARK}
-              labelSideAction={
-                <Pressable haptic="selection">
-                  <Text
-                    style={{
-                      color: DARK.text,
-                      fontFamily: Fonts.medium,
-                      fontSize: 12,
-                    }}
-                  >
-                    ¿Olvidaste?
-                  </Text>
-                </Pressable>
-              }
-              rightSlot={
-                <Pressable
-                  haptic="selection"
-                  onPress={() => setShowPassword((v) => !v)}
-                  style={{
-                    width: 40,
-                    height: 40,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  {showPassword ? (
-                    <EyeOff size={18} color={DARK.textSubtle} />
-                  ) : (
-                    <Eye size={18} color={DARK.textSubtle} />
-                  )}
-                </Pressable>
-              }
-            />
-
-            <View style={{ marginTop: 10, gap: 12 }}>
-              <PillButton
-                onPress={handleSubmit}
-                loading={submitting}
-                bg={DARK.primary}
-                fg={palette.light.fgInverse}
-                label="Iniciar sesión"
+          {/* Card flotante con el form — rounded-3xl border border, como toda card de la app */}
+          <View style={{ paddingHorizontal: 20 }}>
+            <Animated.View
+              entering={FadeInUp.delay(140).duration(380)}
+              style={{
+                backgroundColor: T.bgElevated,
+                borderRadius: 24,
+                borderWidth: 1,
+                borderColor: T.border,
+                paddingHorizontal: 20,
+                paddingTop: 26,
+                paddingBottom: 22,
+                gap: 18,
+                ...shadows.md,
+              }}
+            >
+              <FloatingLabelInput
+                label="Email"
+                value={email}
+                onChangeText={setEmail}
+                placeholder="tu@ejemplo.com"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoComplete="email"
+                autoCorrect={false}
+                returnKeyType="next"
+                onSubmitEditing={() => passwordRef.current?.focus()}
               />
 
-              {__DEV__ ? (
-                <Pressable
-                  haptic="selection"
-                  onPress={() => demoSheet.current?.present()}
-                  style={{
-                    height: 52,
-                    borderRadius: 12,
-                    backgroundColor: DARK.secondary,
-                    borderWidth: 1,
-                    borderColor: DARK.fieldBorder,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <Text
+              <FloatingLabelInput
+                ref={passwordRef}
+                label="Contraseña"
+                value={password}
+                onChangeText={setPassword}
+                placeholder="••••••••"
+                secureTextEntry={!showPassword}
+                autoCapitalize="none"
+                autoComplete="password"
+                returnKeyType="go"
+                onSubmitEditing={handleSubmit}
+                labelSideAction={
+                  <Pressable haptic="selection">
+                    <Text
+                      style={{
+                        color: T.brand,
+                        fontFamily: Fonts.medium,
+                        fontSize: 12,
+                      }}
+                    >
+                      ¿Olvidaste?
+                    </Text>
+                  </Pressable>
+                }
+                rightSlot={
+                  <Pressable
+                    haptic="selection"
+                    onPress={() => setShowPassword((v) => !v)}
                     style={{
-                      color: DARK.text,
-                      fontFamily: Fonts.semibold,
-                      fontSize: 14,
-                      letterSpacing: -0.2,
+                      width: 40,
+                      height: 40,
+                      alignItems: 'center',
+                      justifyContent: 'center',
                     }}
                   >
-                    Ver cuentas demo
-                  </Text>
-                </Pressable>
-              ) : null}
-            </View>
+                    {showPassword ? (
+                      <EyeOff size={18} color={T.fgSubtle} />
+                    ) : (
+                      <Eye size={18} color={T.fgSubtle} />
+                    )}
+                  </Pressable>
+                }
+              />
 
-            <View style={{ alignItems: 'center', marginTop: 22, flexDirection: 'row', justifyContent: 'center', gap: 6 }}>
-              <Text style={{ color: DARK.textMuted, fontFamily: Fonts.regular, fontSize: 13 }}>
+              <View style={{ marginTop: 4, gap: 12 }}>
+                <PillButton onPress={handleSubmit} loading={submitting} label="Iniciar sesión" />
+
+                {__DEV__ ? (
+                  <Pressable
+                    haptic="selection"
+                    onPress={() => demoSheet.current?.present()}
+                    style={{
+                      height: 50,
+                      borderRadius: 999,
+                      backgroundColor: T.bg,
+                      borderWidth: 1,
+                      borderColor: T.border,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: T.fg,
+                        fontFamily: Fonts.semibold,
+                        fontSize: 14,
+                        letterSpacing: -0.2,
+                      }}
+                    >
+                      Ver cuentas demo
+                    </Text>
+                  </Pressable>
+                ) : null}
+              </View>
+            </Animated.View>
+
+            <View
+              style={{
+                alignItems: 'center',
+                marginTop: 20,
+                flexDirection: 'row',
+                justifyContent: 'center',
+                gap: 6,
+              }}
+            >
+              <Text style={{ color: T.fgMuted, fontFamily: Fonts.regular, fontSize: 13 }}>
                 ¿Sin cuenta?
               </Text>
               <Pressable haptic="selection" onPress={() => demoSheet.current?.present()}>
-                <Text style={{ color: DARK.accent, fontFamily: Fonts.semibold, fontSize: 13 }}>
+                <Text style={{ color: T.brand, fontFamily: Fonts.semibold, fontSize: 13 }}>
                   Probá una demo
                 </Text>
               </Pressable>
@@ -334,18 +355,27 @@ export default function LoginScreen() {
               style={{
                 alignItems: 'center',
                 marginTop: 'auto',
-                paddingTop: 36,
+                paddingTop: 32,
                 paddingBottom: insets.bottom + 16,
                 gap: 4,
               }}
             >
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#4ADE80' }} />
-                <Text style={{ color: DARK.textSubtle, fontFamily: Fonts.regular, fontSize: 11 }}>
+                <View
+                  style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: T.success }}
+                />
+                <Text style={{ color: T.fgSubtle, fontFamily: Fonts.regular, fontSize: 11 }}>
                   Conexión segura · TLS
                 </Text>
               </View>
-              <Text style={{ color: DARK.textSubtle, fontFamily: Fonts.regular, fontSize: 11, opacity: 0.6 }}>
+              <Text
+                style={{
+                  color: T.fgSubtle,
+                  fontFamily: Fonts.regular,
+                  fontSize: 11,
+                  opacity: 0.6,
+                }}
+              >
                 © OpenSys ERP
               </Text>
             </View>
@@ -361,22 +391,8 @@ export default function LoginScreen() {
 
 /* ─────────────────────── FloatingLabelInput ─────────────────────── */
 // Outlined input con label que flota arriba del borde superior, "cortándolo"
-// con un mini bg del color del page. Patrón Material/Designer extraído de
-// seccion.html. La label puede tener un labelSideAction (ej. "¿Olvidaste?")
-// alineado a la derecha en la misma línea.
-
-interface DarkPaletteShape {
-  bg: string;
-  field: string;
-  fieldBorder: string;
-  fieldBorderFocus: string;
-  text: string;
-  textMuted: string;
-  textSubtle: string;
-  primary: string;
-  secondary: string;
-  accent: string;
-}
+// con un mini bg del color de la CARD que lo contiene. La label puede tener
+// un labelSideAction (ej. "¿Olvidaste?") alineado a la derecha.
 
 interface FloatingLabelInputProps {
   label: string;
@@ -392,7 +408,6 @@ interface FloatingLabelInputProps {
   onSubmitEditing?: () => void;
   rightSlot?: ReactNode;
   labelSideAction?: ReactNode;
-  dark: DarkPaletteShape;
 }
 
 const FloatingLabelInput = forwardRef<RNTextInput, FloatingLabelInputProps>(
@@ -411,12 +426,11 @@ const FloatingLabelInput = forwardRef<RNTextInput, FloatingLabelInputProps>(
       onSubmitEditing,
       rightSlot,
       labelSideAction,
-      dark,
     },
     ref,
   ) {
     const [focused, setFocused] = useState(false);
-    const borderColor = focused ? dark.fieldBorderFocus : dark.fieldBorder;
+    const borderColor = focused ? T.brand : T.border;
 
     return (
       <View style={{ position: 'relative' }}>
@@ -428,20 +442,20 @@ const FloatingLabelInput = forwardRef<RNTextInput, FloatingLabelInputProps>(
           </View>
         ) : null}
 
-        {/* Label flotante — el bg matchea el page bg para "cortar" el borde */}
+        {/* Label flotante — el bg matchea el bg de la card para "cortar" el borde */}
         <View
           style={{
             position: 'absolute',
             top: -8,
             left: 12,
             paddingHorizontal: 4,
-            backgroundColor: dark.bg,
+            backgroundColor: T.bgElevated,
             zIndex: 4,
           }}
         >
           <Text
             style={{
-              color: dark.textMuted,
+              color: focused ? T.brand : T.fgMuted,
               fontFamily: Fonts.medium,
               fontSize: 12,
               lineHeight: 14,
@@ -457,10 +471,10 @@ const FloatingLabelInput = forwardRef<RNTextInput, FloatingLabelInputProps>(
             flexDirection: 'row',
             alignItems: 'center',
             height: 56,
-            borderRadius: 8,
+            borderRadius: 14,
             borderWidth: 1,
             borderColor,
-            backgroundColor: dark.field,
+            backgroundColor: T.bgElevated,
             paddingHorizontal: 16,
             paddingRight: rightSlot ? 4 : 16,
           }}
@@ -470,9 +484,9 @@ const FloatingLabelInput = forwardRef<RNTextInput, FloatingLabelInputProps>(
             value={value}
             onChangeText={onChangeText}
             placeholder={placeholder}
-            placeholderTextColor={dark.textSubtle}
-            selectionColor={dark.primary}
-            cursorColor={dark.primary}
+            placeholderTextColor={T.fgSubtle}
+            selectionColor={T.brand}
+            cursorColor={T.brand}
             secureTextEntry={secureTextEntry}
             keyboardType={keyboardType}
             autoCapitalize={autoCapitalize}
@@ -487,7 +501,7 @@ const FloatingLabelInput = forwardRef<RNTextInput, FloatingLabelInputProps>(
               fontFamily: Fonts.regular,
               fontSize: 15,
               letterSpacing: -0.1,
-              color: dark.text,
+              color: T.fg,
               paddingVertical: 0,
               // RN Web: apagar el outline/border del <input> nativo del browser,
               // si no se ve un rectángulo anidado dentro del wrapper outlined.
@@ -508,15 +522,10 @@ const FloatingLabelInput = forwardRef<RNTextInput, FloatingLabelInputProps>(
 interface PillButtonProps {
   onPress: () => void;
   loading?: boolean;
-  bg: string;
-  fg: string;
   label: string;
-  /** Si está activo, el botón se ajusta al contenido (no full-width) — usado
-   *  para el row "¿Olvidaste? · Continuar" del nuevo diseño. */
-  compact?: boolean;
 }
 
-function PillButton({ onPress, loading, bg, fg, label, compact }: PillButtonProps) {
+function PillButton({ onPress, loading, label }: PillButtonProps) {
   const scale = useSharedValue(1);
   const animStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -538,13 +547,13 @@ function PillButton({ onPress, loading, bg, fg, label, compact }: PillButtonProp
       <Animated.View
         style={[
           {
-            height: compact ? 48 : 56,
-            paddingHorizontal: compact ? 26 : 0,
+            height: 56,
             borderRadius: 999,
-            backgroundColor: bg,
+            backgroundColor: T.brand,
             alignItems: 'center',
             justifyContent: 'center',
             opacity: loading ? 0.85 : 1,
+            ...brandShadow(T.brand, 'md'),
           },
           animStyle,
         ]}
@@ -558,14 +567,14 @@ function PillButton({ onPress, loading, bg, fg, label, compact }: PillButtonProp
                 height: 16,
                 borderRadius: 8,
                 borderWidth: 2,
-                borderColor: fg,
+                borderColor: T.brandFg,
                 borderTopColor: 'transparent',
               }}
             />
           ) : null}
           <Text
             style={{
-              color: fg,
+              color: T.brandFg,
               fontFamily: Fonts.semibold,
               fontSize: 15,
               letterSpacing: -0.2,
