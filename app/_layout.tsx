@@ -80,7 +80,7 @@ export default function RootLayout() {
         <QueryClientProvider client={queryClient}>
           <BottomSheetModalProvider>
             <View className="flex-1 bg-bg" style={{ flex: 1 }}>
-              <StatusBar style={splashDone ? (scheme === 'dark' ? 'light' : 'dark') : 'light'} />
+              <StatusBar style={splashDone ? (scheme === 'dark' ? 'light' : 'dark') : 'dark'} />
               <AuthGate />
               <Stack
                 screenOptions={{
