@@ -1,6 +1,6 @@
 import { Redirect } from 'expo-router';
 
-import AdminGeneralDashboard from './admin-general';
+import AdminGeneralDashboard from '../admin-general';
 import { useAuthStore } from '~/stores/auth';
 import { useTenantStore } from '~/stores/tenant';
 
