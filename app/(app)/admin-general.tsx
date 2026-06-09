@@ -8,6 +8,7 @@ import Animated, { FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ActivityRow, type ActivityItem } from '~/components/dashboard/ActivityRow';
+import { ApprovalsCard } from '~/components/dashboard/ApprovalsCard';
 import { BalanceCard } from '~/components/dashboard/BalanceCard';
 import { QuickActionCircle } from '~/components/dashboard/QuickActionCircle';
 import { SalesByDayCard } from '~/components/dashboard/SalesByDayCard';
@@ -195,6 +196,14 @@ export default function AdminGeneralDashboard() {
               onPress={() => router.push('/(app)/analytics' as never)}
             />
           </View>
+        </Animated.View>
+
+        {/* Aprobaciones de gastos — entrada a la pantalla (antes huérfana) */}
+        <Animated.View entering={FadeInUp.delay(160).duration(360)} className="mx-5 mt-6">
+          <ApprovalsCard
+            pending={approvalsPending}
+            onPress={() => router.push('/(app)/approvals' as never)}
+          />
         </Animated.View>
 
         {/* Ventas por día (semana) */}
