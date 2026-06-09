@@ -5,6 +5,7 @@ import { Pressable, Text } from '~/components/ui';
 import { useBrand } from '~/hooks/useBrand';
 import { ArrowRight } from '~/lib/icons';
 import { Fonts } from '~/theme/fonts';
+import { palette, withAlpha } from '~/theme/tokens';
 
 /**
  * CTA card "Mi ruta de hoy" para usuarios con `routes.view`. Brand bg con
@@ -79,7 +80,7 @@ export function RoutesCallout({ onPress }: { onPress?: () => void }) {
               width: 38,
               height: 38,
               borderRadius: 19,
-              backgroundColor: 'rgba(255,255,255,0.22)',
+              backgroundColor: withAlpha(palette.light.fgInverse, 0.22),
               alignItems: 'center',
               justifyContent: 'center',
             }}

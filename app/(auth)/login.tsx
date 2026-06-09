@@ -32,6 +32,7 @@ import { ArrowLeft, Eye, EyeOff } from '~/lib/icons';
 import { useAuthStore } from '~/stores/auth';
 import { useTenantStore } from '~/stores/tenant';
 import { Fonts } from '~/theme/fonts';
+import { palette } from '~/theme/tokens';
 
 /**
  * Login pantalla — variante "minimal":
@@ -285,7 +286,7 @@ export default function LoginScreen() {
                 onPress={handleSubmit}
                 loading={submitting}
                 bg={DARK.primary}
-                fg="#FFFFFF"
+                fg={palette.light.fgInverse}
                 label="Iniciar sesión"
               />
 

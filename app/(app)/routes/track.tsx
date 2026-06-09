@@ -45,7 +45,7 @@ export default function DriverTrackScreen() {
 
       <ScrollView
         contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}
-        className="flex-1 bg-base-50 dark:bg-zinc-950"
+        className="flex-1 bg-bg"
       >
         <Animated.View entering={FadeIn} className="px-4 pt-4 gap-4">
           {/* Header card */}
@@ -132,7 +132,7 @@ export default function DriverTrackScreen() {
                 </View>
               )}
 
-              <View className="h-px bg-zinc-200 dark:bg-zinc-800 my-1" />
+              <View className="h-px bg-border my-1" />
 
               <View className="flex-row justify-between">
                 <Text variant="body" className="opacity-60">

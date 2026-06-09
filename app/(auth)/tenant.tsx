@@ -34,7 +34,7 @@ import { resolveApiUrl } from '~/lib/env';
 import { Building } from '~/lib/icons';
 import { useTenantStore } from '~/stores/tenant';
 import { Fonts } from '~/theme/fonts';
-import { palette } from '~/theme/tokens';
+import { palette, withAlpha } from '~/theme/tokens';
 
 interface DemoTenantBrief {
   slug: string;
@@ -127,7 +127,7 @@ export default function TenantScreen() {
               <Animated.View entering={FadeIn.delay(80).duration(360)}>
                 <View
                   style={{
-                    backgroundColor: 'rgba(255,255,255,0.18)',
+                    backgroundColor: withAlpha(palette.light.fgInverse, 0.18),
                     width: 84,
                     height: 84,
                     borderRadius: 24,
@@ -261,7 +261,7 @@ export default function TenantScreen() {
                       justifyContent: 'center',
                     }}
                   >
-                    <Text style={{ color: '#fff', fontFamily: Fonts.bold, fontSize: 11, lineHeight: 12 }}>
+                    <Text style={{ color: colors.fgInverse, fontFamily: Fonts.bold, fontSize: 11, lineHeight: 12 }}>
                       !
                     </Text>
                   </View>

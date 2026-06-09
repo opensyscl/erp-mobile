@@ -107,7 +107,7 @@ export default function LoadDetailScreen() {
                 haptic="selection"
                 onPress={safeBack}
                 className="h-10 w-10 items-center justify-center rounded-full"
-                style={{ backgroundColor: 'rgba(255,255,255,0.18)' }}
+                style={{ backgroundColor: withAlpha(palette.light.fgInverse, 0.18) }}
               >
                 <ArrowLeft size={18} color={brand.brandFg} />
               </Pressable>

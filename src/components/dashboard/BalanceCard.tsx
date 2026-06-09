@@ -8,7 +8,7 @@ import { useColorScheme } from '~/hooks/useColorScheme';
 import { ChevronRight, Eye, EyeOff } from '~/lib/icons';
 import { formatCLP } from '~/lib/format';
 import { Fonts } from '~/theme/fonts';
-import { palette } from '~/theme/tokens';
+import { palette, withAlpha } from '~/theme/tokens';
 
 /**
  * Hero card estilo fintech (Cleva/Lucia ref): gradient pastel suave, balance
@@ -100,7 +100,7 @@ export function BalanceCard({
                 paddingRight: 6,
                 paddingVertical: 5,
                 borderRadius: 999,
-                backgroundColor: 'rgba(255,255,255,0.6)',
+                backgroundColor: withAlpha(palette.light.bgElevated, 0.6),
                 borderWidth: 1,
                 borderColor: colors.border,
               }}
@@ -270,7 +270,7 @@ export function BalanceCard({
                   gap: 7,
                   height: 42,
                   borderRadius: 999,
-                  backgroundColor: 'rgba(255,255,255,0.7)',
+                  backgroundColor: withAlpha(palette.light.bgElevated, 0.7),
                   borderWidth: 1,
                   borderColor: colors.border,
                 }}
@@ -300,7 +300,7 @@ export function BalanceCard({
                   width: 42,
                   height: 42,
                   borderRadius: 21,
-                  backgroundColor: 'rgba(255,255,255,0.7)',
+                  backgroundColor: withAlpha(palette.light.bgElevated, 0.7),
                   borderWidth: 1,
                   borderColor: colors.border,
                   alignItems: 'center',

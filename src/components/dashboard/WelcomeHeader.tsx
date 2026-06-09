@@ -7,7 +7,7 @@ import { useBrand } from '~/hooks/useBrand';
 import { useColorScheme } from '~/hooks/useColorScheme';
 import { Search } from '~/lib/icons';
 import { Fonts } from '~/theme/fonts';
-import { palette } from '~/theme/tokens';
+import { palette, withAlpha } from '~/theme/tokens';
 
 /**
  * Cabecera con fondo de marca para HomeScreen / dashboards genéricos.
@@ -72,7 +72,7 @@ export function WelcomeHeader({
           <Pressable
             haptic="selection"
             className="h-9 w-9 rounded-full items-center justify-center"
-            style={{ backgroundColor: 'rgba(255,255,255,0.14)' }}
+            style={{ backgroundColor: withAlpha(palette.light.fgInverse, 0.14) }}
           >
             {notificationCount && notificationCount > 0 ? (
               <View
@@ -103,7 +103,7 @@ export function WelcomeHeader({
           </Pressable>
           <View
             className="h-9 w-9 rounded-full items-center justify-center"
-            style={{ backgroundColor: 'rgba(255,255,255,0.14)' }}
+            style={{ backgroundColor: withAlpha(palette.light.fgInverse, 0.14) }}
           >
             <Text
               style={
@@ -124,7 +124,7 @@ export function WelcomeHeader({
       {/* Day pill */}
       <View
         className="self-start flex-row items-center gap-1.5 mt-7 px-3 py-1.5 rounded-full"
-        style={{ backgroundColor: 'rgba(255,255,255,0.14)' }}
+        style={{ backgroundColor: withAlpha(palette.light.fgInverse, 0.14) }}
       >
         <View
           style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: brand.brandFg, opacity: 0.6 }}
@@ -199,7 +199,7 @@ export function WelcomeHeader({
       {searchPlaceholder ? (
         <View
           className="flex-row items-center gap-2 mt-6 px-4 rounded-xl"
-          style={{ backgroundColor: 'rgba(255,255,255,0.14)', height: 44 }}
+          style={{ backgroundColor: withAlpha(palette.light.fgInverse, 0.14), height: 44 }}
         >
           <Search size={16} color={brand.brandFg} />
           <Text

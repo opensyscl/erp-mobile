@@ -207,7 +207,7 @@ function ScanOverlay() {
           backgroundColor: 'rgba(0,0,0,0.5)',
         }}
       >
-        <Text style={{ color: '#fff', fontFamily: Fonts.medium, fontSize: 13 }}>
+        <Text style={{ color: palette.light.fgInverse, fontFamily: Fonts.medium, fontSize: 13 }}>
           Apunta al código de barras
         </Text>
       </View>

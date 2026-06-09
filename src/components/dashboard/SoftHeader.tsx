@@ -76,7 +76,7 @@ export function SoftHeader({
                   fontFamily: Fonts.semibold,
                   fontSize: 15,
                   lineHeight: 20,
-                  color: '#FFFFFF',
+                  color: palette.light.fgInverse,
                   includeFontPadding: false,
                 } as never
               }
@@ -153,7 +153,7 @@ export function SoftHeader({
               <Text
                 style={
                   {
-                    color: '#FFFFFF',
+                    color: palette.light.fgInverse,
                     fontFamily: Fonts.bold,
                     fontSize: 10,
                     lineHeight: 12,

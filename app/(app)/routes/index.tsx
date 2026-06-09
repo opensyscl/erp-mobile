@@ -247,7 +247,7 @@ export default function RoutesScreen() {
                     width: 26,
                     height: 26,
                     borderRadius: 8,
-                    backgroundColor: 'rgba(255,255,255,0.22)',
+                    backgroundColor: withAlpha(palette.light.fgInverse, 0.22),
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}
@@ -279,7 +279,7 @@ export default function RoutesScreen() {
                   haptic="selection"
                   onPress={handleReload}
                   className="h-9 w-9 rounded-full items-center justify-center"
-                  style={{ backgroundColor: 'rgba(255,255,255,0.18)' }}
+                  style={{ backgroundColor: withAlpha(palette.light.fgInverse, 0.18) }}
                 >
                   <Refresh size={16} color={brand.brandFg} strokeWidth={1.8} />
                 </Pressable>
@@ -287,7 +287,7 @@ export default function RoutesScreen() {
                   haptic="selection"
                   onPress={() => notifSheet.current?.present()}
                   className="h-9 w-9 rounded-full items-center justify-center"
-                  style={{ backgroundColor: 'rgba(255,255,255,0.18)' }}
+                  style={{ backgroundColor: withAlpha(palette.light.fgInverse, 0.18) }}
                 >
                   <Bell size={16} color={brand.brandFg} strokeWidth={1.8} />
                   {unseenCount > 0 ? (
@@ -309,7 +309,7 @@ export default function RoutesScreen() {
                     >
                       <Text
                         style={{
-                          color: '#fff',
+                          color: palette.light.fgInverse,
                           fontFamily: Fonts.semibold,
                           fontSize: 9,
                           fontVariant: ['tabular-nums'],
@@ -583,7 +583,7 @@ export default function RoutesScreen() {
               >
                 <Text
                   style={{
-                    color: state === 'empty' ? colors.fg : '#FFFFFF',
+                    color: state === 'empty' ? colors.fg : palette.light.fgInverse,
                     fontFamily: Fonts.semibold,
                     fontSize: 14,
                     letterSpacing: -0.2,
@@ -594,7 +594,7 @@ export default function RoutesScreen() {
                 {state === 'empty' ? (
                   <Refresh size={14} color={colors.fg} />
                 ) : (
-                  <ChevronRight size={14} color="#FFFFFF" />
+                  <ChevronRight size={14} color={palette.light.fgInverse} />
                 )}
               </Pressable>
             </Card>
@@ -1701,7 +1701,7 @@ function DriverQuickAction({
           width: 32,
           height: 32,
           borderRadius: 9,
-          backgroundColor: bg ? 'rgba(255,255,255,0.18)' : colors.bgMuted,
+          backgroundColor: bg ? withAlpha(palette.light.fgInverse, 0.18) : colors.bgMuted,
           alignItems: 'center',
           justifyContent: 'center',
         }}

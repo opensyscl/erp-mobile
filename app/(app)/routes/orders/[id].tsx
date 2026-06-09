@@ -16,7 +16,7 @@ import { ApiError, apiRequest } from '~/lib/api';
 import { ArrowLeft, Package, Truck, User as UserIcon } from '~/lib/icons';
 import { queryKeys } from '~/lib/queryKeys';
 import { Fonts } from '~/theme/fonts';
-import { palette } from '~/theme/tokens';
+import { palette, withAlpha } from '~/theme/tokens';
 import type { RouteOrder } from '~/types/routes';
 
 function formatCLP(n: number): string {
@@ -175,7 +175,7 @@ export default function OrderDetailScreen() {
                   haptic="selection"
                   onPress={safeBack}
                   className="h-10 w-10 items-center justify-center rounded-full"
-                  style={{ backgroundColor: 'rgba(255,255,255,0.18)' }}
+                  style={{ backgroundColor: withAlpha(palette.light.fgInverse, 0.18) }}
                 >
                   <ArrowLeft size={18} color={brand.brandFg} />
                 </Pressable>
@@ -211,7 +211,7 @@ export default function OrderDetailScreen() {
                   {order ? (
                     <View
                       className="px-2.5 py-1 rounded-full"
-                      style={{ backgroundColor: 'rgba(255,255,255,0.22)' }}
+                      style={{ backgroundColor: withAlpha(palette.light.fgInverse, 0.22) }}
                     >
                       <Text
                         style={{
