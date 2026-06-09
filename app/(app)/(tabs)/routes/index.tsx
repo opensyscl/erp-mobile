@@ -2,7 +2,7 @@ import { type BottomSheetModal as BottomSheetModalType } from '@gorhom/bottom-sh
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useRef, useState } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import {
   KeyboardAvoidingView,
   Linking,
@@ -22,6 +22,7 @@ import Animated, {
   SlideOutDown,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Circle } from 'react-native-svg';
 
 import { HeaderPattern } from '~/components/HeaderPattern';
 import { NotificationsSheet } from '~/components/NotificationsSheet';
@@ -209,8 +210,7 @@ export default function RoutesScreen() {
   const allResolved =
     orders.length > 0 && orders.every((o) => o.status !== 'pending');
 
-  // ——— Estado de la jornada (hero oscuro + card de próxima parada) ———
-  const dark = palette.dark;
+  // ——— Estado de la jornada (hero brand + card de próxima parada) ———
   const state: 'empty' | 'ready' | 'in_progress' | 'done' = !load
     ? 'empty'
     : load.progress.delivered === 0
@@ -228,13 +228,13 @@ export default function RoutesScreen() {
   const heroChip = (() => {
     switch (state) {
       case 'empty':
-        return { dot: dark.fgSubtle, label: 'Sin ruta hoy' };
+        return { dot: withAlpha(brand.brandFg, 0.55), label: 'Sin ruta hoy' };
       case 'ready':
-        return { dot: brand.brand, label: 'Lista para salir' };
+        return { dot: brand.brandFg, label: 'Lista para salir' };
       case 'in_progress':
-        return { dot: dark.success, label: 'En ruta' };
+        return { dot: brand.brandFg, label: 'En ruta' };
       case 'done':
-        return { dot: dark.success, label: 'Ruta completada' };
+        return { dot: brand.brandFg, label: 'Ruta completada' };
     }
   })();
 
@@ -267,18 +267,22 @@ export default function RoutesScreen() {
         }
         style={{ marginTop: 0 }}
       >
-        {/* Hero oscuro — jornada del driver: plata cobrada + progreso (patrón earnings
+        {/* Hero brand — jornada del driver: plata cobrada + progreso (patrón earnings
             de apps de delivery: el número del día manda, el resto acompaña) */}
         <View
           style={{
-            backgroundColor: dark.bg,
+            backgroundColor: brand.brand,
             paddingTop: insets.top + 12,
             paddingHorizontal: 20,
             paddingBottom: 96,
             overflow: 'hidden',
           }}
         >
-          <HeaderPattern color={dark.fg} intensity={0.5} />
+          <HeaderPattern color={brand.brandFg} intensity={1.0} />
+          <LinearGradient
+            colors={['rgba(255,255,255,0.10)', 'rgba(0,0,0,0.0)', 'rgba(0,0,0,0.20)']}
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+          />
           <Animated.View entering={FadeInDown.duration(220)}>
             <View className="flex-row items-center justify-between">
               <View className="flex-row items-center gap-2.5">
@@ -287,14 +291,14 @@ export default function RoutesScreen() {
                     width: 26,
                     height: 26,
                     borderRadius: 8,
-                    backgroundColor: withAlpha(dark.fg, 0.14),
+                    backgroundColor: withAlpha(brand.brandFg, 0.22),
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}
                 >
                   <Text
                     style={{
-                      color: dark.fg,
+                      color: brand.brandFg,
                       fontFamily: Fonts.semibold,
                       fontSize: 12,
                       includeFontPadding: false,
@@ -305,7 +309,7 @@ export default function RoutesScreen() {
                 </View>
                 <Text
                   style={{
-                    color: dark.fgMuted,
+                    color: brand.brandFg,
                     fontFamily: Fonts.medium,
                     fontSize: 14,
                     letterSpacing: -0.3,
@@ -319,17 +323,17 @@ export default function RoutesScreen() {
                   haptic="selection"
                   onPress={handleReload}
                   className="h-9 w-9 rounded-full items-center justify-center"
-                  style={{ backgroundColor: withAlpha(dark.fg, 0.12) }}
+                  style={{ backgroundColor: withAlpha(brand.brandFg, 0.18) }}
                 >
-                  <Refresh size={16} color={dark.fg} strokeWidth={1.8} />
+                  <Refresh size={16} color={brand.brandFg} strokeWidth={1.8} />
                 </Pressable>
                 <Pressable
                   haptic="selection"
                   onPress={() => notifSheet.current?.present()}
                   className="h-9 w-9 rounded-full items-center justify-center"
-                  style={{ backgroundColor: withAlpha(dark.fg, 0.12) }}
+                  style={{ backgroundColor: withAlpha(brand.brandFg, 0.18) }}
                 >
-                  <Bell size={16} color={dark.fg} strokeWidth={1.8} />
+                  <Bell size={16} color={brand.brandFg} strokeWidth={1.8} />
                   {unseenCount > 0 ? (
                     <View
                       style={{
@@ -344,7 +348,7 @@ export default function RoutesScreen() {
                         alignItems: 'center',
                         justifyContent: 'center',
                         borderWidth: 1.5,
-                        borderColor: dark.bg,
+                        borderColor: brand.brand,
                       }}
                     >
                       <Text
@@ -366,7 +370,8 @@ export default function RoutesScreen() {
 
             <Text
               style={{
-                color: dark.fgMuted,
+                color: brand.brandFg,
+                opacity: 0.72,
                 fontFamily: Fonts.regular,
                 fontSize: 14,
                 letterSpacing: -0.2,
@@ -375,32 +380,45 @@ export default function RoutesScreen() {
             >
               {greeting()}, {(me?.name ?? 'Equipo').split(' ')[0]} · cobrado hoy
             </Text>
-            <Text
-              style={{
-                color: dark.fg,
-                fontFamily: Fonts.semibold,
-                fontSize: 40,
-                lineHeight: 48,
-                letterSpacing: -1.2,
-                marginTop: 2,
-                fontVariant: ['tabular-nums'],
-                includeFontPadding: false,
-              } as never}
-            >
-              {formatCLP(load?.amounts.collected ?? 0)}
-            </Text>
-            {load ? (
-              <Text
-                style={{
-                  color: dark.fgSubtle,
-                  fontFamily: Fonts.regular,
-                  fontSize: 13,
-                  marginTop: 4,
-                }}
-              >
-                de {formatCLP(load.amounts.total)} en ruta · {formatCLP(load.amounts.pending)} por cobrar
-              </Text>
-            ) : null}
+            <View className="flex-row items-center justify-between" style={{ marginTop: 2 }}>
+              <View className="flex-1 pr-3">
+                <Text
+                  style={{
+                    color: brand.brandFg,
+                    fontFamily: Fonts.semibold,
+                    fontSize: 40,
+                    lineHeight: 48,
+                    letterSpacing: -1.2,
+                    fontVariant: ['tabular-nums'],
+                    includeFontPadding: false,
+                  } as never}
+                >
+                  {formatCLP(load?.amounts.collected ?? 0)}
+                </Text>
+                {load ? (
+                  <Text
+                    style={{
+                      color: brand.brandFg,
+                      opacity: 0.65,
+                      fontFamily: Fonts.regular,
+                      fontSize: 13,
+                      marginTop: 4,
+                    }}
+                  >
+                    de {formatCLP(load.amounts.total)} en ruta{'\n'}
+                    {formatCLP(load.amounts.pending)} por cobrar
+                  </Text>
+                ) : null}
+              </View>
+              {load ? (
+                <DonutProgress
+                  pct={load.progress.pct}
+                  delivered={load.progress.delivered}
+                  total={load.progress.total}
+                  fg={brand.brandFg}
+                />
+              ) : null}
+            </View>
 
             <View className="flex-row items-center justify-between" style={{ marginTop: 18 }}>
               <View
@@ -409,13 +427,13 @@ export default function RoutesScreen() {
                   paddingHorizontal: 10,
                   paddingVertical: 5,
                   borderRadius: 999,
-                  backgroundColor: withAlpha(dark.fg, 0.1),
+                  backgroundColor: withAlpha(brand.brandFg, 0.16),
                 }}
               >
                 <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: heroChip.dot }} />
                 <Text
                   style={{
-                    color: dark.fg,
+                    color: brand.brandFg,
                     fontFamily: Fonts.medium,
                     fontSize: 12,
                     letterSpacing: -0.1,
@@ -428,7 +446,8 @@ export default function RoutesScreen() {
               {load ? (
                 <Text
                   style={{
-                    color: dark.fgMuted,
+                    color: brand.brandFg,
+                    opacity: 0.8,
                     fontFamily: Fonts.medium,
                     fontSize: 13,
                     fontVariant: ['tabular-nums'],
@@ -438,26 +457,6 @@ export default function RoutesScreen() {
                 </Text>
               ) : null}
             </View>
-            {load ? (
-              <View
-                style={{
-                  height: 5,
-                  borderRadius: 999,
-                  backgroundColor: withAlpha(dark.fg, 0.12),
-                  marginTop: 12,
-                  overflow: 'hidden',
-                }}
-              >
-                <View
-                  style={{
-                    width: `${Math.min(100, Math.max(0, load.progress.pct))}%`,
-                    height: '100%',
-                    borderRadius: 999,
-                    backgroundColor: state === 'done' ? dark.success : brand.brand,
-                  }}
-                />
-              </View>
-            ) : null}
           </Animated.View>
         </View>
 
@@ -742,6 +741,7 @@ export default function RoutesScreen() {
             value={String(load?.progress.delivered ?? 0)}
             sub={load ? `de ${load.progress.total}` : 'de 0'}
             tint={load ? colors.success : colors.fgSubtle}
+            icon={<PackageReceive size={16} color={load ? colors.success : colors.fgSubtle} />}
           />
           <MiniStat
             label="Pendientes"
@@ -754,6 +754,7 @@ export default function RoutesScreen() {
                 : 'paradas'
             }
             tint={load ? brand.brand : colors.fgSubtle}
+            icon={<Truck size={16} color={load ? brand.brand : colors.fgSubtle} />}
           />
           <MiniStat
             label="Por cobrar"
@@ -764,6 +765,7 @@ export default function RoutesScreen() {
                 : 'sin actividad'
             }
             tint={load ? colors.warning : colors.fgSubtle}
+            icon={<Wallet size={16} color={load ? colors.warning : colors.fgSubtle} />}
           />
         </Animated.View>
 
@@ -1670,11 +1672,13 @@ function MiniStat({
   value,
   sub,
   tint,
+  icon,
 }: {
   label: string;
   value: string;
   sub: string;
   tint?: string;
+  icon?: ReactNode;
 }) {
   const scheme = useColorScheme();
   const colors = palette[scheme];
@@ -1683,14 +1687,29 @@ function MiniStat({
       style={{
         flex: 1,
         backgroundColor: colors.bgElevated,
-        borderRadius: 14,
+        borderRadius: 18,
         borderWidth: 1,
         borderColor: colors.border,
         padding: 14,
       }}
     >
+      {icon ? (
+        <View
+          style={{
+            width: 30,
+            height: 30,
+            borderRadius: 10,
+            backgroundColor: withAlpha(tint ?? colors.fgSubtle, 0.14),
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: 8,
+          }}
+        >
+          {icon}
+        </View>
+      ) : null}
       <View className="flex-row items-center gap-1.5">
-        {tint ? (
+        {!icon && tint ? (
           <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: tint }} />
         ) : null}
         <Text variant="overline" tone="subtle">
@@ -2411,3 +2430,64 @@ function OrderDetailSheet({
 
 // Suprimir warnings de imports no usados directamente
 void LinearGradient;
+
+/* ─────────────── DonutProgress — anillo de paradas del hero ─────────────── */
+
+function DonutProgress({
+  pct,
+  delivered,
+  total,
+  fg,
+}: {
+  pct: number;
+  delivered: number;
+  total: number;
+  fg: string;
+}) {
+  const size = 92;
+  const stroke = 7;
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const clamped = Math.min(100, Math.max(0, pct));
+  return (
+    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+      <Svg width={size} height={size} style={{ transform: [{ rotate: '-90deg' }] }}>
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          stroke={withAlpha(fg, 0.22)}
+          strokeWidth={stroke}
+          fill="none"
+        />
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          stroke={fg}
+          strokeWidth={stroke}
+          fill="none"
+          strokeLinecap="round"
+          strokeDasharray={`${c}`}
+          strokeDashoffset={c * (1 - clamped / 100)}
+        />
+      </Svg>
+      <View style={{ position: 'absolute', alignItems: 'center' }}>
+        <Text
+          style={{
+            color: fg,
+            fontFamily: Fonts.semibold,
+            fontSize: 19,
+            fontVariant: ['tabular-nums'],
+            includeFontPadding: false,
+          } as never}
+        >
+          {delivered}/{total}
+        </Text>
+        <Text style={{ color: fg, opacity: 0.7, fontFamily: Fonts.regular, fontSize: 10 }}>
+          paradas
+        </Text>
+      </View>
+    </View>
+  );
+}
