@@ -246,9 +246,9 @@ export default function TenantScreen() {
                     gap: 8,
                     padding: 10,
                     borderRadius: 10,
-                    backgroundColor: colors.danger + '15',
+                    backgroundColor: withAlpha(colors.danger, 0.08),
                     borderWidth: 1,
-                    borderColor: colors.danger + '30',
+                    borderColor: withAlpha(colors.danger, 0.19),
                   }}
                 >
                   <View

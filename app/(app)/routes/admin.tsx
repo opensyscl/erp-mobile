@@ -14,7 +14,7 @@ import { queryKeys } from '~/lib/queryKeys';
 import { useAuthStore } from '~/stores/auth';
 import { useTenantStore } from '~/stores/tenant';
 import { Fonts } from '~/theme/fonts';
-import { brandShadow, palette } from '~/theme/tokens';
+import { brandShadow, palette, withAlpha } from '~/theme/tokens';
 
 interface DashboardData {
   kpis: {
@@ -283,7 +283,7 @@ export default function RoutesAdminDashboard() {
             value={data?.fleet.active_drivers ?? 0}
             sub="trabajando hoy"
             icon={<UserIcon size={18} color={colors.warning} />}
-            iconBg={colors.warning + '20'}
+            iconBg={withAlpha(colors.warning, 0.13)}
             loading={isLoading}
           />
         </Animated.View>
@@ -502,11 +502,11 @@ export default function RoutesAdminDashboard() {
                         paddingVertical: 2,
                         borderRadius: 999,
                         backgroundColor:
-                          (STATUS_TONE[o.status] === 'warning'
+                          withAlpha((STATUS_TONE[o.status] === 'warning'
                             ? colors.warning
                             : STATUS_TONE[o.status] === 'success'
                               ? colors.success
-                              : colors.danger) + '18',
+                              : colors.danger), 0.09),
                       }}
                     >
                       <View

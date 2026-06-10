@@ -10,6 +10,7 @@ import { Button, Pressable, Text } from '~/components/ui';
 import { useBrand } from '~/hooks/useBrand';
 import { useColorScheme } from '~/hooks/useColorScheme';
 import { ApiError, apiRequest } from '~/lib/api';
+import { queryKeys } from '~/lib/queryKeys';
 import { Fonts } from '~/theme/fonts';
 import { palette } from '~/theme/tokens';
 
@@ -65,8 +66,8 @@ export function AdjustStockSheet({ visible, productId, productName, currentStock
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['product', String(productId)] });
-      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.product.detail(productId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
       toast.success('Stock actualizado', `${delta > 0 ? '+' : ''}${delta} unidades · ${reason}`);
       onClose();
     },

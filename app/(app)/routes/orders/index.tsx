@@ -13,7 +13,7 @@ import { apiRequest } from '~/lib/api';
 import { ArrowLeft, Package, Plus } from '~/lib/icons';
 import { queryKeys } from '~/lib/queryKeys';
 import { Fonts } from '~/theme/fonts';
-import { palette } from '~/theme/tokens';
+import { palette, withAlpha } from '~/theme/tokens';
 
 interface OrderRow {
   id: number;
@@ -279,11 +279,11 @@ export default function RoutesOrdersScreen() {
                               paddingVertical: 1,
                               borderRadius: 999,
                               backgroundColor:
-                                (STATUS_TONE[o.status] === 'success'
+                                withAlpha((STATUS_TONE[o.status] === 'success'
                                   ? colors.success
                                   : STATUS_TONE[o.status] === 'warning'
                                     ? colors.warning
-                                    : colors.danger) + '18',
+                                    : colors.danger), 0.09),
                             }}
                           >
                             <Text

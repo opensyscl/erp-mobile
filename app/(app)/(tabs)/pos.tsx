@@ -14,6 +14,7 @@ import { AvatarGroup, Button, Input, Pressable, Skeleton, Text } from '~/compone
 import { useBrand } from '~/hooks/useBrand';
 import { useColorScheme } from '~/hooks/useColorScheme';
 import { ApiError, apiRequest } from '~/lib/api';
+import { queryKeys } from '~/lib/queryKeys';
 import { ArrowLeft, Plus, Search, ShoppingCart } from '~/lib/icons';
 import { useCartStore } from '~/stores/cart';
 import { Fonts } from '~/theme/fonts';
@@ -90,14 +91,14 @@ export default function PosScreen() {
   const checkoutRef = useRef<BottomSheetModalType>(null);
 
   const { data: categoriesData } = useQuery({
-    queryKey: ['pos', 'categories'],
+    queryKey: queryKeys.pos.categories,
     queryFn: fetchCategories,
     staleTime: 5 * 60_000,
   });
   const categories = categoriesData ?? [];
 
   const { data, isLoading } = useQuery({
-    queryKey: ['pos', 'search', query, categoryId],
+    queryKey: queryKeys.pos.search(query, categoryId),
     queryFn: () => searchProducts(query, categoryId),
   });
 
@@ -499,8 +500,8 @@ function CheckoutSheet({ sheetRef }: { sheetRef: React.RefObject<BottomSheetModa
       });
     },
     onSuccess: (res) => {
-      queryClient.invalidateQueries({ queryKey: ['kpis', 'today'] });
-      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.kpis.today });
+      queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
       const total = res.data.total;
       const itemsCount = res.data.items_count;
       clear();

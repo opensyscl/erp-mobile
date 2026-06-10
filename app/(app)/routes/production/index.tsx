@@ -12,7 +12,7 @@ import { apiRequest } from '~/lib/api';
 import { queryKeys } from '~/lib/queryKeys';
 import { ArrowLeft, Package, Truck } from '~/lib/icons';
 import { Fonts } from '~/theme/fonts';
-import { palette } from '~/theme/tokens';
+import { palette, withAlpha } from '~/theme/tokens';
 
 interface ProductionLoad {
   id: number;
@@ -235,7 +235,7 @@ function ProductionCard({
                   paddingHorizontal: 7,
                   paddingVertical: 2,
                   borderRadius: 999,
-                  backgroundColor: brand.brand + '18',
+                  backgroundColor: withAlpha(brand.brand, 0.09),
                 }}
               >
                 <Text
@@ -252,7 +252,7 @@ function ProductionCard({
                   paddingHorizontal: 7,
                   paddingVertical: 2,
                   borderRadius: 999,
-                  backgroundColor: colors.success + '18',
+                  backgroundColor: withAlpha(colors.success, 0.09),
                 }}
               >
                 <Text

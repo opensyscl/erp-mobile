@@ -13,7 +13,7 @@ import { apiRequest } from '~/lib/api';
 import { ArrowLeft, ArrowRight, Truck } from '~/lib/icons';
 import { queryKeys } from '~/lib/queryKeys';
 import { Fonts } from '~/theme/fonts';
-import { palette } from '~/theme/tokens';
+import { palette, withAlpha } from '~/theme/tokens';
 
 interface FleetLoad {
   id: number;
@@ -212,7 +212,7 @@ export default function RoutesLoadsScreen() {
                               paddingVertical: 2,
                               borderRadius: 999,
                               backgroundColor:
-                                (l.status === 'open' ? colors.success : colors.fgSubtle) + '18',
+                                withAlpha((l.status === 'open' ? colors.success : colors.fgSubtle), 0.09),
                             }}
                           >
                             <View

@@ -8,6 +8,7 @@ import { Button, Card, Text } from '~/components/ui';
 import { useColorScheme } from '~/hooks/useColorScheme';
 import { useDriverTracking, type TrackingStatus } from '~/hooks/useDriverTracking';
 import { useAuthStore } from '~/stores/auth';
+import { withAlpha } from '~/theme/tokens';
 
 const STATUS_META: Record<TrackingStatus, { label: string; tint: string }> = {
   idle: { label: 'Sin iniciar', tint: '#94a3b8' },
@@ -66,7 +67,7 @@ export default function DriverTrackScreen() {
             <View
               className="flex-row items-center gap-2 rounded-2xl px-4 py-3"
               style={{
-                backgroundColor: meta.tint + (isDark ? '20' : '15'),
+                backgroundColor: withAlpha(meta.tint, isDark ? 0.13 : 0.08),
               }}
             >
               <View

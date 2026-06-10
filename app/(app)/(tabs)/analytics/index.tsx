@@ -10,10 +10,11 @@ import { YearBarsChart } from '~/components/charts/YearBarsChart';
 import { Card, Pressable, Skeleton, Text } from '~/components/ui';
 import { useBrand } from '~/hooks/useBrand';
 import { useColorScheme } from '~/hooks/useColorScheme';
+import { queryKeys } from '~/lib/queryKeys';
 import { apiRequest } from '~/lib/api';
 import { ArrowDownRight, ArrowLeft, ArrowUpRight, Filter } from '~/lib/icons';
 import { Fonts } from '~/theme/fonts';
-import { palette } from '~/theme/tokens';
+import { palette, withAlpha } from '~/theme/tokens';
 
 interface MonthData {
   label: string;
@@ -69,7 +70,7 @@ export default function AnalyticsScreen() {
   const [activeMetric, setActiveMetric] = useState<MetricKey>('income');
 
   const { data, isLoading } = useQuery({
-    queryKey: ['analytics', 'year'],
+    queryKey: queryKeys.analytics.year,
     queryFn: () =>
       apiRequest<{ data: AnalyticsData }>({
         method: 'GET',
@@ -241,7 +242,7 @@ export default function AnalyticsScreen() {
                             paddingHorizontal: 4,
                             paddingVertical: 1,
                             borderRadius: 4,
-                            backgroundColor: isPositive ? colors.success + '22' : colors.danger + '22',
+                            backgroundColor: isPositive ? withAlpha(colors.success, 0.13) : withAlpha(colors.danger, 0.13),
                             flexDirection: 'row',
                             alignItems: 'center',
                             gap: 1,
@@ -307,7 +308,7 @@ export default function AnalyticsScreen() {
                   className="flex-row items-center gap-1 rounded-full px-2 py-0.5"
                   style={{
                     backgroundColor:
-                      summary.delta_pct >= 0 ? colors.success + '20' : colors.danger + '20',
+                      summary.delta_pct >= 0 ? withAlpha(colors.success, 0.13) : withAlpha(colors.danger, 0.13),
                   }}
                 >
                   {summary.delta_pct >= 0 ? (

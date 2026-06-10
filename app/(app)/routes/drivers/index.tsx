@@ -12,7 +12,7 @@ import { apiRequest } from '~/lib/api';
 import { ArrowLeft, ArrowRight, User as UserIcon } from '~/lib/icons';
 import { queryKeys } from '~/lib/queryKeys';
 import { Fonts } from '~/theme/fonts';
-import { palette } from '~/theme/tokens';
+import { palette, withAlpha } from '~/theme/tokens';
 
 interface DriverStat {
   id: number;
@@ -175,7 +175,7 @@ export default function RoutesDriversScreen() {
                                 paddingHorizontal: 7,
                                 paddingVertical: 2,
                                 borderRadius: 999,
-                                backgroundColor: colors.success + '18',
+                                backgroundColor: withAlpha(colors.success, 0.09),
                               }}
                             >
                               <View

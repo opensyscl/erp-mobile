@@ -19,10 +19,11 @@ import { useBrand } from '~/hooks/useBrand';
 import { useColorScheme } from '~/hooks/useColorScheme';
 import { useSafeBack } from '~/hooks/useSafeBack';
 import { ApiError, apiRequest } from '~/lib/api';
+import { queryKeys } from '~/lib/queryKeys';
 import { ArrowLeft, Plus, Search } from '~/lib/icons';
 import { useAuthStore } from '~/stores/auth';
 import { Fonts } from '~/theme/fonts';
-import { palette } from '~/theme/tokens';
+import { palette, withAlpha } from '~/theme/tokens';
 
 interface ClientItem {
   id: number;
@@ -93,7 +94,7 @@ export default function NewRouteOrderScreen() {
   const total = subtotal + tax;
 
   const { data: drivers } = useQuery({
-    queryKey: ['routes', 'drivers'],
+    queryKey: queryKeys.routes.drivers,
     queryFn: () =>
       apiRequest<{ data: DriverItem[] }>({
         method: 'GET',
@@ -122,9 +123,9 @@ export default function NewRouteOrderScreen() {
     },
     onSuccess: () => {
       toast.success('Pedido creado');
-      queryClient.invalidateQueries({ queryKey: ['routes', 'orders'] });
-      queryClient.invalidateQueries({ queryKey: ['routes', 'admin-dashboard'] });
-      queryClient.invalidateQueries({ queryKey: ['routes', 'fleet'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.routes.orders });
+      queryClient.invalidateQueries({ queryKey: queryKeys.routes.adminDashboard });
+      queryClient.invalidateQueries({ queryKey: queryKeys.routes.fleet });
       safeBack();
     },
     onError: (e) => {
@@ -220,7 +221,7 @@ export default function NewRouteOrderScreen() {
                       width: 40,
                       height: 40,
                       borderRadius: 20,
-                      backgroundColor: brand.brand + '20',
+                      backgroundColor: withAlpha(brand.brand, 0.13),
                       alignItems: 'center',
                       justifyContent: 'center',
                     }}
@@ -641,7 +642,7 @@ function ClientPickerBody({ onPick }: { onPick: (c: ClientItem) => void }) {
   const debouncedQ = useDebounced(q, 200);
 
   const { data, isFetching } = useQuery({
-    queryKey: ['routes', 'clients', debouncedQ],
+    queryKey: queryKeys.routes.clients(debouncedQ),
     queryFn: () =>
       apiRequest<{ data: ClientItem[] }>({
         method: 'GET',
@@ -759,7 +760,7 @@ function ProductPickerBody({
   const debouncedQ = useDebounced(q, 200);
 
   const { data, isFetching } = useQuery({
-    queryKey: ['products', 'search', debouncedQ],
+    queryKey: queryKeys.products.search(debouncedQ),
     queryFn: () =>
       apiRequest<{ data: ProductItem[] }>({
         method: 'GET',
@@ -822,7 +823,7 @@ function ProductPickerBody({
                       paddingHorizontal: 8,
                       height: 22,
                       borderRadius: 999,
-                      backgroundColor: colors.success + '22',
+                      backgroundColor: withAlpha(colors.success, 0.13),
                       alignItems: 'center',
                       justifyContent: 'center',
                     }}

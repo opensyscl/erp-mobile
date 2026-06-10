@@ -203,7 +203,7 @@ export function BalanceCard({
                 paddingVertical: 2,
                 borderRadius: 999,
                 backgroundColor:
-                  (delta.value > 0 ? colors.success : colors.danger) + '22',
+                  withAlpha((delta.value > 0 ? colors.success : colors.danger), 0.13),
               }}
             >
               <Text

@@ -12,7 +12,7 @@ import { apiRequest } from '~/lib/api';
 import { ArrowDownRight, ArrowLeft, ArrowUpRight } from '~/lib/icons';
 import { queryKeys } from '~/lib/queryKeys';
 import { Fonts } from '~/theme/fonts';
-import { palette } from '~/theme/tokens';
+import { palette, withAlpha } from '~/theme/tokens';
 
 interface SaleSummary {
   id: number;
@@ -193,7 +193,7 @@ export default function SalesScreen() {
                 {data && data.count > 0 ? (
                   <View
                     className="flex-row items-center gap-1 rounded-full px-2 py-0.5"
-                    style={{ backgroundColor: isPositive ? colors.success + '20' : colors.danger + '20' }}
+                    style={{ backgroundColor: isPositive ? withAlpha(colors.success, 0.13) : withAlpha(colors.danger, 0.13) }}
                   >
                     {isPositive ? (
                       <ArrowUpRight size={12} color={colors.success} />

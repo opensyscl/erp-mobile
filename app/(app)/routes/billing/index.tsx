@@ -12,7 +12,7 @@ import { apiRequest } from '~/lib/api';
 import { queryKeys } from '~/lib/queryKeys';
 import { ArrowLeft, Wallet } from '~/lib/icons';
 import { Fonts } from '~/theme/fonts';
-import { brandShadow, palette } from '~/theme/tokens';
+import { brandShadow, palette, withAlpha } from '~/theme/tokens';
 
 interface BillingData {
   kpis: {
@@ -319,9 +319,9 @@ export default function RoutesBillingScreen() {
                                 paddingVertical: 1,
                                 borderRadius: 999,
                                 backgroundColor:
-                                  (o.payment_status === 'partial'
+                                  withAlpha((o.payment_status === 'partial'
                                     ? colors.warning
-                                    : colors.danger) + '18',
+                                    : colors.danger), 0.09),
                               }}
                             >
                               <Text
@@ -370,7 +370,7 @@ export default function RoutesBillingScreen() {
                       width: 56,
                       height: 56,
                       borderRadius: 18,
-                      backgroundColor: colors.success + '20',
+                      backgroundColor: withAlpha(colors.success, 0.13),
                       alignItems: 'center',
                       justifyContent: 'center',
                     }}

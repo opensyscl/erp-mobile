@@ -864,11 +864,11 @@ export default function RoutesScreen() {
                             paddingHorizontal: 10,
                             borderRadius: 14,
                             backgroundColor: isActive
-                              ? tab.tint + (scheme === 'dark' ? '30' : '18')
+                              ? withAlpha(tab.tint, scheme === 'dark' ? 0.19 : 0.09)
                               : colors.bgMuted,
                             alignItems: 'center',
                             borderWidth: 1,
-                            borderColor: isActive ? tab.tint + '50' : 'transparent',
+                            borderColor: isActive ? withAlpha(tab.tint, 0.31) : 'transparent',
                           }}
                         >
                           <Text
@@ -1828,7 +1828,7 @@ function OrderCard({
         borderRadius: 16,
         padding: 16,
         borderWidth: 1,
-        borderColor: order.status === 'pending' ? brand.brand + '40' : colors.border,
+        borderColor: order.status === 'pending' ? withAlpha(brand.brand, 0.25) : colors.border,
       }}
     >
       <View className="flex-row justify-between items-start gap-3">

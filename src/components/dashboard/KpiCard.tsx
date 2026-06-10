@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import { Skeleton, Text } from '~/components/ui';
 import { useColorScheme } from '~/hooks/useColorScheme';
 import { Fonts } from '~/theme/fonts';
-import { palette } from '~/theme/tokens';
+import { palette, withAlpha } from '~/theme/tokens';
 
 type Trend = { value: number; tone: 'success' | 'danger' };
 
@@ -50,7 +50,7 @@ export function KpiCard({
               paddingVertical: 1,
               borderRadius: 999,
               backgroundColor:
-                (trend.tone === 'success' ? colors.success : colors.danger) + '18',
+                withAlpha((trend.tone === 'success' ? colors.success : colors.danger), 0.09),
             }}
           >
             <Text
