@@ -9,6 +9,7 @@ import {
   type RouteOrderStatusChangedPayload,
 } from './events';
 import { channelAccess, invalidationRules } from './invalidation';
+import { toast } from '~/components/Toast';
 import { useAuthStore } from '~/stores/auth';
 import { useNotificationsStore, type NotifKind } from '~/stores/notifications';
 import { useTenantStore } from '~/stores/tenant';
@@ -29,6 +30,7 @@ export function useRealtimeHub(): void {
   const branchId = useTenantStore((s) => s.currentBranchId);
   const userId = useAuthStore((s) => s.user?.id ?? null);
   const role = useAuthStore((s) => s.user?.role ?? null);
+  const userName = useAuthStore((s) => s.user?.name ?? null);
   const permissions = useAuthStore((s) => s.user?.permissions);
   const queryClient = useQueryClient();
   const pushNotif = useNotificationsStore((s) => s.push);
@@ -76,6 +78,10 @@ export function useRealtimeHub(): void {
           body: p.driver_name ?? undefined,
           payload: p as unknown as Record<string, unknown>,
         });
+        // Noti visible para el driver dueño de la carga (no solo el bell)
+        if (isOwnLoad(role, userName, p.driver_name)) {
+          toast.success('Nueva carga asignada', `${p.items_count} items · ${p.total_units} unidades`);
+        }
       }),
       subscribe(routesChannel, RealtimeEvents.RouteLoadConfirmed, (p) => {
         pushNotif({
@@ -84,6 +90,9 @@ export function useRealtimeHub(): void {
           body: p.driver_name ?? undefined,
           payload: p as unknown as Record<string, unknown>,
         });
+        if (isOwnLoad(role, userName, p.driver_name)) {
+          toast.success('Carga confirmada', 'Tu ruta está lista para salir.');
+        }
       }),
       subscribe(routesChannel, RealtimeEvents.RouteLoadClosed, (p) => {
         pushNotif({
@@ -125,7 +134,7 @@ export function useRealtimeHub(): void {
     }
 
     return () => subs.forEach((s) => s.unsubscribe());
-  }, [tenantId, userId, role, permissions, pushNotif]);
+  }, [tenantId, userId, role, userName, permissions, pushNotif]);
 
   // 3. Resync tras reconexión WS
   useEffect(() => {
@@ -158,4 +167,15 @@ function renderOrderStatusChanged(p: RouteOrderStatusChangedPayload): {
     };
   }
   return { kind: 'route.order.delivered', title: `Cambio de estado${num}`, body: p.status };
+}
+
+/**
+ * ¿La carga del evento es del usuario actual? El payload trae driver_name
+ * (no id), así que matcheamos por nombre — suficiente para no toastear a
+ * otros drivers del tenant. Sin nombre en el payload: toast solo si es driver.
+ */
+function isOwnLoad(role: string | null, userName: string | null, driverName: string | null): boolean {
+  if (role !== 'tenant_driver') return false;
+  if (!driverName || !userName) return true;
+  return driverName.trim().toLowerCase() === userName.trim().toLowerCase();
 }
