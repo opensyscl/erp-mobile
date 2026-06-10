@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "584721257623",
+    "project_id": "erp-mobile-b453c",
+    "storage_bucket": "erp-mobile-b453c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:584721257623:android:f1831eb9a4275e24dcc5d2",
+        "android_client_info": {
+          "package_name": "io.opensys.erp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCXCnkKPrlkvDinM1HsH0S7vNMJQQGnb3I"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
