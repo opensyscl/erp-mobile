@@ -47,3 +47,7 @@ android/
 .env.local.bak*
 .env.staging-backup*
 expo-qr.png
+
+# Clave privada de service account de Firebase — NUNCA commitear
+opensys-fcm*.json
+*service-account*.json
