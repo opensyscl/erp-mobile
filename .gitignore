@@ -51,3 +51,7 @@ expo-qr.png
 # Clave privada de service account de Firebase — NUNCA commitear
 opensys-fcm*.json
 *service-account*.json
+
+# Firebase Admin SDK service-account keys (secreto — solo a EAS, nunca al repo)
+*firebase-adminsdk*.json
+*-adminsdk-*.json

@@ -127,3 +127,14 @@ export async function apiRequest<T>(config: AxiosRequestConfig): Promise<T> {
   const res = await api.request<T>(config);
   return res.data;
 }
+
+/** Upload multipart (fotos) — mismo client/headers/interceptors que apiRequest. */
+export async function apiUpload<T>(url: string, form: FormData): Promise<T> {
+  const res = await api.request<T>({
+    method: 'POST',
+    url,
+    data: form,
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return res.data;
+}

@@ -29,7 +29,9 @@ import { toast } from '~/components/Toast';
 import { Button, Card, Pressable, Skeleton, Text } from '~/components/ui';
 import { useBrand } from '~/hooks/useBrand';
 import { useColorScheme } from '~/hooks/useColorScheme';
-import { ApiError, apiRequest } from '~/lib/api';
+import * as ImagePicker from 'expo-image-picker';
+
+import { ApiError, apiRequest, apiUpload } from '~/lib/api';
 import { ArrowRight, Bell, ChevronRight, Navigation, Package, PackageReceive, Phone, Plus, Refresh, Truck, User as UserIcon, Wallet } from '~/lib/icons';
 import { queryKeys } from '~/lib/queryKeys';
 import { useAuthStore } from '~/stores/auth';
@@ -1912,6 +1914,7 @@ function OrderDetailSheet({
   const insets = useSafeAreaInsets();
 
   const [mode, setMode] = useState<'main' | 'deliver' | 'skip'>('main');
+  const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [paid, setPaid] = useState('');
   const [method, setMethod] = useState<'cash' | 'transfer'>('cash');
   const [notes, setNotes] = useState('');
@@ -1919,8 +1922,32 @@ function OrderDetailSheet({
 
   const isResolved = order.status !== 'pending';
 
+  const takePhoto = async () => {
+    const perm = await ImagePicker.requestCameraPermissionsAsync();
+    if (!perm.granted) {
+      toast.error('Sin permiso de cámara', 'Habilitalo en ajustes para adjuntar la foto.');
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({ quality: 0.6 });
+    if (!result.canceled && result.assets[0]) setPhotoUri(result.assets[0].uri);
+  };
+
   const deliverMut = useMutation({
     mutationFn: async () => {
+      // Foto primero (best-effort): si falla, la entrega sigue igual.
+      if (photoUri) {
+        try {
+          const form = new FormData();
+          form.append('photo', {
+            uri: photoUri,
+            name: 'entrega.jpg',
+            type: 'image/jpeg',
+          } as unknown as Blob);
+          await apiUpload(`/api/mobile/routes/orders/${order.id}/delivery-photo`, form);
+        } catch {
+          toast.warning('Foto no subida', 'La entrega se registra igual; reintentá desde el detalle.');
+        }
+      }
       const paidNum = Number(paid) || 0;
       return apiRequest<{ data: RouteOrder }>({
         method: 'POST',
@@ -2222,6 +2249,36 @@ function OrderDetailSheet({
                     color: colors.fg,
                   }}
                 />
+
+                {/* Foto de entrega (opcional) — prueba de entrega estilo delivery-app */}
+                <Pressable
+                  haptic="selection"
+                  accessibilityLabel="Foto de entrega"
+                  onPress={takePhoto}
+                  style={{
+                    marginTop: 12,
+                    height: 48,
+                    borderRadius: 12,
+                    borderWidth: 1,
+                    borderStyle: photoUri ? 'solid' : 'dashed',
+                    borderColor: photoUri ? colors.success : colors.borderStrong,
+                    backgroundColor: photoUri ? withAlpha(colors.success, 0.08) : colors.bgSubtle,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexDirection: 'row',
+                    gap: 8,
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: photoUri ? colors.success : colors.fgMuted,
+                      fontFamily: Fonts.medium,
+                      fontSize: 13,
+                    }}
+                  >
+                    {photoUri ? '✓ Foto adjunta — tocá para repetir' : 'Sacar foto de entrega (opcional)'}
+                  </Text>
+                </Pressable>
 
                 {error ? (
                   <Text variant="caption" tone="danger" className="mt-2">

@@ -35,6 +35,7 @@ export interface RouteOrder {
   amount_paid: number;
   payment_method: string | null;
   notes: string | null;
+  delivery_photo_url: string | null;
   client: RouteClient | null;
   driver?: { id: number; name: string; email?: string; phone?: string | null; photo?: string | null } | null;
   items: RouteOrderItem[];
