@@ -144,6 +144,7 @@ export default function LoginScreen() {
           >
             <Pressable
               haptic="selection"
+              accessibilityLabel="Volver"
               onPress={() => {
                 if (router.canGoBack()) {
                   router.back();
@@ -282,6 +283,7 @@ export default function LoginScreen() {
                 rightSlot={
                   <Pressable
                     haptic="selection"
+                    accessibilityLabel={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                     onPress={() => setShowPassword((v) => !v)}
                     style={{
                       width: 40,

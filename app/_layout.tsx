@@ -13,6 +13,7 @@ import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { HeroUINativeProvider } from 'heroui-native';
 
 import { Splash } from '~/components/Splash';
+import { OfflineBanner } from '~/components/OfflineBanner';
 import { ToastViewport } from '~/components/Toast';
 import { useColorScheme } from '~/hooks/useColorScheme';
 import { useFonts } from '~/hooks/useFonts';
@@ -100,6 +101,7 @@ export default function RootLayout() {
                 <Stack.Screen name="(app)" />
               </Stack>
               <ToastViewport />
+              <OfflineBanner />
               {!splashDone && <Splash onFinish={() => setSplashDone(true)} />}
             </View>
           </BottomSheetModalProvider>

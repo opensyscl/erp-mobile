@@ -44,6 +44,7 @@ export const Pressable = forwardRef<typeof RNPressable, PressableExtraProps>(
       <AnimatedPressable
         // @ts-expect-error animated forwardRef typing
         ref={ref}
+        accessibilityRole="button"
         style={animStyle}
         onPressIn={(e) => {
           sv.value = withSpring(scaleMap[scale], { damping: 18, stiffness: 320 });

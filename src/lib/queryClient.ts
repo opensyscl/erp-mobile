@@ -39,6 +39,10 @@ export const queryClient = new QueryClient({
     },
     mutations: {
       retry: false,
+      // Con onlineManager cableado, el default 'online' PAUSA mutaciones sin
+      // red (checkout colgado sin feedback). 'always' dispara igual y falla
+      // rápido → el usuario ve el toast de error como siempre.
+      networkMode: 'always',
     },
   },
 });

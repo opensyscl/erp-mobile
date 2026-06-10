@@ -315,6 +315,7 @@ export default function RoutesScreen() {
               <View className="flex-row items-center gap-2">
                 <Pressable
                   haptic="selection"
+                  accessibilityLabel="Refrescar datos"
                   onPress={handleReload}
                   className="h-9 w-9 rounded-full items-center justify-center"
                   style={{ backgroundColor: withAlpha(brand.brandFg, 0.18) }}
@@ -323,6 +324,7 @@ export default function RoutesScreen() {
                 </Pressable>
                 <Pressable
                   haptic="selection"
+                  accessibilityLabel="Notificaciones"
                   onPress={() => notifSheet.current?.present()}
                   className="h-9 w-9 rounded-full items-center justify-center"
                   style={{ backgroundColor: withAlpha(brand.brandFg, 0.18) }}
@@ -656,6 +658,7 @@ export default function RoutesScreen() {
                   {nextOrder.client?.phone ? (
                     <Pressable
                       haptic="selection"
+                      accessibilityLabel="Llamar al cliente"
                       onPress={() => callClient(nextOrder.client!.phone!)}
                       style={{
                         width: 48,
@@ -672,6 +675,7 @@ export default function RoutesScreen() {
                   {nextOrder.client?.address ? (
                     <Pressable
                       haptic="selection"
+                      accessibilityLabel="Navegar a la dirección"
                       onPress={() => navigateTo(nextOrder.client!.address!)}
                       style={{
                         width: 48,
