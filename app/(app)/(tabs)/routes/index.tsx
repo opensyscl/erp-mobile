@@ -38,7 +38,7 @@ import { useAuthStore } from '~/stores/auth';
 import { useUnseenCount } from '~/stores/notifications';
 import { useTenantStore } from '~/stores/tenant';
 import { Fonts } from '~/theme/fonts';
-import { brandShadow, palette, shadows, withAlpha } from '~/theme/tokens';
+import { brandShadow, palette, withAlpha } from '~/theme/tokens';
 import type {
   RouteLoad,
   RouteOrder,
@@ -472,7 +472,6 @@ export default function RoutesScreen() {
               borderWidth: 1,
               borderColor: colors.border,
               padding: 18,
-              ...shadows.lg,
             }}
           >
             {state === 'empty' ? (
@@ -779,7 +778,7 @@ export default function RoutesScreen() {
             scale="subtle"
             onPress={() => router.push('/(app)/routes/track' as never)}
           >
-            <Card padding="md" variant="elevated" className="overflow-hidden">
+            <Card padding="md" variant="outlined" className="overflow-hidden">
               <View className="flex-row items-center gap-3">
                 <View
                   style={{

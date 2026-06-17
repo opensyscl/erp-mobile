@@ -32,14 +32,14 @@ import { ArrowLeft, Eye, EyeOff } from '~/lib/icons';
 import { useAuthStore } from '~/stores/auth';
 import { useTenantStore } from '~/stores/tenant';
 import { Fonts } from '~/theme/fonts';
-import { brandShadow, palette, shadows } from '~/theme/tokens';
+import { brandShadow, palette } from '~/theme/tokens';
 
 /**
  * Login — card flotante sobre el bg cálido del sistema.
  *   - Tokens del design system (palette.light), nada de paleta local:
  *     brand para CTA/focus/links, success para el dot TLS, card
  *     bgElevated + border igual que el resto de la app.
- *   - Form dentro de una card rounded-3xl con shadows.md.
+ *   - Form dentro de una card rounded-3xl con border, sin sombra (regla de cards).
  *   - Inputs con floating label (el bg de la label corta el borde — matchea
  *     el bg de la CARD, no el de la página).
  *   - CTA pill con brandShadow, igual lenguaje que la tab bar pill.
@@ -161,7 +161,6 @@ export default function LoginScreen() {
                 backgroundColor: T.bgElevated,
                 borderWidth: 1,
                 borderColor: T.border,
-                ...shadows.xs,
               }}
             >
               <ArrowLeft size={20} color={T.fg} />
@@ -240,7 +239,6 @@ export default function LoginScreen() {
                 paddingTop: 26,
                 paddingBottom: 22,
                 gap: 18,
-                ...shadows.md,
               }}
             >
               <FloatingLabelInput
