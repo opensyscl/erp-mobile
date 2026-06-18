@@ -19,6 +19,14 @@
     "preview": {
       "distribution": "internal",
       "channel": "preview",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://staging.erp.opensys.cl",
+        "EXPO_PUBLIC_TENANT_MODE": "header",
+        "EXPO_PUBLIC_REVERB_HOST": "ws.erp.opensys.cl",
+        "EXPO_PUBLIC_REVERB_PORT": "443",
+        "EXPO_PUBLIC_REVERB_SCHEME": "https",
+        "EXPO_PUBLIC_REVERB_KEY": "prod-key"
+      },
       "ios": {
         "resourceClass": "m-medium"
       },
