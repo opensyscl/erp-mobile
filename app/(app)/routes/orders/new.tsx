@@ -33,6 +33,13 @@ interface ClientItem {
   phone: string | null;
 }
 
+interface ClientPricing {
+  price_list_id: number | null;
+  discount_pct: number;
+  list_prices: Record<string, number>;
+  overrides: Record<string, number>;
+}
+
 interface DriverItem {
   id: number;
   name: string;
@@ -68,6 +75,7 @@ export default function NewRouteOrderScreen() {
   const isDriverRole = me?.role === 'tenant_driver';
 
   const [client, setClient] = useState<ClientItem | null>(null);
+  const [clientPricing, setClientPricing] = useState<ClientPricing | null>(null);
   // Si el user es repartidor, él mismo es el driver del pedido (no puede
   // asignar a otro). Si es admin/manager, elige desde el sheet.
   const [driver, setDriver] = useState<DriverItem | null>(
@@ -82,6 +90,14 @@ export default function NewRouteOrderScreen() {
       setDriver({ id: me.id, name: me.name, is_on_route: false });
     }
   }, [isDriverRole, me?.id, me?.name]);
+
+  // Cargar pricing del cliente al seleccionarlo
+  useEffect(() => {
+    if (!client) { setClientPricing(null); return; }
+    apiRequest<ClientPricing>({ method: 'GET', url: `/api/mobile/routes/clients/${client.id}/pricing` })
+      .then(setClientPricing)
+      .catch(() => setClientPricing(null));
+  }, [client?.id]);
   const [lines, setLines] = useState<OrderLine[]>([]);
   const [notes, setNotes] = useState('');
 
@@ -89,7 +105,22 @@ export default function NewRouteOrderScreen() {
   const driverSheet = useRef<BottomSheetModalType>(null);
   const productSheet = useRef<BottomSheetModalType>(null);
 
-  const subtotal = lines.reduce((acc, l) => acc + l.product.price * l.quantity, 0);
+  // Precio resuelto según pricing del cliente: override > lista > base > descuento %
+  const priceFor = (product: ProductItem): number => {
+    if (!clientPricing) return product.price;
+    const pid = String(product.id);
+    let price = clientPricing.overrides[pid] ?? clientPricing.list_prices[pid] ?? product.price;
+    if (clientPricing.discount_pct > 0) price = price * (1 - clientPricing.discount_pct / 100);
+    return Math.round(price * 100) / 100;
+  };
+
+  const hasPricing = !!clientPricing && (
+    !!clientPricing.price_list_id ||
+    clientPricing.discount_pct > 0 ||
+    Object.keys(clientPricing.overrides).length > 0
+  );
+
+  const subtotal = lines.reduce((acc, l) => acc + priceFor(l.product) * l.quantity, 0);
   const tax = Math.round(subtotal * 0.19);
   const total = subtotal + tax;
 
@@ -310,9 +341,18 @@ export default function NewRouteOrderScreen() {
                       <Text variant="bodyStrong" numberOfLines={1}>
                         {l.product.name}
                       </Text>
-                      <Text variant="caption" tone="muted">
-                        {formatCLP(l.product.price)} c/u
-                      </Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                        <Text variant="caption" tone="muted">
+                          {formatCLP(priceFor(l.product))} c/u
+                        </Text>
+                        {hasPricing && priceFor(l.product) !== l.product.price && (
+                          <View style={{ backgroundColor: withAlpha(brand.brand, 0.12), paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4 }}>
+                            <Text style={{ color: brand.brand, fontSize: 9, fontFamily: Fonts.bold, includeFontPadding: false } as never}>
+                              LISTA
+                            </Text>
+                          </View>
+                        )}
+                      </View>
                     </View>
                     <View
                       style={{
@@ -369,7 +409,7 @@ export default function NewRouteOrderScreen() {
                         includeFontPadding: false,
                       } as never}
                     >
-                      {formatCLP(l.product.price * l.quantity)}
+                      {formatCLP(priceFor(l.product) * l.quantity)}
                     </Text>
                   </View>
                 ))
