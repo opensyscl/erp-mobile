@@ -1,4 +1,4 @@
-import { Stack, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -6,27 +6,27 @@ import { DriverOrdersBody } from '~/components/routes/DriverOrdersBody';
 import { Pressable, Text } from '~/components/ui';
 import { useBrand } from '~/hooks/useBrand';
 import { useColorScheme } from '~/hooks/useColorScheme';
-import { useSafeBack } from '~/hooks/useSafeBack';
-import { ArrowLeft, Plus } from '~/lib/icons';
+import { Plus } from '~/lib/icons';
 import { palette } from '~/theme/tokens';
 
-export default function RoutesOrdersScreen() {
+/**
+ * Pestaña "Pedidos" del driver — su superficie de trabajo diaria. Reusa el
+ * cuerpo compartido (tabs Pendientes/Entregados + lista) con un header de
+ * título (sin back, porque es raíz de pestaña).
+ */
+export default function OrdersTabScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const scheme = useColorScheme();
   const colors = palette[scheme];
   const brand = useBrand();
-  const safeBack = useSafeBack('/(app)/routes/admin');
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
-      <Stack.Screen options={{ headerShown: false }} />
-
-      {/* Header con back (pantalla stack) */}
       <View
         style={{
           paddingTop: insets.top + 8,
-          paddingHorizontal: 16,
+          paddingHorizontal: 20,
           paddingBottom: 12,
           backgroundColor: colors.bgElevated,
           borderBottomWidth: 1,
@@ -36,19 +36,11 @@ export default function RoutesOrdersScreen() {
           justifyContent: 'space-between',
         }}
       >
-        <Pressable
-          haptic="selection"
-          onPress={safeBack}
-          className="h-10 w-10 items-center justify-center rounded-full bg-bg-subtle border border-border"
-        >
-          <ArrowLeft size={18} color={colors.fg} />
-        </Pressable>
-        <Text variant="overline" tone="subtle">
-          Pedidos
-        </Text>
+        <Text variant="title">Pedidos</Text>
         <Pressable
           haptic="medium"
           onPress={() => router.push('/(app)/routes/orders/new' as never)}
+          accessibilityLabel="Nuevo pedido"
           style={{
             height: 40,
             width: 40,

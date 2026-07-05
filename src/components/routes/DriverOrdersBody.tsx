@@ -1,0 +1,333 @@
+import { useQuery } from '@tanstack/react-query';
+import { useRouter } from 'expo-router';
+import { useState } from 'react';
+import { RefreshControl, ScrollView, View } from 'react-native';
+import Animated from 'react-native-reanimated';
+
+import { Card, Pressable, Skeleton, Text } from '~/components/ui';
+import { useBrand } from '~/hooks/useBrand';
+import { useColorScheme } from '~/hooks/useColorScheme';
+import { apiRequest } from '~/lib/api';
+import { Package } from '~/lib/icons';
+import { queryKeys } from '~/lib/queryKeys';
+import { Fonts } from '~/theme/fonts';
+import { palette, withAlpha } from '~/theme/tokens';
+
+/**
+ * Cuerpo compartido de la lista de pedidos del driver: tabs Pendientes /
+ * Entregados + lista de cards. Lo usan tanto la pantalla stack
+ * (routes/orders/index.tsx, con header + back) como la pestaña
+ * ((tabs)/orders.tsx, con header de título). Mantiene su propio estado de tab
+ * y sus queries para no acoplarse al wrapper.
+ */
+
+interface OrderRow {
+  id: number;
+  order_number: string;
+  client_id: number;
+  client_name: string | null;
+  client_address: string | null;
+  driver_id: number | null;
+  driver_name: string | null;
+  status: 'pending' | 'in_route' | 'delivered' | 'cancelled';
+  payment_status: 'unpaid' | 'partial' | 'paid';
+  total: number;
+  amount_paid: number;
+  created_at: string | null;
+}
+
+const TABS = [
+  { id: 'pending', label: 'Pendientes' },
+  { id: 'delivered', label: 'Entregados' },
+] as const;
+
+const STATUS_TONE: Record<OrderRow['status'], 'warning' | 'success' | 'danger' | 'brand'> = {
+  pending: 'warning',
+  in_route: 'brand',
+  delivered: 'success',
+  cancelled: 'danger',
+};
+
+const STATUS_LABEL: Record<OrderRow['status'], string> = {
+  pending: 'Pendiente',
+  in_route: 'En ruta',
+  delivered: 'Entregado',
+  cancelled: 'No entregado',
+};
+
+const PAYMENT_TONE: Record<OrderRow['payment_status'], 'success' | 'warning' | 'subtle'> = {
+  paid: 'success',
+  partial: 'warning',
+  unpaid: 'subtle',
+};
+
+const PAYMENT_LABEL: Record<OrderRow['payment_status'], string> = {
+  paid: 'Pagado',
+  partial: 'Parcial',
+  unpaid: 'Sin cobrar',
+};
+
+function formatCLP(n: number): string {
+  return '$' + Math.round(n).toLocaleString('es-CL');
+}
+
+function formatTime(iso: string | null): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+}
+
+export function DriverOrdersBody() {
+  const router = useRouter();
+  const scheme = useColorScheme();
+  const colors = palette[scheme];
+  const brand = useBrand();
+
+  const [tab, setTab] = useState<(typeof TABS)[number]['id']>('pending');
+
+  const queryKey = queryKeys.routes.ordersByTab(tab);
+  const { data, isLoading, refetch, isRefetching } = useQuery({
+    queryKey,
+    queryFn: () =>
+      apiRequest<{ data: OrderRow[] }>({
+        method: 'GET',
+        url: `/api/mobile/routes/orders?status=${tab}`,
+      }).then((r) => r.data),
+  });
+
+  const { data: pendingCount } = useQuery({
+    queryKey: queryKeys.routes.ordersCount('pending'),
+    queryFn: () =>
+      apiRequest<{ data: OrderRow[] }>({
+        method: 'GET',
+        url: '/api/mobile/routes/orders?status=pending',
+      }).then((r) => r.data.length),
+  });
+  const { data: deliveredCount } = useQuery({
+    queryKey: queryKeys.routes.ordersCount('delivered'),
+    queryFn: () =>
+      apiRequest<{ data: OrderRow[] }>({
+        method: 'GET',
+        url: '/api/mobile/routes/orders?status=delivered',
+      }).then((r) => r.data.length),
+  });
+  const counts: Record<(typeof TABS)[number]['id'], number | undefined> = {
+    pending: pendingCount,
+    delivered: deliveredCount,
+  };
+
+  const orders = data ?? [];
+
+  return (
+    <View style={{ flex: 1 }}>
+      {/* Tabs sticky */}
+      <View
+        style={{
+          flexDirection: 'row',
+          backgroundColor: colors.bgElevated,
+          borderBottomWidth: 1,
+          borderBottomColor: colors.border,
+        }}
+      >
+        {TABS.map((t) => {
+          const active = tab === t.id;
+          const count = counts[t.id];
+          return (
+            <Pressable
+              key={t.id}
+              haptic="selection"
+              onPress={() => setTab(t.id)}
+              style={{
+                flex: 1,
+                paddingVertical: 14,
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderBottomWidth: 2,
+                borderBottomColor: active ? brand.brand : 'transparent',
+                marginBottom: -1,
+              }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text
+                  style={{
+                    fontFamily: active ? Fonts.semibold : Fonts.medium,
+                    fontSize: 13,
+                    color: active ? colors.fg : colors.fgMuted,
+                    letterSpacing: -0.1,
+                    includeFontPadding: false,
+                  } as never}
+                >
+                  {t.label}
+                </Text>
+                {typeof count === 'number' ? (
+                  <View
+                    style={{
+                      paddingHorizontal: 6,
+                      minWidth: 20,
+                      height: 18,
+                      borderRadius: 999,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: active ? brand.brand : colors.bgMuted,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontFamily: Fonts.semibold,
+                        fontSize: 10,
+                        color: active ? brand.brandFg : colors.fgMuted,
+                        fontVariant: ['tabular-nums'],
+                        includeFontPadding: false,
+                      } as never}
+                    >
+                      {count}
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      <ScrollView
+        contentContainerStyle={{ padding: 16, paddingBottom: 80 }}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefetching}
+            onRefresh={() => refetch()}
+            tintColor={brand.brand}
+            colors={[brand.brand]}
+          />
+        }
+      >
+        <View className="gap-2">
+          {isLoading
+            ? [0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-20 rounded-xl" />)
+            : orders.map((o) => (
+                <Animated.View key={o.id}>
+                  <Pressable
+                    haptic="selection"
+                    scale="subtle"
+                    onPress={() => router.push(`/(app)/routes/orders/${o.id}` as never)}
+                    style={{
+                      backgroundColor: colors.bgElevated,
+                      borderRadius: 14,
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                      padding: 14,
+                    }}
+                  >
+                    <View className="flex-row items-start gap-3">
+                      <View style={{ flex: 1.4 }}>
+                        <View className="flex-row items-center gap-2">
+                          <Text
+                            style={{
+                              fontFamily: Fonts.medium,
+                              fontSize: 12,
+                              lineHeight: 18,
+                              color: brand.brand,
+                              letterSpacing: 0.2,
+                              includeFontPadding: false,
+                            } as never}
+                          >
+                            {o.order_number}
+                          </Text>
+                          <View
+                            style={{
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              gap: 4,
+                              paddingHorizontal: 6,
+                              paddingVertical: 1,
+                              borderRadius: 999,
+                              backgroundColor: withAlpha(
+                                STATUS_TONE[o.status] === 'success'
+                                  ? colors.success
+                                  : STATUS_TONE[o.status] === 'warning'
+                                    ? colors.warning
+                                    : STATUS_TONE[o.status] === 'brand'
+                                      ? brand.brand
+                                      : colors.danger,
+                                0.1,
+                              ),
+                            }}
+                          >
+                            <Text
+                              variant="caption"
+                              tone={STATUS_TONE[o.status]}
+                              style={{ fontFamily: Fonts.medium, fontSize: 10 }}
+                            >
+                              {STATUS_LABEL[o.status]}
+                            </Text>
+                          </View>
+                        </View>
+                        <Text variant="bodyStrong" numberOfLines={1} className="mt-0.5">
+                          {o.client_name ?? '—'}
+                        </Text>
+                        {o.client_address ? (
+                          <Text variant="caption" tone="muted" numberOfLines={1}>
+                            {o.client_address}
+                          </Text>
+                        ) : null}
+                        <Text variant="caption" tone="subtle" numberOfLines={1} className="mt-1">
+                          {o.driver_name ?? 'Sin asignar'} · {formatTime(o.created_at)}
+                        </Text>
+                      </View>
+                      <View style={{ alignItems: 'flex-end' }}>
+                        <Text
+                          style={{
+                            fontFamily: Fonts.semibold,
+                            fontSize: 15,
+                            lineHeight: 22,
+                            color: colors.fg,
+                            fontVariant: ['tabular-nums'],
+                            includeFontPadding: false,
+                          } as never}
+                        >
+                          {formatCLP(o.total)}
+                        </Text>
+                        <Text
+                          variant="caption"
+                          tone={PAYMENT_TONE[o.payment_status]}
+                          className="mt-1"
+                          style={{ fontFamily: Fonts.medium }}
+                        >
+                          {PAYMENT_LABEL[o.payment_status]}
+                        </Text>
+                      </View>
+                    </View>
+                  </Pressable>
+                </Animated.View>
+              ))}
+
+          {!isLoading && orders.length === 0 ? (
+            <Card variant="outlined" padding="lg">
+              <View className="items-center py-6">
+                <View
+                  style={{
+                    width: 56,
+                    height: 56,
+                    borderRadius: 18,
+                    backgroundColor: colors.bgMuted,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Package size={26} color={colors.fgSubtle} />
+                </View>
+                <Text variant="bodyStrong" className="mt-3">
+                  Sin pedidos en este filtro
+                </Text>
+                <Text variant="caption" tone="muted" className="mt-1 text-center">
+                  Crea uno con el botón + arriba.
+                </Text>
+              </View>
+            </Card>
+          ) : null}
+        </View>
+      </ScrollView>
+    </View>
+  );
+}

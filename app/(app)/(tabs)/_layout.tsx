@@ -28,7 +28,12 @@ export default function TabsLayout() {
   const showPosTab = hasPos && !isDriver;
   const showCashTab = hasCash && !isDriver;
   const showInventoryTab = hasInventory && !hasRoutes;
-  const showAnalyticsTab = hasAnalytics && (isAdminLike || isDriver);
+  // Reportes muestra P&L del tenant (ingresos/gastos/utilidad) → solo dueño/manager.
+  // Un repartidor NO debe ver las finanzas de la empresa.
+  const showAnalyticsTab = hasAnalytics && isAdminLike;
+  // El driver trabaja sobre sus pedidos: le damos "Pedidos" como 2ª pestaña
+  // (su Inicio ya es el dashboard de ruta).
+  const showDriverOrdersTab = isDriver && hasRoutes;
 
   return (
     <Tabs
@@ -43,6 +48,14 @@ export default function TabsLayout() {
           href: showHomeTab ? '/(app)/(tabs)' : null,
           title: 'Inicio',
           tabBarIcon: ({ color, size }) => <Home size={size - 2} color={color} strokeWidth={1.6} />,
+        }}
+      />
+      <Tabs.Screen
+        name="orders"
+        options={{
+          href: showDriverOrdersTab ? '/(app)/(tabs)/orders' : null,
+          title: 'Pedidos',
+          tabBarIcon: ({ color, size }) => <Package size={size - 2} color={color} strokeWidth={1.6} />,
         }}
       />
       <Tabs.Screen
