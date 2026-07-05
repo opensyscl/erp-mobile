@@ -342,7 +342,7 @@ export default function RoutesScreen() {
                         height: 16,
                         paddingHorizontal: 4,
                         borderRadius: 999,
-                        backgroundColor: '#ef4444',
+                        backgroundColor: colors.danger,
                         alignItems: 'center',
                         justifyContent: 'center',
                         borderWidth: 1.5,
@@ -1170,6 +1170,7 @@ export default function RoutesScreen() {
           }}
         >
           <Button
+            brand
             onPress={() => closeMutation.mutate()}
             loading={closeMutation.isPending}
             haptic="medium"
@@ -2160,7 +2161,7 @@ function OrderDetailSheet({
               </View>
             ) : mode === 'main' ? (
               <View className="mt-5 gap-2.5">
-                <Button onPress={() => setMode('deliver')}>Marcar entregada</Button>
+                <Button brand onPress={() => setMode('deliver')}>Marcar entregada</Button>
                 <Button variant="secondary" onPress={() => setMode('skip')}>
                   No pude entregar
                 </Button>
@@ -2292,7 +2293,7 @@ function OrderDetailSheet({
                     </Button>
                   </View>
                   <View style={{ flex: 1.4 }}>
-                    <Button onPress={() => deliverMut.mutate()} loading={deliverMut.isPending}>
+                    <Button brand onPress={() => deliverMut.mutate()} loading={deliverMut.isPending}>
                       Confirmar entrega
                     </Button>
                   </View>

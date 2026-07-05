@@ -485,6 +485,7 @@ export default function NewRouteOrderScreen() {
             </Text>
           </View>
           <Button
+            brand
             onPress={() => create.mutate()}
             disabled={!canSubmit}
             loading={create.isPending}

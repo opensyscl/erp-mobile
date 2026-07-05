@@ -1,4 +1,5 @@
 import { ActivityIndicator, View } from 'react-native';
+import { useBrand } from '~/hooks/useBrand';
 import { cn } from '~/lib/cn';
 import { Pressable, type PressableExtraProps } from './Pressable';
 import { Text } from './Text';
@@ -43,6 +44,12 @@ export interface ButtonProps extends Omit<PressableExtraProps, 'children'> {
   rightIcon?: React.ReactNode;
   fullWidth?: boolean;
   className?: string;
+  /**
+   * Rellena el primary con el color de marca del tenant (`useBrand`) en vez del
+   * azul de sistema (`bg-brand`). Para CTAs de pantallas de negocio (rutas,
+   * ventas…) que deben respirar la marca. Solo aplica a `variant="primary"`.
+   */
+  brand?: boolean;
 }
 
 export function Button({
@@ -55,31 +62,42 @@ export function Button({
   fullWidth = true,
   disabled,
   className,
+  brand = false,
   haptic = 'medium',
   ...props
 }: ButtonProps) {
   const isDisabled = disabled || loading;
+  const brandColors = useBrand();
+  const brandFill = brand && variant === 'primary';
   return (
     <Pressable
       {...props}
       disabled={isDisabled}
       haptic={isDisabled ? 'none' : haptic}
       scale={isDisabled ? 'none' : 'normal'}
+      style={brandFill ? { backgroundColor: brandColors.brand } : undefined}
       className={cn(
         'flex-row items-center justify-center',
         sizeClass[size],
-        variantClass[variant],
+        brandFill ? 'active:opacity-90' : variantClass[variant],
         fullWidth && 'w-full',
         isDisabled && 'opacity-50',
         className,
       )}
     >
       {loading ? (
-        <ActivityIndicator size="small" color={variant === 'primary' || variant === 'danger' ? 'white' : undefined} />
+        <ActivityIndicator
+          size="small"
+          color={brandFill ? brandColors.brandFg : variant === 'primary' || variant === 'danger' ? 'white' : undefined}
+        />
       ) : (
         <>
           {leftIcon ? <View className="mr-2">{leftIcon}</View> : null}
-          <Text variant={sizeTextVariant[size]} tone={variantText[variant]}>
+          <Text
+            variant={sizeTextVariant[size]}
+            tone={variantText[variant]}
+            style={brandFill ? { color: brandColors.brandFg } : undefined}
+          >
             {children}
           </Text>
           {rightIcon ? <View className="ml-2">{rightIcon}</View> : null}

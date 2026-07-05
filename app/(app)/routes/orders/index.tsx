@@ -23,7 +23,7 @@ interface OrderRow {
   client_address: string | null;
   driver_id: number | null;
   driver_name: string | null;
-  status: 'pending' | 'delivered' | 'cancelled';
+  status: 'pending' | 'in_route' | 'delivered' | 'cancelled';
   payment_status: 'unpaid' | 'partial' | 'paid';
   total: number;
   amount_paid: number;
@@ -35,14 +35,16 @@ const TABS = [
   { id: 'delivered', label: 'Entregados' },
 ] as const;
 
-const STATUS_TONE: Record<OrderRow['status'], 'warning' | 'success' | 'danger'> = {
+const STATUS_TONE: Record<OrderRow['status'], 'warning' | 'success' | 'danger' | 'brand'> = {
   pending: 'warning',
+  in_route: 'brand',
   delivered: 'success',
   cancelled: 'danger',
 };
 
 const STATUS_LABEL: Record<OrderRow['status'], string> = {
   pending: 'Pendiente',
+  in_route: 'En ruta',
   delivered: 'Entregado',
   cancelled: 'No entregado',
 };
@@ -283,7 +285,9 @@ export default function RoutesOrdersScreen() {
                                   ? colors.success
                                   : STATUS_TONE[o.status] === 'warning'
                                     ? colors.warning
-                                    : colors.danger), 0.09),
+                                    : STATUS_TONE[o.status] === 'brand'
+                                      ? brand.brand
+                                      : colors.danger), 0.1),
                             }}
                           >
                             <Text

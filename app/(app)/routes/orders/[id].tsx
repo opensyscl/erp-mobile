@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, RefreshControl, ScrollView, TextInput, View } from 'react-native';
@@ -169,6 +170,10 @@ export default function OrderDetailScreen() {
             }}
           >
             <HeaderPattern color={brand.brandFg} intensity={1.0} />
+            <LinearGradient
+              colors={['rgba(255,255,255,0.10)', 'rgba(0,0,0,0.0)', 'rgba(0,0,0,0.20)']}
+              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+            />
             <Animated.View entering={FadeInDown.duration(220)}>
               <View className="flex-row items-center justify-between">
                 <Pressable
@@ -261,7 +266,7 @@ export default function OrderDetailScreen() {
             <>
               {/* Flujo de entrega */}
               <Animated.View entering={FadeInUp.delay(80).duration(220)} className="mx-5" style={{ marginTop: -36 }}>
-                <Card variant="elevated" padding="lg">
+                <Card variant="outlined" padding="lg">
                   <Text variant="overline" tone="brand">
                     Flujo de entrega
                   </Text>
@@ -313,7 +318,7 @@ export default function OrderDetailScreen() {
                               Iniciar ruta
                             </Button>
                           ) : null}
-                          <Button onPress={() => setMode('deliver')}>
+                          <Button brand onPress={() => setMode('deliver')}>
                             Confirmar entrega
                           </Button>
                           <Button variant="ghost" onPress={() => setMode('skip')}>
@@ -377,7 +382,7 @@ export default function OrderDetailScreen() {
                               })}
                             </View>
                           </View>
-                          <Button onPress={() => deliverMut.mutate()} loading={deliverMut.isPending}>
+                          <Button brand onPress={() => deliverMut.mutate()} loading={deliverMut.isPending}>
                             Confirmar entrega
                           </Button>
                           <Button variant="ghost" onPress={() => setMode('idle')}>

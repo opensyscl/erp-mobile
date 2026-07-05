@@ -87,64 +87,73 @@ export function useDriverLocationTracking({
         return;
       }
 
-      const { status: perm } = await Location.requestForegroundPermissionsAsync();
-      if (cancelled) return;
+      try {
+        const { status: perm } = await Location.requestForegroundPermissionsAsync();
+        if (cancelled) return;
 
-      if (perm !== 'granted') {
-        setStatus('permission-denied');
-        return;
-      }
-
-      setStatus('tracking');
-
-      const sub = await Location.watchPositionAsync(
-        {
-          accuracy: Location.Accuracy.Balanced,
-          timeInterval: 5_000,
-          distanceInterval: 10,
-        },
-        () => {
-          // Solo guardamos la última lectura — el ping al server lo hace el timer.
-        },
-      );
-      if (cancelled) {
-        sub.remove();
-        return;
-      }
-      subRef.current = sub;
-
-      const ping = async (): Promise<void> => {
-        if (inFlightRef.current) return;
-        if (appStateRef.current !== 'active') return;
-        inFlightRef.current = true;
-        try {
-          const pos = await Location.getCurrentPositionAsync({
-            accuracy: Location.Accuracy.Balanced,
-          });
-          const payload: PingPayload = {
-            lat: pos.coords.latitude,
-            lng: pos.coords.longitude,
-            accuracy: pos.coords.accuracy ?? null,
-            speed: pos.coords.speed ?? null,
-            heading: pos.coords.heading ?? null,
-            recorded_at: new Date(pos.timestamp).toISOString(),
-            route_load_id: loadId ?? null,
-          };
-          await apiRequest({
-            method: 'POST',
-            url: '/api/mobile/routes/location',
-            data: payload,
-          });
-          if (!cancelled) setLastPing(payload);
-        } catch {
-          // Silencio: no rompemos UX por un ping perdido.
-        } finally {
-          inFlightRef.current = false;
+        if (perm !== 'granted') {
+          setStatus('permission-denied');
+          return;
         }
-      };
 
-      void ping();
-      timerRef.current = setInterval(ping, intervalMs);
+        setStatus('tracking');
+
+        const sub = await Location.watchPositionAsync(
+          {
+            accuracy: Location.Accuracy.Balanced,
+            timeInterval: 5_000,
+            distanceInterval: 10,
+          },
+          () => {
+            // Solo guardamos la última lectura — el ping al server lo hace el timer.
+          },
+        );
+        if (cancelled) {
+          sub.remove();
+          return;
+        }
+        subRef.current = sub;
+
+        const ping = async (): Promise<void> => {
+          if (inFlightRef.current) return;
+          if (appStateRef.current !== 'active') return;
+          inFlightRef.current = true;
+          try {
+            const pos = await Location.getCurrentPositionAsync({
+              accuracy: Location.Accuracy.Balanced,
+            });
+            const payload: PingPayload = {
+              lat: pos.coords.latitude,
+              lng: pos.coords.longitude,
+              accuracy: pos.coords.accuracy ?? null,
+              speed: pos.coords.speed ?? null,
+              heading: pos.coords.heading ?? null,
+              recorded_at: new Date(pos.timestamp).toISOString(),
+              route_load_id: loadId ?? null,
+            };
+            await apiRequest({
+              method: 'POST',
+              url: '/api/mobile/routes/location',
+              data: payload,
+            });
+            if (!cancelled) setLastPing(payload);
+          } catch {
+            // Silencio: no rompemos UX por un ping perdido.
+          } finally {
+            inFlightRef.current = false;
+          }
+        };
+
+        void ping();
+        timerRef.current = setInterval(ping, intervalMs);
+      } catch {
+        // GPS apagado / servicios de ubicación no satisfechos (típico en
+        // emuladores) → requestForegroundPermissionsAsync o watchPositionAsync
+        // rechazan. Sin este catch la promesa queda unhandled y RN muestra un
+        // toast rojo "Uncaught (in promise): Error: Location...". Degradamos a
+        // 'error' y la app sigue andando sin tracking.
+        if (!cancelled) setStatus('error');
+      }
     }
 
     void start();
