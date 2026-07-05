@@ -170,7 +170,7 @@ export default function SalesScreen() {
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 120 }}>
         {/* Hero KPI */}
         <Animated.View entering={FadeInDown.duration(360)}>
-          <Card variant="elevated" padding="lg">
+          <Card variant="outlined" padding="lg">
             <Text variant="overline" tone="brand">
               Ingresos
             </Text>

@@ -164,7 +164,7 @@ function ProductRow({ product }: { product: Product }) {
     <Pressable
       onPress={() => router.push(`/(app)/products/${product.id}` as never)}
       haptic="selection"
-      className="rounded-xl bg-bg-elevated border border-border p-3.5 flex-row items-center gap-3"
+      className="rounded-2xl bg-bg-elevated p-3.5 flex-row items-center gap-3"
     >
       <View className="h-10 w-10 rounded-lg bg-bg-muted items-center justify-center">
         <Text variant="caption" tone="subtle" className="font-bold">

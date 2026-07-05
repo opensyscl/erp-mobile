@@ -1,10 +1,10 @@
 import { type BottomSheetModal as BottomSheetModalType } from '@gorhom/bottom-sheet';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
 import { Stack, useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
 import { Image } from 'expo-image';
-import { FlatList, ScrollView, TextInput, View } from 'react-native';
+import { ActivityIndicator, FlatList, ScrollView, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppBottomSheet } from '~/components/AppBottomSheet';
@@ -32,13 +32,14 @@ interface SearchProduct {
 
 interface SearchResp {
   data: SearchProduct[];
-  meta: { total: number };
+  meta: { total: number; current_page: number; last_page: number; per_page: number };
 }
 
-async function searchProducts(query: string, categoryId: number | null): Promise<SearchResp> {
+async function searchProducts(query: string, categoryId: number | null, page = 1): Promise<SearchResp> {
   const params = new URLSearchParams();
   if (query) params.set('search', query);
   if (categoryId !== null) params.set('category_id', String(categoryId));
+  params.set('page', String(page));
   const qs = params.toString() ? `?${params.toString()}` : '';
   return apiRequest<SearchResp>({
     method: 'GET',
@@ -97,12 +98,15 @@ export default function PosScreen() {
   });
   const categories = categoriesData ?? [];
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
     queryKey: queryKeys.pos.search(query, categoryId),
-    queryFn: () => searchProducts(query, categoryId),
+    queryFn: ({ pageParam }) => searchProducts(query, categoryId, pageParam),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) =>
+      lastPage.meta.current_page < lastPage.meta.last_page ? lastPage.meta.current_page + 1 : undefined,
   });
 
-  const products = data?.data ?? [];
+  const products = data?.pages.flatMap((p) => p.data) ?? [];
 
   const handleAdd = (p: SearchProduct) => {
     if (p.status === 'out') return;
@@ -207,6 +211,20 @@ export default function PosScreen() {
           }}
           ItemSeparatorComponent={() => <View style={{ height: 6 }} />}
           renderItem={({ item }) => <PosProductRow product={item} onAdd={() => handleAdd(item)} />}
+          onEndReached={() => {
+            if (hasNextPage && !isFetchingNextPage) fetchNextPage();
+          }}
+          onEndReachedThreshold={0.5}
+          removeClippedSubviews
+          initialNumToRender={12}
+          windowSize={11}
+          ListFooterComponent={
+            isFetchingNextPage ? (
+              <View style={{ paddingVertical: 24, alignItems: 'center' }}>
+                <ActivityIndicator />
+              </View>
+            ) : null
+          }
           ListEmptyComponent={
             <View className="px-6 pt-16 items-center">
               <Text variant="headline">Nada encontrado</Text>

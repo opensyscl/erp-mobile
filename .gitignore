@@ -55,3 +55,4 @@ opensys-fcm*.json
 # Firebase Admin SDK service-account keys (secreto — solo a EAS, nunca al repo)
 *firebase-adminsdk*.json
 *-adminsdk-*.json
+.env.bak*
