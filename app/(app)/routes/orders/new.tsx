@@ -1,6 +1,6 @@
 import { BottomSheetScrollView, BottomSheetTextInput, type BottomSheetModal as BottomSheetModalType } from '@gorhom/bottom-sheet';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Stack } from 'expo-router';
+import { Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
@@ -74,7 +74,28 @@ export default function NewRouteOrderScreen() {
   const me = useAuthStore((s) => s.user);
   const isDriverRole = me?.role === 'tenant_driver';
 
-  const [client, setClient] = useState<ClientItem | null>(null);
+  // Cliente puede venir preseleccionado desde la pantalla Clientes (tap → nuevo
+  // pedido de ese cliente). Pasamos el objeto por params para no pegarle a un
+  // endpoint extra.
+  const params = useLocalSearchParams<{
+    client_id?: string;
+    client_name?: string;
+    client_address?: string;
+    client_city?: string;
+    client_phone?: string;
+  }>();
+
+  const [client, setClient] = useState<ClientItem | null>(
+    params.client_id
+      ? {
+          id: Number(params.client_id),
+          name: params.client_name ?? 'Cliente',
+          address: params.client_address ?? null,
+          city: params.client_city ?? null,
+          phone: params.client_phone ?? null,
+        }
+      : null,
+  );
   const [clientPricing, setClientPricing] = useState<ClientPricing | null>(null);
   // Si el user es repartidor, él mismo es el driver del pedido (no puede
   // asignar a otro). Si es admin/manager, elige desde el sheet.
@@ -454,16 +475,11 @@ export default function NewRouteOrderScreen() {
             left: 0,
             right: 0,
             backgroundColor: colors.bgElevated,
+            // Barra inferior sticky: separación por hairline, sin sombra (flat).
             borderTopWidth: 1,
             borderTopColor: colors.border,
             padding: 16,
             paddingBottom: insets.bottom + 16,
-            // Inverted shadow (apunta hacia arriba) — barra inferior sticky
-            shadowColor: '#0a0d14',
-            shadowOffset: { width: 0, height: -6 },
-            shadowOpacity: 0.06,
-            shadowRadius: 18,
-            elevation: 6,
           }}
         >
           <View className="flex-row items-baseline justify-between mb-3">

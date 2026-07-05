@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Pressable, Text } from '~/components/ui';
 import { useBrand } from '~/hooks/useBrand';
 import { Fonts } from '~/theme/fonts';
-import { withAlpha } from '~/theme/tokens';
+import { palette, withAlpha } from '~/theme/tokens';
 
 /**
  * Tab bar inferior — adaptativo según cantidad de tabs visibles:
@@ -17,9 +17,11 @@ import { withAlpha } from '~/theme/tokens';
  * En ambos modos cada slot ocupa `flex: 1` (mismo width entre todos) y el
  * contenido se centra horizontalmente. Filtra screens con `href: null`.
  */
-const TAB_BAR_BG = '#FFFFFF';
-const TAB_BAR_BORDER = '#E5E5E5';
-const INACTIVE_FG = '#71717A';
+// App bloqueada en light — tokens canónicos de la paleta para unificar el
+// hairline con el resto de la app (antes: #E5E5E5, un gris más frío que el borde).
+const TAB_BAR_BG = palette.light.bgElevated;
+const TAB_BAR_BORDER = palette.light.border;
+const INACTIVE_FG = palette.light.fgSubtle;
 
 export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const brand = useBrand();

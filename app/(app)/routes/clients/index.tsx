@@ -166,8 +166,18 @@ export default function RoutesClientsScreen() {
                     haptic="selection"
                     scale="subtle"
                     onPress={() => {
-                      // TODO: detalle cliente — por ahora va a nuevo pedido pre-cargado
-                      router.push('/(app)/routes/orders/new' as never);
+                      // Tap cliente → nuevo pedido con ese cliente ya seleccionado
+                      // (le pasamos el objeto por params; new.tsx lo preselecciona).
+                      router.push({
+                        pathname: '/(app)/routes/orders/new',
+                        params: {
+                          client_id: String(c.id),
+                          client_name: c.name,
+                          ...(c.address ? { client_address: c.address } : {}),
+                          ...(c.city ? { client_city: c.city } : {}),
+                          ...(c.phone ? { client_phone: c.phone } : {}),
+                        },
+                      } as never);
                     }}
                     style={{
                       backgroundColor: colors.bgElevated,
