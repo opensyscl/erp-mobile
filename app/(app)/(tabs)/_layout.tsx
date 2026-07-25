@@ -24,7 +24,9 @@ export default function TabsLayout() {
   const showHomeTab = true;
   // Driver: su Inicio YA es la vista de rutas (redirect en (tabs)/index.tsx). Ocultamos
   // la tab "Rutas" para no duplicar. Admin sigue viéndola para navegar drivers.
-  const showRoutesTab = hasRoutes && !isDriver;
+  // Rutas (panel de flota) solo para quien la gestiona: admin/manager. El
+  // driver la ve como su Inicio (redirect); cajero/staff no gestionan rutas.
+  const showRoutesTab = hasRoutes && isAdminLike;
   const showPosTab = hasPos && !isDriver;
   const showCashTab = hasCash && !isDriver;
   const showInventoryTab = hasInventory && !hasRoutes;

@@ -66,6 +66,9 @@ export default function AdminGeneralDashboard() {
   const branches = useTenantStore((s) => s.branches);
   const branchId = useTenantStore((s) => s.currentBranchId);
   const branch = branches.find((b) => b.id === branchId) ?? branches[0];
+  // Reportes = P&L del negocio (analytics), gateado a admin/manager en el
+  // backend. Un cajero/staff no lo ve para no toparse con un 403.
+  const isAdminLike = user?.role === 'tenant_admin' || user?.role === 'tenant_manager';
 
   // Refrescar user/tenant en cada mount del dashboard — barato y arregla casos
   // donde el cache local quedó con avatar_url null antes de un fix del backend.
@@ -190,11 +193,13 @@ export default function AdminGeneralDashboard() {
               icon={<Package size={20} color={colors.fg} strokeWidth={1.7} />}
               onPress={() => router.push('/(app)/inventory' as never)}
             />
-            <QuickActionCircle
-              label="Reportes"
-              icon={<BarChart size={20} color={colors.fg} strokeWidth={1.7} />}
-              onPress={() => router.push('/(app)/analytics' as never)}
-            />
+            {isAdminLike ? (
+              <QuickActionCircle
+                label="Reportes"
+                icon={<BarChart size={20} color={colors.fg} strokeWidth={1.7} />}
+                onPress={() => router.push('/(app)/analytics' as never)}
+              />
+            ) : null}
           </View>
         </Animated.View>
 
