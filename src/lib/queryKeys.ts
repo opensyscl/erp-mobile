@@ -61,6 +61,9 @@ export const queryKeys = {
   kpis: {
     all: ['kpis'] as const,
     today: ['kpis', 'today'] as const,
+    // Feed "Actividad reciente" (últimas boletas). Cuelga de 'kpis' para que
+    // el mapa de invalidación realtime lo refresque en cada venta nueva.
+    activity: ['kpis', 'activity'] as const,
   },
   analytics: {
     year: ['analytics', 'year'] as const,

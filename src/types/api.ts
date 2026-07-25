@@ -62,3 +62,18 @@ export interface DailyKPIs {
   currency: string;
   as_of: string;
 }
+
+export interface RecentActivityItem {
+  id: number;
+  /** Boleta formateada, ej. "#000123". Vacío si la venta no tiene correlativo. */
+  receipt: string;
+  /** Cliente de la venta, o "Venta rápida" si fue sin cliente. */
+  title: string;
+  amount: number;
+  created_at: string | null;
+}
+
+export interface RecentActivityResponse {
+  items: RecentActivityItem[];
+  currency: string;
+}

@@ -19,6 +19,7 @@ import { useNotificationsStore, useUnseenCount } from '~/stores/notifications';
 import { useBrand } from '~/hooks/useBrand';
 import { useColorScheme } from '~/hooks/useColorScheme';
 import { apiRequest } from '~/lib/api';
+import { formatActivityDate } from '~/lib/format';
 import {
   ArrowUpRight,
   BarChart,
@@ -32,7 +33,7 @@ import { queryKeys } from '~/lib/queryKeys';
 import { useAuthStore } from '~/stores/auth';
 import { useTenantStore } from '~/stores/tenant';
 import { palette } from '~/theme/tokens';
-import type { DailyKPIs } from '~/types/api';
+import type { DailyKPIs, RecentActivityResponse } from '~/types/api';
 
 async function fetchDailyKPIs(): Promise<DailyKPIs> {
   return apiRequest<DailyKPIs>({ method: 'GET', url: '/api/mobile/dashboard/today' });
@@ -91,6 +92,17 @@ export default function AdminGeneralDashboard() {
   });
   const approvalsPending = approvalsData?.counts.pending ?? 0;
 
+  // Actividad reciente = últimas boletas del tenant. Cuelga de kpis.activity,
+  // que el hub realtime invalida en cada sale.created → se refresca en vivo.
+  const { data: activityData } = useQuery({
+    queryKey: queryKeys.kpis.activity,
+    queryFn: () =>
+      apiRequest<RecentActivityResponse>({
+        method: 'GET',
+        url: '/api/mobile/dashboard/activity',
+      }),
+  });
+
   // Contador de notificaciones unificado: el hub realtime (useRealtimeHub en
   // _layout.tsx) pushea al store los eventos de rutas y sale.created.
   const markAllSeen = useNotificationsStore((s) => s.markAllSeen);
@@ -101,8 +113,12 @@ export default function AdminGeneralDashboard() {
   const firstName = (user?.name ?? 'Equipo').split(' ')[0] ?? 'Equipo';
   const initial = firstName[0]?.toUpperCase() ?? 'O';
 
-  // Mock placeholder de actividad reciente — reemplazar cuando exista endpoint.
-  const recentActivity: ActivityItem[] = [];
+  const recentActivity: ActivityItem[] = (activityData?.items ?? []).map((it) => ({
+    id: it.id,
+    title: it.title,
+    sub: it.receipt ? `${it.receipt} · ${formatActivityDate(it.created_at)}` : formatActivityDate(it.created_at),
+    amount: it.amount,
+  }));
 
   // Trend de últimos 7 días viene del endpoint /api/mobile/dashboard/today
   // como array de 7 floats: [hace 6d, hace 5d, ..., hoy]. Mapeamos cada
