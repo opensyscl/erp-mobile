@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import { type BottomSheetModal as BottomSheetModalType } from '@gorhom/bottom-sheet';
 import { forwardRef, useRef, useState, type ReactNode, type Ref } from 'react';
 import {
+  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -266,7 +267,15 @@ export default function LoginScreen() {
                 returnKeyType="go"
                 onSubmitEditing={handleSubmit}
                 labelSideAction={
-                  <Pressable haptic="selection">
+                  <Pressable
+                    haptic="selection"
+                    onPress={() =>
+                      Alert.alert(
+                        'Recuperar contraseña',
+                        'Por seguridad, el restablecimiento lo realiza el administrador de tu cuenta. Contacta a soporte o al encargado de tu empresa para reiniciar tu clave.',
+                      )
+                    }
+                  >
                     <Text
                       style={{
                         color: T.brand,
