@@ -50,8 +50,14 @@
     },
     "platforms": [
       "ios",
-      "android"
+      "android",
+      "web"
     ],
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./assets/images/icon.png"
+    },
     "plugins": [
       "expo-router",
       "expo-secure-store",
