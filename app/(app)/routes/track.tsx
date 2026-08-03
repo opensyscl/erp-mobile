@@ -19,7 +19,8 @@ import { HeaderPattern } from '~/components/HeaderPattern';
 import { Button, Pressable, Text } from '~/components/ui';
 import { useBrand } from '~/hooks/useBrand';
 import { useColorScheme } from '~/hooks/useColorScheme';
-import { useDriverTracking, type TrackingStatus } from '~/hooks/useDriverTracking';
+import { type TrackingStatus } from '~/hooks/useDriverTracking';
+import { useTrackingStore } from '~/stores/tracking';
 import { useSafeBack } from '~/hooks/useSafeBack';
 import { ArrowLeft, Navigation, Radio, Truck } from '~/lib/icons';
 import { useAuthStore } from '~/stores/auth';
@@ -97,8 +98,22 @@ export default function DriverTrackScreen() {
   const user = useAuthStore((s) => s.user);
   const safeBack = useSafeBack('/(app)/routes');
 
-  const { status, lastPosition, pingCount, lastPingAt, error, start, stop } =
-    useDriverTracking({ intervalSec: 8, distanceMeters: 5 });
+  // Un solo emisor de ubicación: el global gobernado por el store. Esta pantalla
+  // solo enciende/apaga el envío y muestra su estado. Antes tenía un segundo
+  // pinger propio, por eso "Pausar" no detenía el envío de fondo.
+  const setSharing = useTrackingStore((s) => s.setSharing);
+  const storeStatus = useTrackingStore((s) => s.status);
+  const lastPing = useTrackingStore((s) => s.lastPing);
+  const pingCount = useTrackingStore((s) => s.pingCount);
+
+  const status: TrackingStatus = (storeStatus === 'permission-denied' ? 'denied' : storeStatus) as TrackingStatus;
+  const lastPosition = lastPing
+    ? { lat: lastPing.lat, lng: lastPing.lng, accuracy: lastPing.accuracy ?? 0, speed: lastPing.speed }
+    : null;
+  const lastPingAt = lastPing ? Date.parse(lastPing.recorded_at) : null;
+  const error: string | null = null;
+  const start = () => setSharing(true);
+  const stop = () => setSharing(false);
 
   const meta = statusMeta(status, colors);
   const isActive = status === 'tracking';

@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { AppState, type AppStateStatus } from 'react-native';
 
 import { apiRequest } from '~/lib/api';
+import { useTrackingStore, type TrackingPing, type TrackingStatus } from '~/stores/tracking';
 
 /**
  * expo-location es un módulo nativo. Si la app no fue rebuildeada después
@@ -34,15 +35,7 @@ interface UseDriverLocationTrackingArgs {
   intervalMs?: number;
 }
 
-interface PingPayload {
-  lat: number;
-  lng: number;
-  accuracy: number | null;
-  speed: number | null;
-  heading: number | null;
-  recorded_at: string;
-  route_load_id?: number | null;
-}
+type PingPayload = TrackingPing;
 
 /**
  * Pingea la posición GPS del driver al backend mientras `enabled` sea true.
@@ -59,13 +52,16 @@ export function useDriverLocationTracking({
   loadId,
   intervalMs = 30_000,
 }: UseDriverLocationTrackingArgs): {
-  status: 'idle' | 'permission-denied' | 'tracking' | 'error' | 'unavailable';
+  status: TrackingStatus;
   lastPing: PingPayload | null;
 } {
-  const [status, setStatus] = useState<
-    'idle' | 'permission-denied' | 'tracking' | 'error' | 'unavailable'
-  >('idle');
-  const [lastPing, setLastPing] = useState<PingPayload | null>(null);
+  // Fuente única de verdad: el store. `sharing` es el interruptor del conductor;
+  // mientras esté apagado, no se emite GPS.
+  const sharing = useTrackingStore((s) => s.sharing);
+  const status = useTrackingStore((s) => s.status);
+  const lastPing = useTrackingStore((s) => s.lastPing);
+  const setStatus = useTrackingStore((s) => s._setStatus);
+  const setLastPing = useTrackingStore((s) => s._setLastPing);
   const subRef = useRef<{ remove: () => void } | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const inFlightRef = useRef(false);
@@ -77,6 +73,11 @@ export function useDriverLocationTracking({
     async function start(): Promise<void> {
       if (!enabled) {
         setStatus('idle');
+        return;
+      }
+      if (!sharing) {
+        // El conductor no activó (o pausó) el envío de ubicación.
+        setStatus('paused');
         return;
       }
 
@@ -172,7 +173,7 @@ export function useDriverLocationTracking({
       }
       stateSub.remove();
     };
-  }, [enabled, loadId, intervalMs]);
+  }, [enabled, sharing, loadId, intervalMs, setStatus, setLastPing]);
 
   return { status, lastPing };
 }
