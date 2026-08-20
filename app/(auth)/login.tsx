@@ -88,38 +88,42 @@ export default function LoginScreen() {
   const DEV_DEFAULT = { email: 'driver.routes@demo.cl', password: '12345678' };
   const [email, setEmail] = useState(__DEV__ ? DEV_DEFAULT.email : '');
   const [password, setPassword] = useState(__DEV__ ? DEV_DEFAULT.password : '');
+  // Feedback inline (además del toast) — imposible que no se vea.
+  const [formError, setFormError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
 
   const submitting = status === 'authenticating';
 
   const handleSubmit = async () => {
+    setFormError(null);
     if (!email.trim() || !password) {
+      setFormError('Email y contraseña son requeridos.');
       toast.error('Faltan datos', 'Email y contraseña son requeridos.');
       return;
     }
     try {
       await login({ email: email.trim(), password, tenantSlug: slug });
+      setFormError(null);
       toast.success('Bienvenido', `Sesión iniciada como ${email.trim()}`);
     } catch (e) {
+      let msg: string;
       if (e instanceof ApiError) {
         if (e.status === 422 || e.status === 401) {
-          toast.error(
-            'Credenciales incorrectas',
-            slug ? `Revisa email/contraseña (tenant "${slug}").` : 'Revisa tu email y contraseña.',
-          );
+          msg = slug
+            ? `Credenciales incorrectas (tenant "${slug}").`
+            : 'Credenciales incorrectas. Revisa email y contraseña.';
         } else if (e.status === 0 || e.status >= 500) {
-          toast.error(
-            'Error de conexión',
-            `Status ${e.status}. ¿El backend está corriendo en ${resolveApiUrl()}?`,
-          );
+          msg = `Error de conexión (status ${e.status}). API: ${resolveApiUrl()}`;
         } else {
-          toast.error('Error', e.message || `Error ${e.status} desde el backend`);
+          msg = e.message || `Error ${e.status} desde el backend`;
         }
       } else if (e instanceof Error) {
-        toast.error('Error', e.message || 'No pudimos iniciar sesión.');
+        msg = e.message || 'No pudimos iniciar sesión.';
       } else {
-        toast.error('Sin conexión', 'No pudimos iniciar sesión. Reintenta.');
+        msg = 'Sin conexión. No pudimos iniciar sesión.';
       }
+      setFormError(msg);
+      toast.error('No se pudo entrar', msg);
     }
   };
 
@@ -310,6 +314,30 @@ export default function LoginScreen() {
 
               <View style={{ marginTop: 4, gap: 12 }}>
                 <PillButton onPress={handleSubmit} loading={submitting} label="Iniciar sesión" />
+
+                {formError ? (
+                  <View
+                    style={{
+                      backgroundColor: '#FEE2E2',
+                      borderColor: '#FCA5A5',
+                      borderWidth: 1,
+                      borderRadius: 14,
+                      paddingVertical: 10,
+                      paddingHorizontal: 14,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: '#B91C1C',
+                        fontFamily: Fonts.medium,
+                        fontSize: 13,
+                        textAlign: 'center',
+                      }}
+                    >
+                      {formError}
+                    </Text>
+                  </View>
+                ) : null}
 
                 {__DEV__ ? (
                   <Pressable

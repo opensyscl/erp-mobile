@@ -32,10 +32,19 @@ export const useAuthStore = create<AuthState>((set) => ({
       try {
         const user = JSON.parse(userRaw) as User;
         setAuthToken(token);
+        // VALIDAR el token contra el backend antes de dar por autenticado. Sin
+        // esto, un token viejo/inválido (ej. de otro entorno) deja la app
+        // "logueada" pero todo request da 401. Si /me falla → forzar re-login.
+        await apiRequest({ method: 'GET', url: '/api/mobile/auth/me' });
         set({ status: 'authenticated', token, user });
         return;
       } catch {
-        // datos corruptos — caer a unauth
+        // token inválido o datos corruptos → limpiar y pedir login de nuevo.
+        setAuthToken(null);
+        await Promise.all([
+          secureStorage.remove(StorageKeys.AuthToken),
+          secureStorage.remove(StorageKeys.AuthUser),
+        ]);
       }
     }
     set({ status: 'unauthenticated', token: null, user: null });

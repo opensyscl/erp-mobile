@@ -259,19 +259,40 @@ function TenantBlock({
                 {u.email}
               </Text>
             </View>
-            {u.role ? (
-              <Text
-                style={{
-                  fontFamily: Fonts.medium,
-                  fontSize: 10,
-                  color: colors.fgSubtle,
-                  letterSpacing: 0.3,
-                  includeFontPadding: false,
-                } as never}
-              >
-                {u.role.replace('tenant_', '')}
-              </Text>
-            ) : null}
+            {u.role
+              ? (() => {
+                  const meta =
+                    u.role === 'tenant_admin'
+                      ? { label: 'Admin', bg: '#EEF2FF', fg: '#4338CA' }
+                      : u.role === 'tenant_driver'
+                        ? { label: 'Driver', bg: '#ECFDF5', fg: '#047857' }
+                        : u.role === 'tenant_manager'
+                          ? { label: 'Manager', bg: '#FEF3C7', fg: '#B45309' }
+                          : { label: u.role.replace('tenant_', ''), bg: colors.bgMuted, fg: colors.fgMuted };
+                  return (
+                    <View
+                      style={{
+                        backgroundColor: meta.bg,
+                        borderRadius: 999,
+                        paddingHorizontal: 9,
+                        paddingVertical: 3,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontFamily: Fonts.semibold,
+                          fontSize: 10,
+                          color: meta.fg,
+                          letterSpacing: 0.2,
+                          includeFontPadding: false,
+                        } as never}
+                      >
+                        {meta.label}
+                      </Text>
+                    </View>
+                  );
+                })()
+              : null}
           </Pressable>
         ))}
       </View>

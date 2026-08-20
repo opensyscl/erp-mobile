@@ -1,6 +1,6 @@
 import * as Haptics from 'expo-haptics';
 import { useEffect } from 'react';
-import { Pressable as RNPressable, View } from 'react-native';
+import { Platform, Pressable as RNPressable, View } from 'react-native';
 import Animated, {
   Easing,
   runOnJS,
@@ -48,17 +48,27 @@ const useToastStore = create<ToastState>((set) => ({
  *   import { toast } from '~/components/Toast';
  *   toast.success('Venta creada', 'Total $12.500');
  */
+// Haptics seguro: en web no existe y puede tirar; nunca debe frenar el toast.
+const haptic = (type: Haptics.NotificationFeedbackType) => {
+  if (Platform.OS === 'web') return;
+  try {
+    void Haptics.notificationAsync(type);
+  } catch {
+    /* noop */
+  }
+};
+
 export const toast = {
   success(title: string, description?: string, duration?: number) {
-    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    haptic(Haptics.NotificationFeedbackType.Success);
     return useToastStore.getState().push({ kind: 'success', title, description, duration });
   },
   error(title: string, description?: string, duration?: number) {
-    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    haptic(Haptics.NotificationFeedbackType.Error);
     return useToastStore.getState().push({ kind: 'error', title, description, duration });
   },
   warning(title: string, description?: string, duration?: number) {
-    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    haptic(Haptics.NotificationFeedbackType.Warning);
     return useToastStore.getState().push({ kind: 'warning', title, description, duration });
   },
   info(title: string, description?: string, duration?: number) {
