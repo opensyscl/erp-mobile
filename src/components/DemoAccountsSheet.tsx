@@ -35,6 +35,30 @@ interface DemoAccountsResponse {
 }
 
 /**
+ * Qué dashboard abre cada usuario — espeja la lógica de
+ * `app/(app)/(tabs)/index.tsx` (rol + módulo routes del tenant).
+ */
+function dashboardFor(role: string | null, hasRoutes: boolean): string {
+  if ((role === 'tenant_admin' || role === 'tenant_manager') && hasRoutes) {
+    return 'Dashboard de Rutas';
+  }
+  if (role === 'tenant_driver' && hasRoutes) {
+    return 'Dashboard de Reparto';
+  }
+  return 'Dashboard General';
+}
+
+/**
+ * Deja solo las cuentas relevantes para la demo: todos los admins/managers +
+ * un único driver (el primero). Saca los drivers de relleno del seed.
+ */
+function relevantUsers(users: DemoUser[]): DemoUser[] {
+  const admins = users.filter((u) => u.role !== 'tenant_driver');
+  const firstDriver = users.find((u) => u.role === 'tenant_driver');
+  return firstDriver ? [...admins, firstDriver] : admins;
+}
+
+/**
  * Sheet que muestra todos los tenants demo y sus usuarios. Al tap en un user
  * llama a `onPick(slug, email, password)` y el caller setea tenant+credenciales
  * en el form de login para entrar al toque.
@@ -200,7 +224,7 @@ function TenantBlock({
           overflow: 'hidden',
         }}
       >
-        {tenant.users.map((u, i) => (
+        {relevantUsers(tenant.users).map((u, i) => (
           <Pressable
             key={u.email}
             haptic="selection"
@@ -257,6 +281,19 @@ function TenantBlock({
                 numberOfLines={1}
               >
                 {u.email}
+              </Text>
+              <Text
+                style={{
+                  fontFamily: Fonts.medium,
+                  fontSize: 11,
+                  color: tenant.brand_color,
+                  includeFontPadding: false,
+                  marginTop: 2,
+                } as never}
+                numberOfLines={1}
+              >
+                {'Abre · '}
+                {dashboardFor(u.role, tenant.has_routes)}
               </Text>
             </View>
             {u.role

@@ -47,7 +47,7 @@ interface DemoTenantBrief {
  * Tenant picker — primer paso de auth.
  * Mismo lenguaje visual que el login: hero con bg de marca + card flotante.
  *
- * En dev (__DEV__) prellenado con `ferreteria-routes` para acelerar pruebas.
+ * En dev (__DEV__) prellenado con `opendemo-full` para acelerar pruebas.
  */
 export default function TenantScreen() {
   const router = useRouter();
@@ -57,7 +57,7 @@ export default function TenantScreen() {
   const insets = useSafeAreaInsets();
   const setSlug = useTenantStore((s) => s.setSlug);
 
-  const [value, setValue] = useState(__DEV__ ? 'ferreteria-routes' : '');
+  const [value, setValue] = useState(__DEV__ ? 'opendemo-full' : '');
   const [error, setError] = useState<string | null>(null);
   const devEnvSheet = useRef<BottomSheetModalType>(null);
   const logoTap = useFourTapGesture(() => devEnvSheet.current?.present());

@@ -1,7 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { Stack } from 'expo-router';
 import { useEffect, useState, type ReactNode } from 'react';
-import { ScrollView, View } from 'react-native';
+import { Linking, ScrollView, View } from 'react-native';
 import Animated, {
   Easing,
   FadeIn,
@@ -15,8 +15,14 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useQuery } from '@tanstack/react-query';
+
 import { HeaderPattern } from '~/components/HeaderPattern';
+import { RouteLiveMap, type MapStop } from '~/components/RouteLiveMap';
 import { Button, Pressable, Text } from '~/components/ui';
+import { useCurrentPosition } from '~/hooks/useCurrentPosition';
+import { apiRequest } from '~/lib/api';
+import { queryKeys } from '~/lib/queryKeys';
 import { useBrand } from '~/hooks/useBrand';
 import { useColorScheme } from '~/hooks/useColorScheme';
 import { type TrackingStatus } from '~/hooks/useDriverTracking';
@@ -33,6 +39,11 @@ type Scheme = 'light' | 'dark';
  * Metadata de cada estado del tracking. El color sale de la paleta semántica
  * (nunca hex crudo): verde=en vivo, ámbar=pausado, rojo=problema, gris=inactivo.
  */
+interface RouteOrderLite {
+  status?: string;
+  client?: { name?: string | null; lat?: number | null; lng?: number | null } | null;
+}
+
 function statusMeta(
   status: TrackingStatus,
   colors: (typeof palette)[Scheme],
@@ -98,6 +109,22 @@ export default function DriverTrackScreen() {
   const user = useAuthStore((s) => s.user);
   const safeBack = useSafeBack('/(app)/routes');
 
+  // Ruta activa del driver (paradas para el mapa). Solo driver.
+  const isDriverRole = user?.role === 'tenant_driver';
+  const { data: today } = useQuery({
+    queryKey: queryKeys.routes.today('self'),
+    queryFn: () =>
+      apiRequest<{ data: { id: number; orders?: RouteOrderLite[] } | null }>({
+        method: 'GET',
+        url: '/api/mobile/routes/today',
+      }),
+    enabled: isDriverRole,
+  });
+
+  // Posición GPS local del dispositivo para pintar el mapa (independiente del
+  // toggle de compartir — queremos verte aunque no estés transmitiendo).
+  const { position: gpsPosition } = useCurrentPosition(isDriverRole);
+
   // Un solo emisor de ubicación: el global gobernado por el store. Esta pantalla
   // solo enciende/apaga el envío y muestra su estado. Antes tenía un segundo
   // pinger propio, por eso "Pausar" no detenía el envío de fondo.
@@ -114,6 +141,25 @@ export default function DriverTrackScreen() {
   const error: string | null = null;
   const start = () => setSharing(true);
   const stop = () => setSharing(false);
+
+  // Datos derivados para el mapa: driver (GPS local → fallback último ping) y
+  // paradas (pedidos con coords del cliente).
+  const mapDriver = gpsPosition ?? (lastPosition ? { lat: lastPosition.lat, lng: lastPosition.lng } : null);
+  const routeStops: MapStop[] = (today?.data?.orders ?? [])
+    .filter((o) => o.client?.lat != null && o.client?.lng != null)
+    .map((o) => ({
+      lat: o.client!.lat as number,
+      lng: o.client!.lng as number,
+      label: o.client?.name ?? undefined,
+      done: o.status === 'delivered' || o.status === 'cancelled',
+    }));
+  const nextStop = routeStops.find((s) => !s.done) ?? null;
+  const doneCount = routeStops.filter((s) => s.done).length;
+
+  const openNavigation = (dest: MapStop) => {
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${dest.lat},${dest.lng}&travelmode=driving`;
+    void Linking.openURL(url).catch(() => undefined);
+  };
 
   const meta = statusMeta(status, colors);
   const isActive = status === 'tracking';
@@ -361,6 +407,51 @@ export default function DriverTrackScreen() {
             </View>
           </View>
         </Animated.View>
+
+        {/* Mapa de ruta en vivo — tu posición + próxima parada */}
+        {isDriverRole && (mapDriver || routeStops.length > 0) ? (
+          <Animated.View entering={FadeInUp.delay(170).duration(220)} className="mx-5 mt-3">
+            <View
+              style={{
+                backgroundColor: colors.bgElevated,
+                borderRadius: 24,
+                borderWidth: 1,
+                borderColor: colors.border,
+                padding: 12,
+              }}
+            >
+              <View
+                className="flex-row items-center justify-between"
+                style={{ paddingHorizontal: 6, paddingTop: 2, paddingBottom: 10 }}
+              >
+                <Text variant="overline" tone="subtle">
+                  Mapa de ruta
+                </Text>
+                {routeStops.length > 0 ? (
+                  <Text variant="caption" tone="muted">
+                    {doneCount}/{routeStops.length} entregadas
+                  </Text>
+                ) : null}
+              </View>
+
+              <RouteLiveMap driver={mapDriver} stops={routeStops} brand={brand.brand} height={240} />
+
+              {nextStop ? (
+                <View style={{ marginTop: 12 }}>
+                  <Text variant="overline" tone="subtle">
+                    Próxima parada
+                  </Text>
+                  <Text variant="bodyStrong" numberOfLines={1} style={{ marginTop: 2 }}>
+                    {nextStop.label ?? 'Parada'}
+                  </Text>
+                  <Button brand size="lg" onPress={() => openNavigation(nextStop)} style={{ marginTop: 10 }}>
+                    Navegar
+                  </Button>
+                </View>
+              ) : null}
+            </View>
+          </Animated.View>
+        ) : null}
 
         {/* Telemetría en vivo */}
         {lastPosition ? (

@@ -30,6 +30,7 @@ export const env = {
   },
   sentryDsn: process.env.EXPO_PUBLIC_SENTRY_DSN || null,
   posthogKey: process.env.EXPO_PUBLIC_POSTHOG_KEY || null,
+  mapboxToken: process.env.EXPO_PUBLIC_MAPBOX_TOKEN || null,
 } as const;
 
 /** API base URL — chequea override de devEnv primero. */

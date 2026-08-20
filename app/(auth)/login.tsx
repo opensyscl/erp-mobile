@@ -12,12 +12,14 @@ import {
 } from 'react-native';
 import Animated, {
   FadeIn,
+  FadeInDown,
   FadeInUp,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
+import Svg, { Path } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { DemoAccountsSheet } from '~/components/DemoAccountsSheet';
@@ -36,14 +38,11 @@ import { Fonts } from '~/theme/fonts';
 import { brandShadow, palette } from '~/theme/tokens';
 
 /**
- * Login — card flotante sobre el bg cálido del sistema.
- *   - Tokens del design system (palette.light), nada de paleta local:
- *     brand para CTA/focus/links, success para el dot TLS, card
- *     bgElevated + border igual que el resto de la app.
- *   - Form dentro de una card rounded-3xl con border, sin sombra (regla de cards).
- *   - Inputs con floating label (el bg de la label corta el borde — matchea
- *     el bg de la CARD, no el de la página).
- *   - CTA pill con brandShadow, igual lenguaje que la tab bar pill.
+ * Login — hero de marca + card blanca flotante (estilo "Sign in to your account").
+ *   - Hero azul (T.brand) con el mark de la empresa y título en blanco.
+ *   - Card rounded-t-3xl que sube sobre el hero, con: Continuar con Google,
+ *     divider, inputs rellenos email/clave, recordarme + olvidaste, CTA azul
+ *     y el link de abajo. Tokens del design system, nada de paleta raw.
  */
 
 // La app corre bloqueada en light mode — tokens resueltos una vez acá.
@@ -58,13 +57,23 @@ export default function LoginScreen() {
   const status = useAuthStore((s) => s.status);
 
   const passwordRef = useRef<RNTextInput>(null);
+  const scrollRef = useRef<ScrollView>(null);
   const devEnvSheet = useRef<BottomSheetModalType>(null);
   const demoSheet = useRef<BottomSheetModalType>(null);
+
+  // Al enfocar un input, subimos el scroll hasta el botón para que quede sobre
+  // el teclado (el CTA no debe quedar tapado). Delay = esperar la animación del
+  // teclado antes de medir el alto del contenido.
+  const scrollToCta = () => {
+    setTimeout(
+      () => scrollRef.current?.scrollToEnd({ animated: true }),
+      Platform.OS === 'ios' ? 260 : 160,
+    );
+  };
   const logoTap = useFourTapGesture(() => devEnvSheet.current?.present());
 
   const setSlug = useTenantStore((s) => s.setSlug);
   // Tocás un user del sheet → rellena inputs + cierra el sheet + auto-login.
-  // Espejo del comportamiento del web (fillDemo con autoSubmit).
   const handleDemoPick = async (slug: string, em: string, pw: string) => {
     await setSlug(slug);
     setEmail(em);
@@ -75,22 +84,23 @@ export default function LoginScreen() {
       toast.success('Bienvenido', `Sesión iniciada como ${em}`);
     } catch (e) {
       if (e instanceof ApiError && (e.status === 422 || e.status === 401)) {
-        toast.error('Credenciales incorrectas', `Revisá email/contraseña (tenant "${slug}")`);
+        toast.error('Credenciales incorrectas', `Revisa email/contraseña (tenant "${slug}")`);
       } else if (e instanceof Error) {
         toast.error('Error', e.message);
       }
     }
   };
 
-  // Prellenado mínimo en dev: driver con data sembrada del día — al entrar
-  // se ve el dashboard con la card "Mi ruta de hoy" en estado "En ruta"
-  // (3/7 entregadas) + próxima parada. Pass seedeada local = 12345678.
-  const DEV_DEFAULT = { email: 'driver.routes@demo.cl', password: '12345678' };
-  const [email, setEmail] = useState(__DEV__ ? DEV_DEFAULT.email : '');
-  const [password, setPassword] = useState(__DEV__ ? DEV_DEFAULT.password : '');
+  // Campos vacíos siempre. Antes venían prellenados con creds demo válidas en
+  // dev, lo que hacía parecer que "el login pasa con cualquier texto" (en
+  // realidad ya había creds buenas puestas). Para probar rápido → "Ver cuentas
+  // demo", que autocompletea y entra.
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   // Feedback inline (además del toast) — imposible que no se vea.
   const [formError, setFormError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [remember, setRemember] = useState(true);
 
   const submitting = status === 'authenticating';
 
@@ -131,177 +141,199 @@ export default function LoginScreen() {
     <Screen padded={false} edges={{ top: false, bottom: false }}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={{ flex: 1, backgroundColor: T.bg }}
+        style={{ flex: 1, backgroundColor: T.brand }}
       >
         <ScrollView
+          ref={scrollRef}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ flexGrow: 1 }}
+          contentContainerStyle={{ flexGrow: 1, backgroundColor: T.bgElevated }}
         >
-          {/* Top bar — back en chip bordeado, como las sub-pantallas */}
-          <View
-            style={{
-              paddingTop: insets.top + 8,
-              paddingHorizontal: 20,
-              height: 44 + insets.top + 8,
-              justifyContent: 'flex-end',
-            }}
-          >
-            <Pressable
-              haptic="selection"
-              accessibilityLabel="Volver"
-              onPress={() => {
-                if (router.canGoBack()) {
-                  router.back();
-                } else {
-                  router.replace('/(auth)/tenant');
-                }
-              }}
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: 20,
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: T.bgElevated,
-                borderWidth: 1,
-                borderColor: T.border,
-              }}
-            >
-              <ArrowLeft size={20} color={T.fg} />
-            </Pressable>
-          </View>
+          {/* ───────────────── HERO azul ───────────────── */}
+          <View style={{ backgroundColor: T.brand, paddingBottom: 44 }}>
+            {/* Anillos decorativos sutiles */}
+            <View pointerEvents="none" style={{ position: 'absolute', top: -80, right: -60, opacity: 0.12 }}>
+              <View style={{ width: 220, height: 220, borderRadius: 110, borderWidth: 40, borderColor: '#FFFFFF' }} />
+            </View>
+            <View pointerEvents="none" style={{ position: 'absolute', top: 40, left: -70, opacity: 0.1 }}>
+              <View style={{ width: 160, height: 160, borderRadius: 80, borderWidth: 28, borderColor: '#FFFFFF' }} />
+            </View>
 
-          {/* Logo + título + chip de tenant */}
-          <View style={{ alignItems: 'center', paddingTop: 28, paddingBottom: 28 }}>
-            <Animated.View entering={FadeIn.duration(380)}>
-              <Pressable onPress={logoTap.onPress}>
-                {tenant?.logo_url ? (
-                  <LogoMark size={64} src={tenant.logo_url} />
-                ) : (
-                  <OpenSysLogo size={64} color={T.fg} />
-                )}
-              </Pressable>
-            </Animated.View>
-
-            <Animated.View
-              entering={FadeInUp.delay(80).duration(360)}
-              style={{ alignItems: 'center', marginTop: 20 }}
-            >
-              <Text
+            {/* Back — chip translúcido */}
+            <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 20 }}>
+              <Pressable
+                haptic="selection"
+                accessibilityLabel="Volver"
+                onPress={() => {
+                  if (router.canGoBack()) router.back();
+                  else router.replace('/(auth)/tenant');
+                }}
                 style={{
-                  color: T.fg,
-                  fontFamily: Fonts.semibold,
-                  fontSize: 28,
-                  letterSpacing: -0.6,
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: 'rgba(255,255,255,0.16)',
                 }}
               >
-                Iniciar sesión
+                <ArrowLeft size={20} color="#FFFFFF" />
+              </Pressable>
+            </View>
+
+            <Animated.View
+              entering={FadeInDown.duration(420)}
+              style={{ alignItems: 'center', paddingTop: 18, paddingHorizontal: 24 }}
+            >
+              {/* Mark en cuadro redondeado translúcido */}
+              <Pressable onPress={logoTap.onPress}>
+                <View
+                  style={{
+                    width: 60,
+                    height: 60,
+                    borderRadius: 18,
+                    backgroundColor: 'rgba(255,255,255,0.16)',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  {tenant?.logo_url ? (
+                    <LogoMark size={36} src={tenant.logo_url} />
+                  ) : (
+                    <OpenSysLogo size={34} color="#FFFFFF" />
+                  )}
+                </View>
+              </Pressable>
+
+              <Text
+                style={{
+                  color: '#FFFFFF',
+                  fontFamily: Fonts.semibold,
+                  fontSize: 27,
+                  lineHeight: 33,
+                  letterSpacing: -0.6,
+                  textAlign: 'center',
+                  marginTop: 18,
+                }}
+              >
+                Inicia sesión{'\n'}en tu cuenta
               </Text>
+              <Text
+                style={{
+                  color: 'rgba(255,255,255,0.82)',
+                  fontFamily: Fonts.regular,
+                  fontSize: 14,
+                  lineHeight: 20,
+                  textAlign: 'center',
+                  marginTop: 8,
+                }}
+              >
+                Ingresa tu email y contraseña para continuar
+              </Text>
+
               {slug ? (
                 <Pressable
                   haptic="selection"
                   onPress={() => router.replace('/(auth)/tenant')}
                   style={{
-                    marginTop: 10,
+                    marginTop: 14,
                     flexDirection: 'row',
                     alignItems: 'center',
                     gap: 6,
                     paddingHorizontal: 12,
                     paddingVertical: 5,
                     borderRadius: 999,
-                    backgroundColor: T.brandSubtle,
+                    backgroundColor: 'rgba(255,255,255,0.16)',
                   }}
                 >
-                  <Text
-                    style={{
-                      color: T.brand,
-                      fontFamily: Fonts.medium,
-                      fontSize: 13,
-                      letterSpacing: -0.1,
-                    }}
-                  >
+                  <Text style={{ color: '#FFFFFF', fontFamily: Fonts.medium, fontSize: 12.5 }}>
                     {slug}
                   </Text>
-                  <Text style={{ color: T.brand, fontFamily: Fonts.regular, fontSize: 11, opacity: 0.7 }}>
-                    cambiar
+                  <Text style={{ color: 'rgba(255,255,255,0.7)', fontFamily: Fonts.regular, fontSize: 11 }}>
+                    · cambiar
                   </Text>
                 </Pressable>
               ) : null}
             </Animated.View>
           </View>
 
-          {/* Card flotante con el form — rounded-3xl border border, como toda card de la app */}
-          <View style={{ paddingHorizontal: 20 }}>
-            <Animated.View
-              entering={FadeInUp.delay(140).duration(380)}
+          {/* ───────────────── CARD blanca ───────────────── */}
+          <Animated.View
+            entering={FadeInUp.delay(120).duration(420)}
+            style={{
+              flex: 1,
+              backgroundColor: T.bgElevated,
+              borderTopLeftRadius: 28,
+              borderTopRightRadius: 28,
+              marginTop: -24,
+              paddingHorizontal: 22,
+              paddingTop: 28,
+            }}
+          >
+            {/* Continuar con Google */}
+            <Pressable
+              haptic="selection"
+              onPress={() =>
+                toast.info('Google', 'El inicio con Google estará disponible pronto.')
+              }
               style={{
-                backgroundColor: T.bgElevated,
-                borderRadius: 24,
+                height: 54,
+                borderRadius: 14,
                 borderWidth: 1,
                 borderColor: T.border,
-                paddingHorizontal: 20,
-                paddingTop: 26,
-                paddingBottom: 22,
-                gap: 18,
+                backgroundColor: T.bgElevated,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 10,
               }}
             >
-              <FloatingLabelInput
-                label="Email"
+              <GoogleG size={18} />
+              <Text style={{ color: T.fg, fontFamily: Fonts.semibold, fontSize: 15, letterSpacing: -0.2 }}>
+                Continuar con Google
+              </Text>
+            </Pressable>
+
+            {/* Divider */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginVertical: 22 }}>
+              <View style={{ flex: 1, height: 1, backgroundColor: T.border }} />
+              <Text style={{ color: T.fgSubtle, fontFamily: Fonts.regular, fontSize: 12.5 }}>
+                o con tu email
+              </Text>
+              <View style={{ flex: 1, height: 1, backgroundColor: T.border }} />
+            </View>
+
+            <View style={{ gap: 14 }}>
+              <FilledInput
                 value={email}
                 onChangeText={setEmail}
-                placeholder="tu@ejemplo.com"
+                placeholder="tu@empresa.cl"
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoComplete="email"
                 autoCorrect={false}
                 returnKeyType="next"
+                onFocusExtra={scrollToCta}
                 onSubmitEditing={() => passwordRef.current?.focus()}
               />
 
-              <FloatingLabelInput
+              <FilledInput
                 ref={passwordRef}
-                label="Contraseña"
                 value={password}
                 onChangeText={setPassword}
-                placeholder="••••••••"
+                placeholder="Contraseña"
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
                 autoComplete="password"
                 returnKeyType="go"
+                onFocusExtra={scrollToCta}
                 onSubmitEditing={handleSubmit}
-                labelSideAction={
-                  <Pressable
-                    haptic="selection"
-                    onPress={() =>
-                      Alert.alert(
-                        'Recuperar contraseña',
-                        'Por seguridad, el restablecimiento lo realiza el administrador de tu cuenta. Contacta a soporte o al encargado de tu empresa para reiniciar tu clave.',
-                      )
-                    }
-                  >
-                    <Text
-                      style={{
-                        color: T.brand,
-                        fontFamily: Fonts.medium,
-                        fontSize: 12,
-                      }}
-                    >
-                      ¿Olvidaste?
-                    </Text>
-                  </Pressable>
-                }
                 rightSlot={
                   <Pressable
                     haptic="selection"
                     accessibilityLabel={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                     onPress={() => setShowPassword((v) => !v)}
-                    style={{
-                      width: 40,
-                      height: 40,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
+                    style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}
                   >
                     {showPassword ? (
                       <EyeOff size={18} color={T.fgSubtle} />
@@ -311,112 +343,133 @@ export default function LoginScreen() {
                   </Pressable>
                 }
               />
+            </View>
 
-              <View style={{ marginTop: 4, gap: 12 }}>
-                <PillButton onPress={handleSubmit} loading={submitting} label="Iniciar sesión" />
-
-                {formError ? (
-                  <View
-                    style={{
-                      backgroundColor: '#FEE2E2',
-                      borderColor: '#FCA5A5',
-                      borderWidth: 1,
-                      borderRadius: 14,
-                      paddingVertical: 10,
-                      paddingHorizontal: 14,
-                    }}
-                  >
-                    <Text
-                      style={{
-                        color: '#B91C1C',
-                        fontFamily: Fonts.medium,
-                        fontSize: 13,
-                        textAlign: 'center',
-                      }}
-                    >
-                      {formError}
-                    </Text>
-                  </View>
-                ) : null}
-
-                {__DEV__ ? (
-                  <Pressable
-                    haptic="selection"
-                    onPress={() => demoSheet.current?.present()}
-                    style={{
-                      height: 50,
-                      borderRadius: 999,
-                      backgroundColor: T.bg,
-                      borderWidth: 1,
-                      borderColor: T.border,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <Text
-                      style={{
-                        color: T.fg,
-                        fontFamily: Fonts.semibold,
-                        fontSize: 14,
-                        letterSpacing: -0.2,
-                      }}
-                    >
-                      Ver cuentas demo
-                    </Text>
-                  </Pressable>
-                ) : null}
-              </View>
-            </Animated.View>
-
+            {/* Recordarme + Olvidaste */}
             <View
               style={{
-                alignItems: 'center',
-                marginTop: 20,
                 flexDirection: 'row',
-                justifyContent: 'center',
-                gap: 6,
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginTop: 16,
               }}
             >
-              <Text style={{ color: T.fgMuted, fontFamily: Fonts.regular, fontSize: 13 }}>
-                ¿Sin cuenta?
-              </Text>
-              <Pressable haptic="selection" onPress={() => demoSheet.current?.present()}>
-                <Text style={{ color: T.brand, fontFamily: Fonts.semibold, fontSize: 13 }}>
-                  Probá una demo
+              <Pressable
+                haptic="selection"
+                onPress={() => setRemember((v) => !v)}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 9 }}
+              >
+                <View
+                  style={{
+                    width: 20,
+                    height: 20,
+                    borderRadius: 6,
+                    borderWidth: remember ? 0 : 1.5,
+                    borderColor: T.border,
+                    backgroundColor: remember ? T.brand : 'transparent',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  {remember ? <Check size={12} color="#FFFFFF" /> : null}
+                </View>
+                <Text style={{ color: T.fgMuted, fontFamily: Fonts.regular, fontSize: 13.5 }}>
+                  Recordarme
+                </Text>
+              </Pressable>
+
+              <Pressable
+                haptic="selection"
+                onPress={() =>
+                  Alert.alert(
+                    'Recuperar contraseña',
+                    'Por seguridad, el restablecimiento lo realiza el administrador de tu cuenta. Contacta a soporte o al encargado de tu empresa.',
+                  )
+                }
+              >
+                <Text style={{ color: T.brand, fontFamily: Fonts.semibold, fontSize: 13.5 }}>
+                  ¿Olvidaste tu clave?
                 </Text>
               </Pressable>
             </View>
 
-            {/* Footer mini — TLS + copyright */}
+            {/* CTA */}
+            <View style={{ marginTop: 22, gap: 12 }}>
+              <SubmitButton onPress={handleSubmit} loading={submitting} label="Iniciar sesión" />
+
+              {formError ? (
+                <View
+                  style={{
+                    backgroundColor: '#FEE2E2',
+                    borderColor: '#FCA5A5',
+                    borderWidth: 1,
+                    borderRadius: 14,
+                    paddingVertical: 10,
+                    paddingHorizontal: 14,
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: '#B91C1C',
+                      fontFamily: Fonts.medium,
+                      fontSize: 13,
+                      textAlign: 'center',
+                    }}
+                  >
+                    {formError}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+
+            {/* Bottom link */}
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                marginTop: 22,
+              }}
+            >
+              <Text style={{ color: T.fgMuted, fontFamily: Fonts.regular, fontSize: 13.5 }}>
+                {__DEV__ ? '¿Sin cuenta?' : '¿No conoces tu empresa?'}
+              </Text>
+              <Pressable
+                haptic="selection"
+                onPress={() =>
+                  __DEV__ ? demoSheet.current?.present() : router.replace('/(auth)/tenant')
+                }
+              >
+                <Text style={{ color: T.brand, fontFamily: Fonts.semibold, fontSize: 13.5 }}>
+                  {__DEV__ ? 'Ver cuentas demo' : 'Cambiar empresa'}
+                </Text>
+              </Pressable>
+            </View>
+
+            {/* Footer mini */}
             <View
               style={{
                 alignItems: 'center',
                 marginTop: 'auto',
-                paddingTop: 32,
+                paddingTop: 28,
                 paddingBottom: insets.bottom + 16,
                 gap: 4,
               }}
             >
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <View
-                  style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: T.success }}
-                />
+                <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: T.success }} />
                 <Text style={{ color: T.fgSubtle, fontFamily: Fonts.regular, fontSize: 11 }}>
                   Conexión segura · TLS
                 </Text>
               </View>
               <Text
-                style={{
-                  color: T.fgSubtle,
-                  fontFamily: Fonts.regular,
-                  fontSize: 11,
-                  opacity: 0.6,
-                }}
+                style={{ color: T.fgSubtle, fontFamily: Fonts.regular, fontSize: 11, opacity: 0.6 }}
               >
                 © OpenSys ERP
               </Text>
             </View>
-          </View>
+          </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
 
@@ -426,13 +479,11 @@ export default function LoginScreen() {
   );
 }
 
-/* ─────────────────────── FloatingLabelInput ─────────────────────── */
-// Outlined input con label que flota arriba del borde superior, "cortándolo"
-// con un mini bg del color de la CARD que lo contiene. La label puede tener
-// un labelSideAction (ej. "¿Olvidaste?") alineado a la derecha.
+/* ─────────────────────── FilledInput ─────────────────────── */
+// Input relleno (fondo suave + borde), placeholder adentro, sin floating label.
+// Focus → borde brand. rightSlot para el toggle del ojo.
 
-interface FloatingLabelInputProps {
-  label: string;
+interface FilledInputProps {
   placeholder?: string;
   value: string;
   onChangeText: (v: string) => void;
@@ -443,130 +494,91 @@ interface FloatingLabelInputProps {
   autoComplete?: 'email' | 'password' | 'off';
   returnKeyType?: 'done' | 'next' | 'go';
   onSubmitEditing?: () => void;
+  onFocusExtra?: () => void;
   rightSlot?: ReactNode;
-  labelSideAction?: ReactNode;
 }
 
-const FloatingLabelInput = forwardRef<RNTextInput, FloatingLabelInputProps>(
-  function FloatingLabelInput(
-    {
-      label,
-      placeholder,
-      value,
-      onChangeText,
-      secureTextEntry,
-      keyboardType = 'default',
-      autoCapitalize,
-      autoCorrect,
-      autoComplete,
-      returnKeyType = 'next',
-      onSubmitEditing,
-      rightSlot,
-      labelSideAction,
-    },
-    ref,
-  ) {
-    const [focused, setFocused] = useState(false);
-    const borderColor = focused ? T.brand : T.border;
-
-    return (
-      <View style={{ position: 'relative' }}>
-        {/* Action a la derecha de la label (ej. "¿Olvidaste?") — vive en su
-            propio absolute para alinearse con la label sin estirar el border. */}
-        {labelSideAction ? (
-          <View style={{ position: 'absolute', top: -10, right: 16, zIndex: 5 }}>
-            {labelSideAction}
-          </View>
-        ) : null}
-
-        {/* Label flotante — el bg matchea el bg de la card para "cortar" el borde */}
-        <View
-          style={{
-            position: 'absolute',
-            top: -8,
-            left: 12,
-            paddingHorizontal: 4,
-            backgroundColor: T.bgElevated,
-            zIndex: 4,
-          }}
-        >
-          <Text
-            style={{
-              color: focused ? T.brand : T.fgMuted,
-              fontFamily: Fonts.medium,
-              fontSize: 12,
-              lineHeight: 14,
-              letterSpacing: -0.1,
-            }}
-          >
-            {label}
-          </Text>
-        </View>
-
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            height: 56,
-            borderRadius: 14,
-            borderWidth: 1,
-            borderColor,
-            backgroundColor: T.bgElevated,
-            paddingHorizontal: 16,
-            paddingRight: rightSlot ? 4 : 16,
-          }}
-        >
-          <TextInput
-            ref={ref as Ref<RNTextInput>}
-            value={value}
-            onChangeText={onChangeText}
-            placeholder={placeholder}
-            placeholderTextColor={T.fgSubtle}
-            selectionColor={T.brand}
-            cursorColor={T.brand}
-            secureTextEntry={secureTextEntry}
-            keyboardType={keyboardType}
-            autoCapitalize={autoCapitalize}
-            autoCorrect={autoCorrect}
-            autoComplete={autoComplete}
-            returnKeyType={returnKeyType}
-            onSubmitEditing={onSubmitEditing}
-            onFocus={() => setFocused(true)}
-            onBlur={() => setFocused(false)}
-            style={{
-              flex: 1,
-              fontFamily: Fonts.regular,
-              fontSize: 15,
-              letterSpacing: -0.1,
-              color: T.fg,
-              paddingVertical: 0,
-              // RN Web: apagar el outline/border del <input> nativo del browser,
-              // si no se ve un rectángulo anidado dentro del wrapper outlined.
-              ...(Platform.OS === 'web'
-                ? ({ outlineStyle: 'none', borderWidth: 0, backgroundColor: 'transparent' } as object)
-                : {}),
-            }}
-          />
-          {rightSlot}
-        </View>
-      </View>
-    );
+const FilledInput = forwardRef<RNTextInput, FilledInputProps>(function FilledInput(
+  {
+    placeholder,
+    value,
+    onChangeText,
+    secureTextEntry,
+    keyboardType = 'default',
+    autoCapitalize,
+    autoCorrect,
+    autoComplete,
+    returnKeyType = 'next',
+    onSubmitEditing,
+    onFocusExtra,
+    rightSlot,
   },
-);
+  ref,
+) {
+  const [focused, setFocused] = useState(false);
 
-/* ─────────────────────── PillButton ─────────────────────── */
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        height: 54,
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: focused ? T.brand : T.border,
+        backgroundColor: focused ? T.bgElevated : T.bg,
+        paddingHorizontal: 16,
+        paddingRight: rightSlot ? 4 : 16,
+      }}
+    >
+      <TextInput
+        ref={ref as Ref<RNTextInput>}
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
+        placeholderTextColor={T.fgSubtle}
+        selectionColor={T.brand}
+        cursorColor={T.brand}
+        secureTextEntry={secureTextEntry}
+        keyboardType={keyboardType}
+        autoCapitalize={autoCapitalize}
+        autoCorrect={autoCorrect}
+        autoComplete={autoComplete}
+        returnKeyType={returnKeyType}
+        onSubmitEditing={onSubmitEditing}
+        onFocus={() => {
+          setFocused(true);
+          onFocusExtra?.();
+        }}
+        onBlur={() => setFocused(false)}
+        style={{
+          flex: 1,
+          fontFamily: Fonts.regular,
+          fontSize: 15,
+          letterSpacing: -0.1,
+          color: T.fg,
+          paddingVertical: 0,
+          ...(Platform.OS === 'web'
+            ? ({ outlineStyle: 'none', borderWidth: 0, backgroundColor: 'transparent' } as object)
+            : {}),
+        }}
+      />
+      {rightSlot}
+    </View>
+  );
+});
 
-interface PillButtonProps {
+/* ─────────────────────── SubmitButton ─────────────────────── */
+
+interface SubmitButtonProps {
   onPress: () => void;
   loading?: boolean;
   label: string;
 }
 
-function PillButton({ onPress, loading, label }: PillButtonProps) {
+function SubmitButton({ onPress, loading, label }: SubmitButtonProps) {
   const scale = useSharedValue(1);
-  const animStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
+  const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
   return (
     <Pressable
@@ -584,8 +596,8 @@ function PillButton({ onPress, loading, label }: PillButtonProps) {
       <Animated.View
         style={[
           {
-            height: 56,
-            borderRadius: 999,
+            height: 54,
+            borderRadius: 14,
             backgroundColor: T.brand,
             alignItems: 'center',
             justifyContent: 'center',
@@ -610,17 +622,51 @@ function PillButton({ onPress, loading, label }: PillButtonProps) {
             />
           ) : null}
           <Text
-            style={{
-              color: T.brandFg,
-              fontFamily: Fonts.semibold,
-              fontSize: 15,
-              letterSpacing: -0.2,
-            }}
+            style={{ color: T.brandFg, fontFamily: Fonts.semibold, fontSize: 15.5, letterSpacing: -0.2 }}
           >
             {loading ? 'Verificando…' : label}
           </Text>
         </View>
       </Animated.View>
     </Pressable>
+  );
+}
+
+/* ─────────────────────── Iconos inline ─────────────────────── */
+
+function GoogleG({ size = 18 }: { size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 48 48">
+      <Path
+        fill="#FFC107"
+        d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"
+      />
+      <Path
+        fill="#FF3D00"
+        d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z"
+      />
+      <Path
+        fill="#4CAF50"
+        d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238C29.211 35.091 26.715 36 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"
+      />
+      <Path
+        fill="#1976D2"
+        d="M43.611 20.083H42V20H24v8h11.303c-.792 2.237-2.231 4.166-4.087 5.571l6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"
+      />
+    </Svg>
+  );
+}
+
+function Check({ size = 12, color = '#FFFFFF' }: { size?: number; color?: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M5 12.5l4.5 4.5L19 7"
+        stroke={color}
+        strokeWidth={3}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
   );
 }
