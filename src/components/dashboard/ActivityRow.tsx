@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { View } from 'react-native';
 
 import { Pressable, Text } from '~/components/ui';
@@ -15,6 +16,8 @@ export interface ActivityItem {
   amount: number;
   /** Si negativo, se muestra rojo con `-`. Positivo, verde con `+`. */
   signed?: boolean;
+  /** Foto del producto (thumbnail del avatar). Si falta, cae a la inicial. */
+  imageUrl?: string | null;
   /** Color de avatar custom — si se omite, se deriva del id. */
   avatarColor?: string;
   /** Item "activo" — recibe sombra elevada + ring sutil. */
@@ -105,24 +108,34 @@ export function ActivityRow({
           width: 44,
           height: 44,
           borderRadius: 22,
+          overflow: 'hidden',
           backgroundColor: avatarBg,
           alignItems: 'center',
           justifyContent: 'center',
         }}
       >
-        <Text
-          style={
-            {
-              fontFamily: Fonts.semibold,
-              fontSize: 16,
-              lineHeight: 22,
-              color: avatarFg,
-              includeFontPadding: false,
-            } as never
-          }
-        >
-          {initial}
-        </Text>
+        {item.imageUrl ? (
+          <Image
+            source={{ uri: item.imageUrl }}
+            style={{ width: 44, height: 44 }}
+            contentFit="cover"
+            transition={150}
+          />
+        ) : (
+          <Text
+            style={
+              {
+                fontFamily: Fonts.semibold,
+                fontSize: 16,
+                lineHeight: 22,
+                color: avatarFg,
+                includeFontPadding: false,
+              } as never
+            }
+          >
+            {initial}
+          </Text>
+        )}
       </View>
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text

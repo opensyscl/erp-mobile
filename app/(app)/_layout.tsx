@@ -39,8 +39,12 @@ export default function AppLayout() {
     // routes.load.created / confirmed / closed por Reverb.
     refetchInterval: false,
   });
+  // El driver puede compartir ubicación aunque todavía no tenga una carga
+  // asignada hoy — el ping manda route_load_id null (el backend igual lo asocia
+  // a su carga abierta si aparece una). Antes exigía carga activa, y por eso
+  // "Iniciar envío" no hacía nada cuando el driver no tenía ruta.
   useDriverLocationTracking({
-    enabled: isDriverRole && !!todayLoad?.data?.id,
+    enabled: isDriverRole,
     loadId: todayLoad?.data?.id ?? null,
     intervalMs: 30_000,
   });

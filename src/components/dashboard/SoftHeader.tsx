@@ -103,8 +103,8 @@ export function SoftHeader({
             style={
               {
                 fontFamily: Fonts.semibold,
-                fontSize: 17,
-                lineHeight: 24,
+                fontSize: 16,
+                lineHeight: 22,
                 color: colors.fg,
                 letterSpacing: -0.4,
                 marginTop: 1,

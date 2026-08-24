@@ -27,23 +27,22 @@ export function QuickActionCircle({
     <Pressable
       onPress={onPress}
       haptic="selection"
-      style={{ alignItems: 'center', gap: 8, width: 64 }}
+      style={{ alignItems: 'center', gap: 7, width: 58 }}
     >
       <View
         style={{
-          width: 52,
-          height: 52,
-          borderRadius: 26,
+          width: 48,
+          height: 48,
+          borderRadius: 24,
           backgroundColor: active ? colors.fg : colors.bgElevated,
           borderWidth: 1,
           borderColor: colors.border,
           alignItems: 'center',
           justifyContent: 'center',
-          shadowColor: '#000',
-          shadowOpacity: scheme === 'dark' ? 0 : 0.04,
-          shadowRadius: 6,
-          shadowOffset: { width: 0, height: 2 },
-          elevation: scheme === 'dark' ? 0 : 1,
+          boxShadow:
+            scheme === 'dark'
+              ? undefined
+              : [{ offsetX: 0, offsetY: 2, blurRadius: 8, spreadDistance: -1, color: 'rgba(10,13,20,0.05)' }],
         }}
       >
         {icon}

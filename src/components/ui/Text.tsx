@@ -24,9 +24,9 @@ type Variant =
 type Tone = 'default' | 'muted' | 'subtle' | 'inverse' | 'brand' | 'success' | 'warning' | 'danger';
 
 const variantStyle: Record<Variant, TextStyle> = {
-  display: { fontFamily: Fonts.semibold, fontSize: 30, lineHeight: 40, letterSpacing: -0.5 },
-  title: { fontFamily: Fonts.semibold, fontSize: 22, lineHeight: 30, letterSpacing: -0.3 },
-  headline: { fontFamily: Fonts.medium, fontSize: 17, lineHeight: 26, letterSpacing: -0.2 },
+  display: { fontFamily: Fonts.semibold, fontSize: 27, lineHeight: 36, letterSpacing: -0.5 },
+  title: { fontFamily: Fonts.semibold, fontSize: 19, lineHeight: 26, letterSpacing: -0.3 },
+  headline: { fontFamily: Fonts.medium, fontSize: 16, lineHeight: 23, letterSpacing: -0.2 },
   body: { fontFamily: Fonts.regular, fontSize: 15, lineHeight: 22, letterSpacing: 0 },
   bodyStrong: { fontFamily: Fonts.medium, fontSize: 15, lineHeight: 22, letterSpacing: 0 },
   callout: { fontFamily: Fonts.regular, fontSize: 13, lineHeight: 20, letterSpacing: 0 },

@@ -1,5 +1,9 @@
+import { type BottomSheetModal as BottomSheetModalType } from '@gorhom/bottom-sheet';
+import { useRef } from 'react';
 import { View } from 'react-native';
 
+import { ConnectionHealthCard } from '~/components/ConnectionHealthCard';
+import { DevEnvSheet } from '~/components/DevEnvSheet';
 import { Card, Divider, Pressable, Screen, Text } from '~/components/ui';
 import { ChevronRight, LogOut, Moon, Palette, Sun, User } from '~/lib/icons';
 import { palette } from '~/theme/tokens';
@@ -15,6 +19,7 @@ export default function SettingsScreen() {
   const tenant = useTenantStore((s) => s.tenant);
   const themePreference = useThemeStore((s) => s.preference);
   const setThemePreference = useThemeStore((s) => s.setPreference);
+  const devEnvSheet = useRef<BottomSheetModalType>(null);
 
   const cycleTheme = () => {
     const next: 'system' | 'light' | 'dark' =
@@ -27,7 +32,7 @@ export default function SettingsScreen() {
   const ThemeIcon = themeIcon;
 
   return (
-    <Screen.Scroll>
+    <Screen.Scroll contentContainerStyle={{ paddingBottom: 120 }}>
       <Text variant="title">Ajustes</Text>
 
       <Card variant="elevated" padding="lg" className="mt-6">
@@ -50,6 +55,13 @@ export default function SettingsScreen() {
           <Text variant="callout">{tenant?.name ?? '—'}</Text>
         </View>
       </Card>
+
+      <Text variant="overline" tone="subtle" className="mt-8 mb-3">
+        Conexión
+      </Text>
+      <ConnectionHealthCard
+        onOpenSwitcher={__DEV__ ? () => devEnvSheet.current?.present() : undefined}
+      />
 
       <Text variant="overline" tone="subtle" className="mt-8 mb-3">
         Apariencia
@@ -98,6 +110,8 @@ export default function SettingsScreen() {
           </Text>
         </Pressable>
       </View>
+
+      <DevEnvSheet ref={devEnvSheet} />
     </Screen.Scroll>
   );
 }

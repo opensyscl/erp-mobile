@@ -12,12 +12,28 @@ export interface InputProps extends TextInputProps {
   leftIcon?: React.ReactNode;
   rightSlot?: React.ReactNode;
   containerClassName?: string;
+  /**
+   * `default` — card blanca con borde (se marca en brand al enfocar).
+   * `soft` — relleno gris sin borde visible, look minimalista (ej. buscadores).
+   */
+  variant?: 'default' | 'soft';
 }
 
 export const Input = forwardRef<TextInput, InputProps>(
-  ({ label, hint, error, leftIcon, rightSlot, containerClassName, onFocus, onBlur, ...props }, ref) => {
+  ({ label, hint, error, leftIcon, rightSlot, containerClassName, variant = 'default', onFocus, onBlur, ...props }, ref) => {
     const [focused, setFocused] = useState(false);
     const scheme = useColorScheme();
+
+    const boxClass =
+      variant === 'soft'
+        ? cn(
+            'h-13 flex-row items-center rounded-xl border bg-bg-muted px-4',
+            error ? 'border-danger' : focused ? 'border-border' : 'border-transparent',
+          )
+        : cn(
+            'h-13 flex-row items-center rounded-lg border bg-bg-elevated px-4',
+            error ? 'border-danger' : focused ? 'border-brand' : 'border-border',
+          );
 
     return (
       <View className={cn('gap-1.5', containerClassName)}>
@@ -26,16 +42,7 @@ export const Input = forwardRef<TextInput, InputProps>(
             {label}
           </Text>
         ) : null}
-        <View
-          className={cn(
-            'h-13 flex-row items-center rounded-lg border bg-bg-elevated px-4',
-            error
-              ? 'border-danger'
-              : focused
-                ? 'border-brand'
-                : 'border-border',
-          )}
-        >
+        <View className={boxClass}>
           {leftIcon ? <View className="mr-2.5">{leftIcon}</View> : null}
           <TextInput
             ref={ref}

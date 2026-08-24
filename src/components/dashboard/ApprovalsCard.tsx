@@ -17,6 +17,29 @@ export function ApprovalsCard({
   const scheme = useColorScheme();
   const colors = palette[scheme];
 
+  // Sin pendientes → fila compacta y tenue: no tiene sentido una card gigante
+  // con ilustración para "0". Reaparece completa cuando hay algo que aprobar.
+  if (pending === 0) {
+    return (
+      <Pressable onPress={onPress} haptic="selection" scale="subtle">
+        <Card variant="outlined" padding="none">
+          <View className="flex-row items-center gap-3 px-4 py-3.5">
+            <View
+              style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: colors.success }}
+            />
+            <View className="flex-1">
+              <Text variant="callout">Aprobaciones al día</Text>
+              <Text variant="caption" tone="muted">
+                Sin pendientes
+              </Text>
+            </View>
+            <ArrowRight size={16} color={colors.fgSubtle} />
+          </View>
+        </Card>
+      </Pressable>
+    );
+  }
+
   return (
     <Pressable onPress={onPress} haptic="selection" scale="subtle">
       <Card variant="outlined" padding="lg" className="overflow-hidden">

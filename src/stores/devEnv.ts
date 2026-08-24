@@ -28,7 +28,7 @@ export const ENV_PRESETS: EnvPreset[] = [
   {
     id: 'local',
     label: 'Local · LAN',
-    description: 'ERP en la PC via IP LAN (192.168.100.125:8000) — desde cel real en mismo wifi',
+    description: 'ERP en la PC via IP LAN (192.168.100.125:8000) — desde cel real / Waydroid en mismo wifi',
     apiUrl: 'http://192.168.100.125:8000',
     realtimeHost: '192.168.100.125',
     realtimePort: 8080,

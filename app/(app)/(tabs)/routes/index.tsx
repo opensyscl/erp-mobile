@@ -384,9 +384,9 @@ export default function RoutesScreen() {
                   style={{
                     color: brand.brandFg,
                     fontFamily: Fonts.semibold,
-                    fontSize: 40,
-                    lineHeight: 48,
-                    letterSpacing: -1.2,
+                    fontSize: 34,
+                    lineHeight: 42,
+                    letterSpacing: -1,
                     fontVariant: ['tabular-nums'],
                     includeFontPadding: false,
                   } as never}
@@ -1712,7 +1712,13 @@ function MiniStat({
         {!icon && tint ? (
           <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: tint }} />
         ) : null}
-        <Text variant="overline" tone="subtle">
+        <Text
+          variant="overline"
+          tone="subtle"
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          style={{ flexShrink: 1, letterSpacing: 0.6 } as never}
+        >
           {label}
         </Text>
       </View>

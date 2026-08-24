@@ -30,9 +30,12 @@ export function channelAccess(ctx: Pick<RealtimeContext, 'role' | 'permissions'>
       ctx.role === 'tenant_manager' ||
       ctx.role === 'tenant_driver' ||
       can('routes.view'),
-    sales: can('sales.view') || can('pos.access'),
-    inventory: can('inventory.view'),
-    branchPos: can('pos.access'),
+    // tenant_admin bypassa por rol en el backend (routes/channels.php) — sin
+    // este OR, un admin sin el permiso puntual nunca se suscribe y NO recibe
+    // ventas/stock desde la web (web→mobile quedaba muerto).
+    sales: ctx.role === 'tenant_admin' || can('sales.view') || can('pos.access'),
+    inventory: ctx.role === 'tenant_admin' || can('inventory.view'),
+    branchPos: ctx.role === 'tenant_admin' || can('pos.access'),
   };
 }
 
@@ -84,7 +87,7 @@ export function invalidationRules(ctx: RealtimeContext): InvalidationRule[] {
     rules.push({
       channel: Channels.tenantSales(ctx.tenantId),
       event: RealtimeEvents.SaleCreated,
-      keys: [queryKeys.sales.all, queryKeys.cash.all, queryKeys.kpis.all],
+      keys: [queryKeys.sales.all, queryKeys.cash.all, queryKeys.kpis.all, queryKeys.pos.all],
     });
   }
 
@@ -95,14 +98,15 @@ export function invalidationRules(ctx: RealtimeContext): InvalidationRule[] {
       {
         channel: inventoryChannel,
         event: RealtimeEvents.ProductStockChanged,
-        // Dos prefijos a propósito: el listado vive bajo ['products'] y el
-        // detalle bajo ['product', id] (legado) — ver queryKeys.ts.
-        keys: [queryKeys.products.all, queryKeys.product.all],
+        // Tres prefijos a propósito: el listado vive bajo ['products'], el
+        // detalle bajo ['product', id] (legado) y el buscador del POS bajo
+        // ['pos'] — todos muestran stock. Ver queryKeys.ts.
+        keys: [queryKeys.products.all, queryKeys.product.all, queryKeys.pos.all],
       },
       {
         channel: inventoryChannel,
         event: RealtimeEvents.StockBelowThreshold,
-        keys: [queryKeys.products.all],
+        keys: [queryKeys.products.all, queryKeys.pos.all],
       },
     );
   }
@@ -114,7 +118,7 @@ export function invalidationRules(ctx: RealtimeContext): InvalidationRule[] {
       {
         channel: branchPos,
         event: RealtimeEvents.SaleCompleted,
-        keys: [queryKeys.sales.all, queryKeys.cash.all, queryKeys.kpis.all],
+        keys: [queryKeys.sales.all, queryKeys.cash.all, queryKeys.kpis.all, queryKeys.pos.all],
       },
       {
         channel: branchPos,

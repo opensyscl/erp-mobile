@@ -2,6 +2,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useState } from 'react';
 import { View } from 'react-native';
 
+import { AnimatedNumber } from '~/components/ui/AnimatedNumber';
 import { Pressable, Skeleton, Text } from '~/components/ui';
 import { useBrand } from '~/hooks/useBrand';
 import { useColorScheme } from '~/hooks/useColorScheme';
@@ -31,7 +32,7 @@ export function BalanceCard({
   amount: number;
   count: number;
   countLabel?: string;
-  delta?: { value: number; label?: string };
+  delta?: { value: number; label?: string; baseline?: boolean };
   /** Pill en esquina superior derecha (ej. nombre de sucursal). */
   contextLabel?: string;
   onContextPress?: () => void;
@@ -130,8 +131,8 @@ export function BalanceCard({
             style={
               {
                 fontFamily: Fonts.semibold,
-                fontSize: 18,
-                lineHeight: 24,
+                fontSize: 16,
+                lineHeight: 22,
                 color: hasData ? colors.fg : colors.fgMuted,
                 includeFontPadding: false,
               } as never
@@ -146,8 +147,8 @@ export function BalanceCard({
               style={
                 {
                   fontFamily: Fonts.semibold,
-                  fontSize: 36,
-                  lineHeight: 44,
+                  fontSize: 31,
+                  lineHeight: 40,
                   color: colors.fgMuted,
                   letterSpacing: -1.2,
                   includeFontPadding: false,
@@ -157,24 +158,26 @@ export function BalanceCard({
               •••••••
             </Text>
           ) : (
-            <Text
+            <AnimatedNumber
+              value={amount}
+              format={(n) => formatCLP(n).replace(/^\$/, '')}
+              baseColor={colors.fg}
+              mutedColor={colors.fgMuted}
+              instanceKey={contextLabel}
               numberOfLines={1}
               adjustsFontSizeToFit
               style={
                 {
                   fontFamily: Fonts.semibold,
-                  fontSize: 36,
-                  lineHeight: 44,
-                  color: colors.fg,
+                  fontSize: 31,
+                  lineHeight: 40,
                   letterSpacing: -1.2,
                   fontVariant: ['tabular-nums'],
                   includeFontPadding: false,
                   flexShrink: 1,
                 } as never
               }
-            >
-              {formatCLP(amount).replace(/^\$/, '')}
-            </Text>
+            />
           )}
         </View>
 
@@ -193,7 +196,32 @@ export function BalanceCard({
           >
             {hasData ? `${count} ${countLabel}` : 'Sin movimientos hoy'}
           </Text>
-          {delta && hasData && delta.value !== 0 ? (
+          {delta && hasData && delta.baseline === false ? (
+            // Ayer no hubo ventas → no hay base real; mostramos un chip neutro
+            // en vez de un "+100%" que no significa nada.
+            <View
+              style={{
+                paddingHorizontal: 7,
+                paddingVertical: 2,
+                borderRadius: 999,
+                backgroundColor: withAlpha(colors.fgMuted, 0.12),
+              }}
+            >
+              <Text
+                style={
+                  {
+                    fontFamily: Fonts.medium,
+                    fontSize: 10,
+                    lineHeight: 14,
+                    color: colors.fgMuted,
+                    includeFontPadding: false,
+                  } as never
+                }
+              >
+                sin ventas ayer
+              </Text>
+            </View>
+          ) : delta && hasData && delta.value !== 0 ? (
             <View
               style={{
                 flexDirection: 'row',

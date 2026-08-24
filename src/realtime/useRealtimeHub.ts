@@ -9,7 +9,9 @@ import {
   type RouteOrderStatusChangedPayload,
 } from './events';
 import { channelAccess, invalidationRules } from './invalidation';
+import { isOwnSale } from './ownSales';
 import { toast } from '~/components/Toast';
+import { formatCLP } from '~/lib/format';
 import { useAuthStore } from '~/stores/auth';
 import { useNotificationsStore, type NotifKind } from '~/stores/notifications';
 import { useTenantStore } from '~/stores/tenant';
@@ -108,8 +110,17 @@ export function useRealtimeHub(): void {
     // con esa pantalla montada). Mismo gating de canal que invalidation.ts.
     if (access.sales) {
       subs.push(
-        subscribe(Channels.tenantSales(tenantId), RealtimeEvents.SaleCreated, () => {
-          pushNotif({ kind: 'sale.created', title: 'Venta nueva' });
+        subscribe(Channels.tenantSales(tenantId), RealtimeEvents.SaleCreated, (p) => {
+          const sale = (p as { sale?: Record<string, unknown> }).sale ?? {};
+          const id = typeof sale.id === 'number' ? sale.id : null;
+          const total = typeof sale.total === 'number' ? sale.total : null;
+          const amount = total != null ? formatCLP(total) : undefined;
+          pushNotif({ kind: 'sale.created', title: 'Venta nueva', body: amount });
+          // Toast visible SOLO si la venta no se hizo en este dispositivo — si
+          // fue acá, ya viste la confirmación del POS (no duplicar).
+          if (id == null || !isOwnSale(id)) {
+            toast.success('Venta nueva', amount);
+          }
         }),
       );
     }

@@ -15,6 +15,7 @@ import { useBrand } from '~/hooks/useBrand';
 import { useColorScheme } from '~/hooks/useColorScheme';
 import { ApiError, apiRequest } from '~/lib/api';
 import { queryKeys } from '~/lib/queryKeys';
+import { markOwnSale } from '~/realtime/ownSales';
 import { ArrowLeft, Plus, Search, ShoppingCart } from '~/lib/icons';
 import { useCartStore } from '~/stores/cart';
 import { Fonts } from '~/theme/fonts';
@@ -132,13 +133,11 @@ export default function PosScreen() {
         style={{
           paddingTop: insets.top + 8,
           paddingHorizontal: 16,
-          paddingBottom: 12,
-          backgroundColor: colors.bgElevated,
-          borderBottomWidth: 1,
-          borderBottomColor: colors.border,
+          paddingBottom: 8,
+          backgroundColor: colors.bg,
         }}
       >
-        <View className="flex-row items-center justify-between">
+        <View className="flex-row items-center">
           <Pressable
             haptic="selection"
             onPress={() => {
@@ -147,18 +146,19 @@ export default function PosScreen() {
               }
               router.back();
             }}
-            className="h-10 w-10 items-center justify-center rounded-full bg-bg-subtle border border-border"
+            hitSlop={12}
+            className="-ml-1 h-10 w-10 items-center justify-center"
           >
-            <ArrowLeft size={18} color={colors.fg} />
+            <ArrowLeft size={22} color={colors.fg} />
           </Pressable>
-          <Text variant="overline" tone="subtle">
+          <Text variant="title" className="ml-1">
             Nueva venta
           </Text>
-          <View className="h-10 w-10" />
         </View>
 
-        <View className="mt-3">
+        <View className="mt-4">
           <Input
+            variant="soft"
             value={query}
             onChangeText={setQuery}
             placeholder="Buscar producto, SKU…"
@@ -518,8 +518,19 @@ function CheckoutSheet({ sheetRef }: { sheetRef: React.RefObject<BottomSheetModa
       });
     },
     onSuccess: (res) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.kpis.today });
+      // Marcar como venta propia → el toast realtime no se duplica con la
+      // confirmación que ya mostramos acá abajo.
+      markOwnSale(res.data.id);
+      // Una venta afecta: KPIs del día + actividad reciente (kpis.all),
+      // ventas, caja, el listado del POS (stock descontado) y el catálogo
+      // de productos. Invalidamos por prefijo para que todo se refresque —
+      // sin depender del realtime (que es la red de seguridad cross-device).
+      queryClient.invalidateQueries({ queryKey: queryKeys.kpis.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.sales.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.cash.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.pos.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.products.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.product.all });
       const total = res.data.total;
       const itemsCount = res.data.items_count;
       clear();
@@ -889,20 +900,18 @@ function CategoryPill({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 6,
-        height: 32,
+        height: 30,
         paddingHorizontal: 12,
         borderRadius: 999,
-        backgroundColor: active ? colors.fg : colors.bgElevated,
-        borderWidth: 1,
-        borderColor: active ? colors.fg : colors.border,
+        backgroundColor: active ? colors.fg : 'transparent',
       }}
     >
       <Text
         style={{
-          fontFamily: Fonts.medium,
-          fontSize: 12,
+          fontFamily: active ? Fonts.semibold : Fonts.medium,
+          fontSize: 13,
           lineHeight: 16,
-          color: active ? colors.bg : colors.fg,
+          color: active ? colors.bg : colors.fgMuted,
           letterSpacing: -0.1,
           includeFontPadding: false,
         } as never}

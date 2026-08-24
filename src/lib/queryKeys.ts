@@ -42,12 +42,14 @@ export const queryKeys = {
     barcode: (code: string) => ['product', 'barcode', code] as const,
   },
   pos: {
+    all: ['pos'] as const,
     categories: ['pos', 'categories'] as const,
     search: (q: string, categoryId: unknown) => ['pos', 'search', q, categoryId] as const,
   },
   sales: {
     all: ['sales'] as const,
     summary: (period: string) => ['sales', 'summary', period] as const,
+    detail: (id: string | number) => ['sales', 'detail', String(id)] as const,
   },
   cash: {
     all: ['cash'] as const,

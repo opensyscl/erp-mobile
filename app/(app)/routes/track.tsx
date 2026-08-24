@@ -399,6 +399,11 @@ export default function DriverTrackScreen() {
                 <Button variant="outline" size="lg" onPress={stop}>
                   Pausar envío
                 </Button>
+              ) : status === 'denied' ? (
+                // Tras un "no", el OS no vuelve a preguntar → hay que ir a Ajustes.
+                <Button brand size="lg" onPress={() => void Linking.openSettings()}>
+                  Abrir Ajustes
+                </Button>
               ) : (
                 <Button brand size="lg" onPress={() => void start()}>
                   {isRetry ? 'Reintentar' : 'Iniciar envío de ubicación'}
@@ -434,7 +439,7 @@ export default function DriverTrackScreen() {
                 ) : null}
               </View>
 
-              <RouteLiveMap driver={mapDriver} stops={routeStops} brand={brand.brand} height={240} />
+              <RouteLiveMap driver={mapDriver} stops={routeStops} brand={brand.brand} height={300} />
 
               {nextStop ? (
                 <View style={{ marginTop: 12 }}>

@@ -5,8 +5,10 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { YearBarsChart } from '~/components/charts/YearBarsChart';
+import { RouteLiveMap } from '~/components/RouteLiveMap';
 import { Card, Pressable, Skeleton, Text } from '~/components/ui';
 import { useBrand } from '~/hooks/useBrand';
+import { useFleetLocations } from '~/hooks/useFleetLocations';
 import { useColorScheme } from '~/hooks/useColorScheme';
 import { apiRequest } from '~/lib/api';
 import { ArrowRight, BarChart, Package, PackageReceive, Plus, Truck, User as UserIcon, UserGroup, Wallet } from '~/lib/icons';
@@ -87,6 +89,9 @@ export default function RoutesAdminDashboard() {
         url: '/api/mobile/routes/admin-dashboard',
       }).then((r) => r.data),
   });
+
+  // Flota en vivo: posiciones de drivers (REST + WS routes.driver.location).
+  const fleet = useFleetLocations();
 
   const STATUS_TONE: Record<DashboardData['recent_orders'][number]['status'], 'warning' | 'success' | 'danger'> = {
     pending: 'warning',
@@ -286,6 +291,47 @@ export default function RoutesAdminDashboard() {
             iconBg={withAlpha(colors.warning, 0.13)}
             loading={isLoading}
           />
+        </Animated.View>
+
+        {/* Flota en vivo — pines de drivers que se mueven por realtime. */}
+        <Animated.View entering={FadeInDown.delay(200).duration(360)} className="mt-3">
+          <Card variant="outlined" padding="md">
+            <View className="flex-row items-center justify-between mb-3">
+              <Text variant="overline" tone="subtle">
+                Flota en vivo
+              </Text>
+              <View className="flex-row items-center gap-1.5">
+                <View
+                  style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: colors.success }}
+                />
+                <Text variant="caption" tone="muted">
+                  {fleet.length} {fleet.length === 1 ? 'en línea' : 'en línea'}
+                </Text>
+              </View>
+            </View>
+            {fleet.length > 0 ? (
+              <RouteLiveMap
+                stops={[]}
+                drivers={fleet.map((d) => ({ id: d.id, lat: d.lat, lng: d.lng, label: d.name ?? undefined }))}
+                brand={brand.brand}
+                height={220}
+              />
+            ) : (
+              <View
+                style={{
+                  height: 120,
+                  borderRadius: 16,
+                  backgroundColor: colors.bgMuted,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Text variant="caption" tone="muted">
+                  Ningún repartidor compartiendo ubicación ahora.
+                </Text>
+              </View>
+            )}
+          </Card>
         </Animated.View>
 
         {/* Income chart 7 días */}

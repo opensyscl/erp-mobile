@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { FlatList, View } from 'react-native';
@@ -8,9 +9,11 @@ import { Button, Card, Input, Pressable, Screen, Skeleton, Text } from '~/compon
 import { useBrand } from '~/hooks/useBrand';
 import { useColorScheme } from '~/hooks/useColorScheme';
 import { apiRequest } from '~/lib/api';
+import { formatCLP } from '~/lib/format';
 import { Filter, Package, Plus, Search } from '~/lib/icons';
 import { queryKeys } from '~/lib/queryKeys';
-import { palette } from '~/theme/tokens';
+import { Fonts } from '~/theme/fonts';
+import { palette, withAlpha } from '~/theme/tokens';
 
 interface Product {
   id: number;
@@ -75,8 +78,13 @@ export default function InventoryScreen() {
         <Text variant="title">Inventario</Text>
         <Pressable
           haptic="medium"
-          className="h-9 w-9 rounded-lg bg-brand items-center justify-center"
-          style={{ backgroundColor: brand.brand, shadowColor: brand.brand, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.14, shadowRadius: 10, elevation: 2 }}
+          className="h-10 w-10 rounded-full bg-brand items-center justify-center"
+          style={{
+            backgroundColor: brand.brand,
+            boxShadow: [
+              { offsetX: 0, offsetY: 4, blurRadius: 12, spreadDistance: -2, color: withAlpha(brand.brand, 0.4) },
+            ],
+          }}
         >
           <Plus size={18} color={brand.brandFg} strokeWidth={2} />
         </Pressable>
@@ -85,6 +93,7 @@ export default function InventoryScreen() {
       <View className="px-5 flex-row gap-2">
         <View className="flex-1">
           <Input
+            variant="soft"
             placeholder="Producto, SKU o código de barras"
             value={search}
             onChangeText={setSearch}
@@ -93,7 +102,7 @@ export default function InventoryScreen() {
         </View>
         <Pressable
           haptic="selection"
-          className="h-13 w-13 rounded-lg bg-bg-elevated border border-border items-center justify-center"
+          className="h-13 w-13 rounded-xl bg-bg-muted items-center justify-center"
         >
           <Filter size={18} color={colors.fgMuted} />
         </Pressable>
@@ -153,46 +162,78 @@ function ProductRow({ product }: { product: Product }) {
   const router = useRouter();
 
   const statusMeta = {
-    ok: { label: 'En stock', tone: 'success' as const },
-    low: { label: 'Stock bajo', tone: 'warning' as const },
-    out: { label: 'Sin stock', tone: 'danger' as const },
+    ok: { label: 'En stock', color: colors.success },
+    low: { label: 'Stock bajo', color: colors.warning },
+    out: { label: 'Sin stock', color: colors.danger },
   }[product.status];
 
-  const initial = product.category?.[0] ?? product.name[0] ?? '·';
+  const initial = (product.name[0] ?? '·').toUpperCase();
 
   return (
     <Pressable
       onPress={() => router.push(`/(app)/products/${product.id}` as never)}
       haptic="selection"
-      className="rounded-2xl bg-bg-elevated p-3.5 flex-row items-center gap-3"
+      className="flex-row items-center gap-3 rounded-2xl bg-bg-elevated px-3.5 py-2.5"
     >
-      <View className="h-10 w-10 rounded-lg bg-bg-muted items-center justify-center">
-        <Text variant="caption" tone="subtle" className="font-bold">
-          {initial.toUpperCase()}
-        </Text>
+      <View
+        style={{
+          width: 44,
+          height: 44,
+          borderRadius: 12,
+          overflow: 'hidden',
+          backgroundColor: colors.bgMuted,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        {product.image_url ? (
+          <Image
+            source={{ uri: product.image_url }}
+            style={{ width: 44, height: 44 }}
+            contentFit="cover"
+            transition={150}
+          />
+        ) : (
+          <Text variant="callout" tone="muted">
+            {initial}
+          </Text>
+        )}
       </View>
-      <View className="flex-1 min-w-0">
+
+      <View className="min-w-0 flex-1">
         <Text variant="bodyStrong" numberOfLines={1}>
           {product.name}
         </Text>
-        <View className="flex-row gap-1.5 items-center mt-0.5">
-          {product.sku ? (
-            <Text variant="caption" tone="subtle" style={{ fontFamily: 'Menlo' }}>
-              {product.sku}
-            </Text>
-          ) : null}
-          <Text variant="caption" tone={statusMeta.tone} className="font-semibold">
-            {product.sku ? '· ' : ''}
+        <View className="mt-0.5 flex-row items-center gap-1.5">
+          <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: statusMeta.color }} />
+          <Text variant="caption" tone="muted" numberOfLines={1}>
+            {product.sku ? `${product.sku} · ` : ''}
             {statusMeta.label}
           </Text>
         </View>
       </View>
+
       <View className="items-end">
-        <Text style={{ fontFamily: 'Menlo', fontSize: 14, fontWeight: '700', color: colors.fg, letterSpacing: -0.2 }}>
+        <Text
+          style={
+            {
+              fontFamily: Fonts.semibold,
+              fontSize: 16,
+              lineHeight: 20,
+              color: colors.fg,
+              fontVariant: ['tabular-nums'],
+              includeFontPadding: false,
+            } as never
+          }
+        >
           {product.stock}
         </Text>
-        <Text variant="caption" tone="subtle" style={{ fontFamily: 'Menlo' }}>
-          ${Math.round(product.price).toLocaleString('es-CL')}
+        <Text
+          variant="caption"
+          tone="muted"
+          style={{ fontVariant: ['tabular-nums'] } as never}
+        >
+          {formatCLP(product.price)}
         </Text>
       </View>
     </Pressable>

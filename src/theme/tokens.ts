@@ -85,48 +85,48 @@ export const palette = {
  * En Android `elevation` controla la altura de Material — mantenemos valores
  * bajos para que la sombra no se vea tipo "stack". iOS respeta los 4 props.
  */
-const SHADOW_COLOR = '#0a0d14';
+const SHADOW_RGB = '10, 13, 20';
+const sc = (alpha: number) => `rgba(${SHADOW_RGB}, ${alpha})`;
 
+/**
+ * Sombras vía `boxShadow` (RN 0.81 + new arch) — una sola prop, suave y difusa
+ * por igual en iOS y Android (Android ya no usa el `elevation` Material, más
+ * duro). Cada nivel es una sombra EN CAPAS: una de contacto (tight, cerca del
+ * borde) + una ambiente (grande y tenue). Eso da la sensación smooth premium
+ * sin verse pesada. Todo centralizado: cambiar acá afecta a toda la app.
+ */
 export const shadows = {
   /** Borders sutiles, hover state, chips presionados. */
   xs: {
-    shadowColor: SHADOW_COLOR,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 2,
-    elevation: 1,
+    boxShadow: [{ offsetX: 0, offsetY: 1, blurRadius: 2, spreadDistance: 0, color: sc(0.04) }],
   },
   /** Cards listadas, dropdowns, toolbars. */
   sm: {
-    shadowColor: SHADOW_COLOR,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
+    boxShadow: [
+      { offsetX: 0, offsetY: 1, blurRadius: 2, spreadDistance: 0, color: sc(0.03) },
+      { offsetX: 0, offsetY: 4, blurRadius: 12, spreadDistance: -2, color: sc(0.05) },
+    ],
   },
   /** Cards elevated por default — Hero cards flotantes, Card variant="elevated". */
   md: {
-    shadowColor: SHADOW_COLOR,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 14,
-    elevation: 4,
+    boxShadow: [
+      { offsetX: 0, offsetY: 2, blurRadius: 4, spreadDistance: -1, color: sc(0.04) },
+      { offsetX: 0, offsetY: 10, blurRadius: 24, spreadDistance: -3, color: sc(0.06) },
+    ],
   },
   /** Sheets, modals, floating action bar, callouts importantes. */
   lg: {
-    shadowColor: SHADOW_COLOR,
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.10,
-    shadowRadius: 24,
-    elevation: 8,
+    boxShadow: [
+      { offsetX: 0, offsetY: 4, blurRadius: 8, spreadDistance: -2, color: sc(0.05) },
+      { offsetX: 0, offsetY: 18, blurRadius: 40, spreadDistance: -6, color: sc(0.08) },
+    ],
   },
   /** Hero callouts, splash overlays. */
   xl: {
-    shadowColor: SHADOW_COLOR,
-    shadowOffset: { width: 0, height: 20 },
-    shadowOpacity: 0.14,
-    shadowRadius: 36,
-    elevation: 14,
+    boxShadow: [
+      { offsetX: 0, offsetY: 8, blurRadius: 16, spreadDistance: -4, color: sc(0.05) },
+      { offsetX: 0, offsetY: 30, blurRadius: 60, spreadDistance: -10, color: sc(0.10) },
+    ],
   },
 } as const;
 
@@ -136,16 +136,21 @@ export const shadows = {
  */
 export function brandShadow(brand: string, intensity: 'sm' | 'md' | 'lg' = 'md') {
   const cfg = {
-    sm: { offset: 4, radius: 10, opacity: 0.18, elevation: 3 },
-    md: { offset: 8, radius: 18, opacity: 0.24, elevation: 5 },
-    lg: { offset: 14, radius: 28, opacity: 0.30, elevation: 8 },
+    sm: { offset: 3, blur: 12, spread: -2, alpha: 0.22 },
+    md: { offset: 6, blur: 20, spread: -3, alpha: 0.26 },
+    lg: { offset: 12, blur: 32, spread: -6, alpha: 0.3 },
   }[intensity];
+  // `brand` puede venir hex (#rrggbb) o rgb(...) — withAlpha normaliza ambos.
   return {
-    shadowColor: brand,
-    shadowOffset: { width: 0, height: cfg.offset },
-    shadowOpacity: cfg.opacity,
-    shadowRadius: cfg.radius,
-    elevation: cfg.elevation,
+    boxShadow: [
+      {
+        offsetX: 0,
+        offsetY: cfg.offset,
+        blurRadius: cfg.blur,
+        spreadDistance: cfg.spread,
+        color: withAlpha(brand, cfg.alpha),
+      },
+    ],
   };
 }
 

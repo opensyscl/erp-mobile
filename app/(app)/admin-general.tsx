@@ -1,5 +1,6 @@
 import { type BottomSheetModal as BottomSheetModalType } from '@gorhom/bottom-sheet';
 import { useQuery } from '@tanstack/react-query';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef } from 'react';
@@ -32,7 +33,7 @@ import {
 import { queryKeys } from '~/lib/queryKeys';
 import { useAuthStore } from '~/stores/auth';
 import { useTenantStore } from '~/stores/tenant';
-import { palette } from '~/theme/tokens';
+import { palette, withAlpha } from '~/theme/tokens';
 import type { DailyKPIs, RecentActivityResponse } from '~/types/api';
 
 async function fetchDailyKPIs(): Promise<DailyKPIs> {
@@ -118,6 +119,7 @@ export default function AdminGeneralDashboard() {
     title: it.title,
     sub: it.receipt ? `${it.receipt} · ${formatActivityDate(it.created_at)}` : formatActivityDate(it.created_at),
     amount: it.amount,
+    imageUrl: it.image_url,
   }));
 
   // Trend de últimos 7 días viene del endpoint /api/mobile/dashboard/today
@@ -166,7 +168,15 @@ export default function AdminGeneralDashboard() {
             amount={kpis?.sales_total ?? 0}
             count={kpis?.sales_count ?? 0}
             countLabel={kpis && kpis.sales_count === 1 ? 'Boleta' : 'Boletas'}
-            delta={kpis ? { value: kpis.delta_pct, label: 'vs ayer' } : undefined}
+            delta={
+              kpis
+                ? {
+                    value: kpis.delta_pct,
+                    label: 'vs ayer',
+                    baseline: (kpis.yesterday_total ?? 0) > 0,
+                  }
+                : undefined
+            }
             contextLabel={branch?.name ?? tenant?.name ?? 'Sucursal'}
             onContextPress={() => router.push('/(app)/settings' as never)}
             primary={{
@@ -184,38 +194,51 @@ export default function AdminGeneralDashboard() {
           />
         </Animated.View>
 
-        {/* Quick actions row — chips circulares */}
+        {/* Quick actions — scroll horizontal con fade en el borde para señalar
+            que hay más (antes se cortaba el último ítem sin affordance). */}
         <Animated.View entering={FadeInUp.delay(160).duration(360)} className="mt-6">
-          <View
-            className="flex-row items-start justify-between px-5"
-          >
-            <QuickActionCircle
-              label="Escanear"
-              icon={<ScanLine size={20} color={colors.fg} strokeWidth={1.7} />}
-              onPress={() => router.push('/(app)/scan' as never)}
-            />
-            <QuickActionCircle
-              label="POS"
-              icon={<ShoppingCart size={20} color={colors.fg} strokeWidth={1.7} />}
-              onPress={() => router.push('/(app)/pos' as never)}
-            />
-            <QuickActionCircle
-              label="Caja"
-              icon={<Wallet size={20} color={colors.fg} strokeWidth={1.7} />}
-              onPress={() => router.push('/(app)/cash' as never)}
-            />
-            <QuickActionCircle
-              label="Stock"
-              icon={<Package size={20} color={colors.fg} strokeWidth={1.7} />}
-              onPress={() => router.push('/(app)/inventory' as never)}
-            />
-            {isAdminLike ? (
+          <View style={{ position: 'relative' }}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: 20, gap: 22 }}
+            >
               <QuickActionCircle
-                label="Reportes"
-                icon={<BarChart size={20} color={colors.fg} strokeWidth={1.7} />}
-                onPress={() => router.push('/(app)/analytics' as never)}
+                label="Escanear"
+                icon={<ScanLine size={20} color={colors.fg} strokeWidth={1.7} />}
+                onPress={() => router.push('/(app)/scan' as never)}
               />
-            ) : null}
+              <QuickActionCircle
+                label="POS"
+                icon={<ShoppingCart size={20} color={colors.fg} strokeWidth={1.7} />}
+                onPress={() => router.push('/(app)/pos' as never)}
+              />
+              <QuickActionCircle
+                label="Caja"
+                icon={<Wallet size={20} color={colors.fg} strokeWidth={1.7} />}
+                onPress={() => router.push('/(app)/cash' as never)}
+              />
+              <QuickActionCircle
+                label="Stock"
+                icon={<Package size={20} color={colors.fg} strokeWidth={1.7} />}
+                onPress={() => router.push('/(app)/inventory' as never)}
+              />
+              {isAdminLike ? (
+                <QuickActionCircle
+                  label="Reportes"
+                  icon={<BarChart size={20} color={colors.fg} strokeWidth={1.7} />}
+                  onPress={() => router.push('/(app)/analytics' as never)}
+                />
+              ) : null}
+            </ScrollView>
+            {/* Fade derecho: indica scrolleable sin cortar de golpe. */}
+            <LinearGradient
+              colors={[withAlpha(colors.bgSubtle, 0), colors.bgSubtle]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              pointerEvents="none"
+              style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 28 }}
+            />
           </View>
         </Animated.View>
 
@@ -231,7 +254,9 @@ export default function AdminGeneralDashboard() {
         <Animated.View entering={FadeInUp.delay(200).duration(360)} className="mx-5 mt-6">
           <SalesByDayCard
             title="Ventas en la semana"
-            delta={kpis?.delta_pct}
+            // Sin base de comparación (ayer = 0) no mostramos el % — coherente
+            // con el chip "sin ventas ayer" del hero.
+            delta={(kpis?.yesterday_total ?? 0) > 0 ? kpis?.delta_pct : undefined}
             data={weekly}
             onSeeAll={() => router.push('/(app)/analytics' as never)}
           />
@@ -293,7 +318,7 @@ export default function AdminGeneralDashboard() {
                 <ActivityRow
                   key={item.id}
                   item={item}
-                  onPress={() => router.push('/(app)/sales' as never)}
+                  onPress={() => router.push(`/(app)/sales/${item.id}` as never)}
                 />
               ))
             )}

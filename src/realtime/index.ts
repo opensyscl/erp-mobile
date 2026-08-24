@@ -10,8 +10,11 @@
  */
 export {
   disconnectRealtime,
+  getRealtimeState,
   onReconnected,
+  onRealtimeStateChange,
   subscribe,
+  type RealtimeState,
   type SubscribeHandle,
 } from './client';
 export * from './events';

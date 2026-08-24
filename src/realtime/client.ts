@@ -55,6 +55,36 @@ const channelCache = new Map<string, PusherChannel>();
 const refCount = new Map<string, number>();
 const reconnectedListeners = new Set<() => void>();
 
+/** Estado del socket, observable desde la UI (ej. panel de conexión en Ajustes). */
+export type RealtimeState =
+  | 'initialized'
+  | 'connecting'
+  | 'connected'
+  | 'unavailable'
+  | 'failed'
+  | 'disconnected';
+
+let currentState: RealtimeState = 'initialized';
+const stateListeners = new Set<(s: RealtimeState) => void>();
+
+/** Último estado conocido del WebSocket. */
+export function getRealtimeState(): RealtimeState {
+  return currentState;
+}
+
+/** Se suscribe a cambios de estado del WebSocket. Devuelve el unsubscribe. */
+export function onRealtimeStateChange(cb: (s: RealtimeState) => void): () => void {
+  stateListeners.add(cb);
+  return () => {
+    stateListeners.delete(cb);
+  };
+}
+
+function setRealtimeState(s: RealtimeState): void {
+  currentState = s;
+  stateListeners.forEach((cb) => cb(s));
+}
+
 function debugLog(...args: unknown[]): void {
   if (__DEV__) console.log(...args);
 }
@@ -130,6 +160,7 @@ function ensureClient(): PusherClient | null {
     let wasConnected = false;
     conn.bind('state_change', (states: { previous: string; current: string }) => {
       debugLog(`[realtime] WS state: ${states.previous} → ${states.current}`);
+      setRealtimeState(states.current as RealtimeState);
       if (states.current === 'connected') {
         if (wasConnected) {
           // Reconexión real: lo emitido mientras estuvimos caídos se perdió.
