@@ -1,68 +1,90 @@
-# Dev Setup — erp-mobile (WSL2 + Emulador Windows)
+# Dev Setup — erp-mobile (emulador NATIVO en WSL2)
 
-## Contexto
+> Reemplaza el setup anterior de "emulador en Windows + tunnels frágiles".
+> Ahora **todo corre dentro de WSL2**: emulador, adb y Metro.
 
-- Metro corre en **WSL2** (Ubuntu)
-- El emulador Android (Pixel 7, API 34) corre en **Windows** vía `emulator.exe`
-- La IP de WSL2 cambia en cada reinicio — no uses `REACT_NATIVE_PACKAGER_HOSTNAME`
-- La ruta de red WSL2 → emulador es lenta (~400ms), causa timeout en Expo Go
-- **Solución**: tunnel ADB que evita el routing de red por completo
+## Por qué cambió
 
----
+WSL2 expone `/dev/kvm` y WSLg, así que el emulador de Android corre **nativo en
+Linux con aceleración por hardware** y su ventana aparece en Windows sola.
+Se acabaron: la IP de WSL2 que cambia, los ~400 ms de latencia y los conflictos
+entre el adb de Windows y el de Linux.
 
-## Arranque (cada vez)
-
-### 1. Verificar que el emulador está conectado
+## Arranque
 
 ```bash
-adb devices
-# Debe mostrar: emulator-5554   device
+rn      # levanta emulador + tunnels + Metro (todo en uno)
 ```
 
-Si no aparece, iniciá el emulador desde Android Studio o `emulator.exe` en Windows y esperá que bootee.
-
-### 2. Activar los tunnels ADB
+En otra terminal, para abrir la app:
 
 ```bash
-adb reverse tcp:8081 tcp:8081
-adb reverse tcp:8082 tcp:8082
+rn-open
 ```
 
-Verificar que quedaron:
+Los helpers `rn`, `rn-open`, `rn-tunnels`, `emu` y `emu-stop` viven en `~/.zshrc`.
+
+## Los dos detalles que rompen todo
+
+### 1. `--offline` es obligatorio
+
+El proyecto tiene `extra.eas.projectId` en `app.json`. Sin sesión de Expo, al
+servir el manifest el CLI pide login, y en modo no interactivo **mata a Metro**
+con:
+
+```
+CommandError: Input is required, but 'npx expo' is in non-interactive mode.
+```
+
+El síntoma en el emulador es engañoso: `UpdateFailedToLoad` / "Something went
+wrong", que parece un problema de red pero no lo es.
+
+Dos salidas — cualquiera sirve:
 
 ```bash
-adb reverse --list
-# Debe mostrar ambos puertos
+npx expo start --go --offline    # lo que hace el helper `rn`
+npx expo login                   # arregla la causa de raíz, permanente
 ```
 
-> Los tunnels se pierden si el emulador se reinicia o adb se reconecta. Repetir este paso si la app deja de cargar.
+### 2. Los tunnels ADB deben existir antes de abrir la app
 
-### 3. Arrancar Expo
+`adb reverse` hace que `localhost` dentro del emulador apunte a WSL2, así el
+`.env` usa `localhost` tal cual sin IPs que cambian:
+
+| Puerto | Servicio |
+|--------|----------|
+| 8081   | Metro |
+| 8082   | Metro (secundario) |
+| 8000   | API del ERP (`EXPO_PUBLIC_API_URL`) |
+| 8080   | Reverb / websockets |
 
 ```bash
-npx expo start --localhost
+rn-tunnels    # re-arma los cuatro
 ```
 
-El `--localhost` es obligatorio. Sin él, Expo usa la IP de WSL2 y el emulador no puede alcanzarla confiablemente.
+Se pierden si el emulador reinicia o adb se reconecta. Si la app deja de cargar
+a mitad del desarrollo, corré `rn-tunnels` y recargá.
 
-### 4. Abrir en el emulador
+## Limitación conocida de Expo Go
 
-Con el foco en la terminal de Expo, presionar **`a`** para abrir en Android.
-
----
-
-## Si la app deja de cargar en medio del desarrollo
-
-El tunnel ADB se cayó (pasa si adb se reconecta). Repetir paso 2 y recargar la app (`r` en la terminal de Expo).
-
-## Si el emulador no aparece en `adb devices`
-
-Desde WSL2:
+`expo-notifications` **no** soporta push remoto en Expo Go desde el SDK 53. Para
+probar notificaciones necesitás un development build:
 
 ```bash
-adb kill-server
-adb start-server
-adb devices
+npx expo run:android     # requiere JDK 17
 ```
 
-Si sigue sin aparecer, verificar que el emulador esté corriendo en Windows y que adb de WSL2 y de Windows no estén en conflicto (no tener dos instancias de adb corriendo).
+## Requisitos
+
+- JDK 17 — `sudo apt install openjdk-17-jdk` (solo para builds de Gradle;
+  Expo Go **no** lo necesita)
+- Android SDK en `~/Android/Sdk` (ya instalado)
+- AVD `erp_pixel`: Android 14, x86_64, 4 GB RAM, teclado físico activado
+
+## Diagnóstico rápido
+
+```bash
+adb devices                 # emulator-5554  device
+adb reverse --list          # los cuatro puertos
+curl -s -o /dev/null -w '%{http_code}\n' localhost:8081   # 200
+```
