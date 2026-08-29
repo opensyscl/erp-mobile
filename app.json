@@ -46,7 +46,12 @@
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION"
       ],
-      "googleServicesFile": "./google-services.json"
+      "googleServicesFile": "./google-services.json",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyAEhUabxoyp8AdO_Ixp85GkNmfFK0PgaaU"
+        }
+      }
     },
     "platforms": [
       "ios",

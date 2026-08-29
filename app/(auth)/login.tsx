@@ -70,7 +70,10 @@ export default function LoginScreen() {
       Platform.OS === 'ios' ? 260 : 160,
     );
   };
-  const logoTap = useFourTapGesture(() => devEnvSheet.current?.present());
+  // Switcher de entorno: solo en dev. En producción el 4-tap no hace nada.
+  const logoTap = useFourTapGesture(() => {
+    if (__DEV__) devEnvSheet.current?.present();
+  });
 
   const setSlug = useTenantStore((s) => s.setSlug);
   // Tocás un user del sheet → rellena inputs + cierra el sheet + auto-login.
@@ -152,11 +155,33 @@ export default function LoginScreen() {
           {/* ───────────────── HERO azul ───────────────── */}
           <View style={{ backgroundColor: T.brand, paddingBottom: 44 }}>
             {/* Anillos decorativos sutiles */}
-            <View pointerEvents="none" style={{ position: 'absolute', top: -80, right: -60, opacity: 0.12 }}>
-              <View style={{ width: 220, height: 220, borderRadius: 110, borderWidth: 40, borderColor: '#FFFFFF' }} />
+            <View
+              pointerEvents="none"
+              style={{ position: 'absolute', top: -80, right: -60, opacity: 0.12 }}
+            >
+              <View
+                style={{
+                  width: 220,
+                  height: 220,
+                  borderRadius: 110,
+                  borderWidth: 40,
+                  borderColor: '#FFFFFF',
+                }}
+              />
             </View>
-            <View pointerEvents="none" style={{ position: 'absolute', top: 40, left: -70, opacity: 0.1 }}>
-              <View style={{ width: 160, height: 160, borderRadius: 80, borderWidth: 28, borderColor: '#FFFFFF' }} />
+            <View
+              pointerEvents="none"
+              style={{ position: 'absolute', top: 40, left: -70, opacity: 0.1 }}
+            >
+              <View
+                style={{
+                  width: 160,
+                  height: 160,
+                  borderRadius: 80,
+                  borderWidth: 28,
+                  borderColor: '#FFFFFF',
+                }}
+              />
             </View>
 
             {/* Back — chip translúcido */}
@@ -249,7 +274,13 @@ export default function LoginScreen() {
                   <Text style={{ color: '#FFFFFF', fontFamily: Fonts.medium, fontSize: 12.5 }}>
                     {slug}
                   </Text>
-                  <Text style={{ color: 'rgba(255,255,255,0.7)', fontFamily: Fonts.regular, fontSize: 11 }}>
+                  <Text
+                    style={{
+                      color: 'rgba(255,255,255,0.7)',
+                      fontFamily: Fonts.regular,
+                      fontSize: 11,
+                    }}
+                  >
                     · cambiar
                   </Text>
                 </Pressable>
@@ -273,9 +304,7 @@ export default function LoginScreen() {
             {/* Continuar con Google */}
             <Pressable
               haptic="selection"
-              onPress={() =>
-                toast.info('Google', 'El inicio con Google estará disponible pronto.')
-              }
+              onPress={() => toast.info('Google', 'El inicio con Google estará disponible pronto.')}
               style={{
                 height: 54,
                 borderRadius: 14,
@@ -289,13 +318,22 @@ export default function LoginScreen() {
               }}
             >
               <GoogleG size={18} />
-              <Text style={{ color: T.fg, fontFamily: Fonts.semibold, fontSize: 15, letterSpacing: -0.2 }}>
+              <Text
+                style={{
+                  color: T.fg,
+                  fontFamily: Fonts.semibold,
+                  fontSize: 15,
+                  letterSpacing: -0.2,
+                }}
+              >
                 Continuar con Google
               </Text>
             </Pressable>
 
             {/* Divider */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginVertical: 22 }}>
+            <View
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginVertical: 22 }}
+            >
               <View style={{ flex: 1, height: 1, backgroundColor: T.border }} />
               <Text style={{ color: T.fgSubtle, fontFamily: Fonts.regular, fontSize: 12.5 }}>
                 o con tu email
@@ -333,7 +371,12 @@ export default function LoginScreen() {
                     haptic="selection"
                     accessibilityLabel={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                     onPress={() => setShowPassword((v) => !v)}
-                    style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}
+                    style={{
+                      width: 44,
+                      height: 44,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
                   >
                     {showPassword ? (
                       <EyeOff size={18} color={T.fgSubtle} />
@@ -458,7 +501,9 @@ export default function LoginScreen() {
               }}
             >
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: T.success }} />
+                <View
+                  style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: T.success }}
+                />
                 <Text style={{ color: T.fgSubtle, fontFamily: Fonts.regular, fontSize: 11 }}>
                   Conexión segura · TLS
                 </Text>
@@ -622,7 +667,12 @@ function SubmitButton({ onPress, loading, label }: SubmitButtonProps) {
             />
           ) : null}
           <Text
-            style={{ color: T.brandFg, fontFamily: Fonts.semibold, fontSize: 15.5, letterSpacing: -0.2 }}
+            style={{
+              color: T.brandFg,
+              fontFamily: Fonts.semibold,
+              fontSize: 15.5,
+              letterSpacing: -0.2,
+            }}
           >
             {loading ? 'Verificando…' : label}
           </Text>
