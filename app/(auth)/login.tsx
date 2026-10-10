@@ -2,7 +2,6 @@ import { useRouter } from 'expo-router';
 import { type BottomSheetModal as BottomSheetModalType } from '@gorhom/bottom-sheet';
 import { forwardRef, useRef, useState, type ReactNode, type Ref } from 'react';
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -84,7 +83,8 @@ export default function LoginScreen() {
     demoSheet.current?.dismiss();
     try {
       await login({ email: em.trim(), password: pw, tenantSlug: slug });
-      toast.success('Bienvenido', `Sesión iniciada como ${em}`);
+      // Sin toast de bienvenida: la navegación al dashboard ya confirma el login
+      // y el card caía feo encima del hero azul.
     } catch (e) {
       if (e instanceof ApiError && (e.status === 422 || e.status === 401)) {
         toast.error('Credenciales incorrectas', `Revisa email/contraseña (tenant "${slug}")`);
@@ -117,7 +117,7 @@ export default function LoginScreen() {
     try {
       await login({ email: email.trim(), password, tenantSlug: slug });
       setFormError(null);
-      toast.success('Bienvenido', `Sesión iniciada como ${email.trim()}`);
+      // Sin toast de bienvenida: la navegación al dashboard ya confirma el login.
     } catch (e) {
       let msg: string;
       if (e instanceof ApiError) {
@@ -421,15 +421,7 @@ export default function LoginScreen() {
                 </Text>
               </Pressable>
 
-              <Pressable
-                haptic="selection"
-                onPress={() =>
-                  Alert.alert(
-                    'Recuperar contraseña',
-                    'Por seguridad, el restablecimiento lo realiza el administrador de tu cuenta. Contacta a soporte o al encargado de tu empresa.',
-                  )
-                }
-              >
+              <Pressable haptic="selection" onPress={() => router.push('/(auth)/forgot-password')}>
                 <Text style={{ color: T.brand, fontFamily: Fonts.semibold, fontSize: 13.5 }}>
                   ¿Olvidaste tu clave?
                 </Text>

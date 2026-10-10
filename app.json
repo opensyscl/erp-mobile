@@ -44,6 +44,12 @@
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO",
         "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "CAMERA",
+        "VIBRATE",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION"
       ],
       "googleServicesFile": "./google-services.json",
@@ -112,6 +118,12 @@
         "projectId": "a8bf7f76-36a7-4dc6-a872-ee741920371b"
       }
     },
-    "owner": "josbert26"
+    "owner": "josbert26",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/a8bf7f76-36a7-4dc6-a872-ee741920371b"
+    }
   }
 }

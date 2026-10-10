@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
 
+import { SubscriptionLockedOverlay } from '~/components/SubscriptionLockedOverlay';
 import { useDriverLocationTracking } from '~/hooks/useDriverLocationTracking';
 import { apiRequest } from '~/lib/api';
 import { queryKeys } from '~/lib/queryKeys';
@@ -50,13 +51,18 @@ export default function AppLayout() {
   });
 
   return (
-    <Stack
-      screenOptions={{
-        headerShown: false,
-        animation: 'slide_from_right',
-      }}
-    >
-      <Stack.Screen name="(tabs)" />
-    </Stack>
+    <>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          animation: 'slide_from_right',
+        }}
+      >
+        <Stack.Screen name="(tabs)" />
+      </Stack>
+
+      {/* Bloqueo "prueba terminada" — cubre toda la app si el tenant venció. */}
+      <SubscriptionLockedOverlay />
+    </>
   );
 }

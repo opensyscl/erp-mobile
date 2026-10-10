@@ -26,6 +26,8 @@ export interface Tenant {
   timezone: string;
   currency: string;
   modules: string[];
+  /** Prueba gratis vencida sin pago → mostrar overlay de bloqueo. */
+  system_locked?: boolean;
 }
 
 export interface Branch {

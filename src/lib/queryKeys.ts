@@ -70,4 +70,7 @@ export const queryKeys = {
   analytics: {
     year: ['analytics', 'year'] as const,
   },
+  plans: {
+    all: ['plans'] as const,
+  },
 } as const;
